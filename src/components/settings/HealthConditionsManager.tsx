@@ -1,0 +1,303 @@
+import { useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../../db'
+import type { BodyZone, HealthCondition } from '../../db/types'
+import { bodyZones } from '../../constants/body-zones'
+import { getDiagnosesForZone } from '../../data/rehab-protocols'
+import SymptomQuestionnaire, { type QuestionnaireResult } from '../onboarding/SymptomQuestionnaire'
+
+interface ConditionForm {
+  bodyZone: BodyZone
+  label: string
+  diagnosis: string
+  since: string
+  notes: string
+}
+
+const emptyForm = (zone: BodyZone): ConditionForm => ({
+  bodyZone: zone,
+  label: '',
+  diagnosis: '',
+  since: '',
+  notes: '',
+})
+
+const formFromCondition = (c: HealthCondition): ConditionForm => ({
+  bodyZone: c.bodyZone,
+  label: c.label,
+  diagnosis: c.diagnosis,
+  since: c.since,
+  notes: c.notes,
+})
+
+interface Props {
+  userId: number
+}
+
+export default function HealthConditionsManager({ userId }: Props) {
+  const conditions = useLiveQuery(
+    () => db.healthConditions.where('userId').equals(userId).toArray(),
+    [userId]
+  )
+
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [addingNew, setAddingNew] = useState(false)
+  const [expandedZone, setExpandedZone] = useState<BodyZone | null>(null)
+  const [form, setForm] = useState<ConditionForm | null>(null)
+  const [showQuestionnaire, setShowQuestionnaire] = useState<BodyZone | null>(null)
+
+  if (conditions === undefined) return null
+
+  const activeConditions = conditions.filter(c => c.isActive)
+
+  const handleEditCondition = (c: HealthCondition) => {
+    setEditingId(c.id!)
+    setForm(formFromCondition(c))
+    setAddingNew(false)
+    setExpandedZone(null)
+  }
+
+  const handleStartAdd = () => {
+    setAddingNew(true)
+    setEditingId(null)
+    setForm(null)
+    setExpandedZone(null)
+  }
+
+  const handleZoneTap = (zone: BodyZone) => {
+    if (expandedZone === zone) {
+      setExpandedZone(null)
+      setForm(null)
+    } else {
+      setExpandedZone(zone)
+      setForm(emptyForm(zone))
+      setEditingId(null)
+    }
+  }
+
+  const handleSaveEdit = async () => {
+    if (!form || editingId === null) return
+    const zoneName = bodyZones.find(z => z.zone === form.bodyZone)?.label ?? ''
+    const label = form.label.trim() || `Douleur ${zoneName}`
+    await db.healthConditions.update(editingId, {
+      label,
+      diagnosis: form.diagnosis,
+      since: form.since,
+      notes: form.notes,
+      isActive: true,
+    })
+    setEditingId(null)
+    setForm(null)
+  }
+
+  const handleSaveNew = async () => {
+    if (!form) return
+    const zoneName = bodyZones.find(z => z.zone === form.bodyZone)?.label ?? ''
+    const label = form.label.trim() || `Douleur ${zoneName}`
+
+    await db.healthConditions.add({
+      userId,
+      bodyZone: form.bodyZone,
+      label,
+      diagnosis: form.diagnosis,
+      since: form.since,
+      notes: form.notes,
+      isActive: true,
+      createdAt: new Date(),
+    })
+    setAddingNew(false)
+    setExpandedZone(null)
+    setForm(null)
+  }
+
+  const handleDeactivate = async (id: number) => {
+    await db.healthConditions.update(id, { isActive: false })
+    setEditingId(null)
+    setForm(null)
+  }
+
+  const handleCancel = () => {
+    setEditingId(null)
+    setAddingNew(false)
+    setExpandedZone(null)
+    setForm(null)
+  }
+
+  // Start QCM for current zone
+  const handleStartQCM = () => {
+    if (expandedZone) {
+      setShowQuestionnaire(expandedZone)
+    }
+  }
+
+  // Handle QCM completion
+  const handleQuestionnaireComplete = (result: QuestionnaireResult) => {
+    setForm({
+      bodyZone: result.zone,
+      label: result.conditionName,
+      diagnosis: result.protocolConditionName,
+      since: '',
+      notes: '',
+    })
+    setExpandedZone(result.zone)
+    setShowQuestionnaire(null)
+  }
+
+  const handleQuestionnaireCancel = () => {
+    setShowQuestionnaire(null)
+  }
+
+  // Show questionnaire if active
+  if (showQuestionnaire) {
+    return (
+      <SymptomQuestionnaire
+        zone={showQuestionnaire}
+        onComplete={handleQuestionnaireComplete}
+        onCancel={handleQuestionnaireCancel}
+      />
+    )
+  }
+
+  const renderForm = (onSave: () => void, existingId?: number) => {
+    if (!form) return null
+    const availableDiagnoses = getDiagnosesForZone(form.bodyZone)
+
+    return (
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
+        <h3 className="font-semibold text-sm text-white">
+          {bodyZones.find(z => z.zone === form.bodyZone)?.label}
+        </h3>
+
+        <div>
+          <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-2">
+            Qu'est-ce que tu as ?
+          </label>
+          <select
+            value={form.diagnosis}
+            onChange={e => {
+              const diagnosis = e.target.value
+              const label = diagnosis || `Douleur ${bodyZones.find(z => z.zone === form.bodyZone)?.label ?? ''}`
+              setForm({ ...form, diagnosis, label })
+            }}
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-zinc-600"
+          >
+            <option value="">Je sais pas (rehab general)</option>
+            {availableDiagnoses.map(d => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleStartQCM}
+          className="w-full py-3 rounded-xl text-sm font-medium bg-zinc-800 text-zinc-300 active:scale-[0.98] transition-all duration-150"
+        >
+          Faire le QCM pour trouver
+        </button>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onSave}
+            className="flex-1 bg-emerald-500 text-white font-bold py-3 rounded-xl text-sm active:scale-95 transition-all duration-200"
+          >
+            Enregistrer
+          </button>
+          {existingId !== undefined && (
+            <button
+              type="button"
+              onClick={() => handleDeactivate(existingId)}
+              className="px-4 py-3 rounded-xl text-sm font-semibold border border-red-900/50 text-red-400 bg-red-950/30 active:scale-95 transition-all duration-200"
+            >
+              Gueri
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="px-4 py-3 rounded-xl text-sm font-semibold bg-zinc-800 text-zinc-300 active:scale-95 transition-all duration-200"
+          >
+            Annuler
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-zinc-600 text-xs uppercase tracking-wider">
+        Mes conditions de sante
+      </p>
+
+      {/* Active conditions list */}
+      {activeConditions.length > 0 && editingId === null && !addingNew && (
+        <div className="space-y-2">
+          {activeConditions.map(c => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => handleEditCondition(c)}
+              className="w-full flex items-center justify-between bg-zinc-800 rounded-xl px-4 py-3 text-left active:scale-[0.98] transition-all duration-150"
+            >
+              <div>
+                <span className="text-sm text-white">{c.label}</span>
+                {c.diagnosis && (
+                  <span className="text-xs text-zinc-400 ml-2">{c.diagnosis}</span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeConditions.length === 0 && editingId === null && !addingNew && (
+        <p className="text-sm text-zinc-400">Aucune condition active.</p>
+      )}
+
+      {/* Edit existing condition */}
+      {editingId !== null && !addingNew && renderForm(handleSaveEdit, editingId)}
+
+      {/* Add new condition — zone picker */}
+      {addingNew && (
+        <div className="space-y-3">
+          <p className="text-sm text-zinc-400">Touche la zone concernee :</p>
+          <div className="flex flex-wrap gap-2">
+            {bodyZones.map(({ zone, label }) => (
+              <button
+                key={zone}
+                type="button"
+                onClick={() => handleZoneTap(zone)}
+                className={`px-3 py-2.5 rounded-xl text-sm font-medium border active:scale-[0.98] transition-all duration-150 ${
+                  expandedZone === zone
+                    ? 'bg-zinc-800 border-emerald-500/40 text-white'
+                    : 'bg-zinc-800 border-zinc-700 text-zinc-400'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {expandedZone && form && renderForm(
+            editingId !== null ? handleSaveEdit : handleSaveNew,
+            editingId ?? undefined
+          )}
+        </div>
+      )}
+
+      {/* Add button */}
+      {editingId === null && !addingNew && (
+        <button
+          type="button"
+          onClick={handleStartAdd}
+          className="w-full py-3 rounded-xl text-sm font-semibold bg-zinc-800 text-white active:scale-[0.98] transition-all duration-150"
+        >
+          + Ajouter une condition
+        </button>
+      )}
+
+    </div>
+  )
+}
