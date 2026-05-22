@@ -612,6 +612,9 @@ function buildUpperLowerSessions(
       && e.tags.includes('calves'),
   )
 
+  // Core exercises
+  const coreExercises = nonRehab.filter((e) => e.category === 'core')
+
   // Hip hinge: primaryMuscles includes 'ischio-jambiers' AND category is 'compound'
   const hipHinges = nonRehab.filter(
     (e) => e.category === 'compound'
@@ -693,7 +696,7 @@ function buildUpperLowerSessions(
   // Lower 1 — Quadriceps Focus
   // -----------------------------------------------------------------------
 
-  // Lower 1: 3 compounds + 3 isolations = 6 exercices
+  // Lower 1: 3 compounds + 3 isolations + 1 core = 7 exercices
   const lower1Slots: ExerciseSlot[] = [
     {
       label: 'Quad compound',
@@ -742,6 +745,14 @@ function buildUpperLowerSessions(
       sets: 3,
       reps: 12,
       rest: 90,
+    },
+    {
+      label: 'Core',
+      candidates: () => coreExercises,
+      preferredName: 'planche',
+      sets: 3,
+      reps: 15,
+      rest: 60,
     },
   ]
 
@@ -805,7 +816,7 @@ function buildUpperLowerSessions(
   // Lower 2 — Hamstring/Glute Focus
   // -----------------------------------------------------------------------
 
-  // Lower 2: 3 compounds + 3 isolations = 6 exercices (volume)
+  // Lower 2: 3 compounds + 3 isolations + 1 core = 7 exercices (volume)
   const lower2Slots: ExerciseSlot[] = [
     {
       label: 'Quad unilatéral',
@@ -850,6 +861,14 @@ function buildUpperLowerSessions(
     {
       label: 'Calf',
       candidates: () => calves,
+      sets: 3,
+      reps: 15,
+      rest: 60,
+    },
+    {
+      label: 'Core',
+      candidates: () => coreExercises,
+      preferredName: 'pallof press',
       sets: 3,
       reps: 15,
       rest: 60,

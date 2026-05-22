@@ -79,9 +79,9 @@ App.tsx :
 | FB A (Force) | 6 : quad, push H, pull H, push V, pull V, ischios |
 | FB B (Volume) | 7 : quad uni, push V, pull V, chest acc, fessiers, biceps, triceps |
 | FB C (Modéré) | 6 : uni legs, incline push, uni pull, latérales, ischios iso, core |
-| Lower Force | 6 : quad, uni leg, hinge, leg ext, leg curl, hip thrust |
+| Lower Force | 7 : quad, uni leg, hinge, leg ext, leg curl, hip thrust, core |
 | Upper Force | 6 : push H, pull H, push V, pull V, biceps, triceps |
-| Lower Volume | 6 : quad uni, hip thrust, quad compound, leg ext, leg curl, calf |
+| Lower Volume | 7 : quad uni, hip thrust, quad compound, leg ext, leg curl, calf, core |
 | Upper Volume | 8 : pull V, incliné, uni pull, écarté pecs, latérales, face pull, biceps, triceps |
 | Push A/B | 6 chacun |
 | Pull A/B | 6 chacun |
