@@ -127,8 +127,10 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
 
   const recent = filteredVolumes.slice(0, 12).reverse()
   const allTonnages = recent.map(s => s.tonnageKg)
-  const maxT = recent.length > 0 ? Math.max(...allTonnages) : 0
-  const minT = recent.length > 0 ? Math.min(...allTonnages) : 0
+  // Y axis starts at 0 (honest scale — small fluctuations look small).
+  // Headroom of 10% above max so the top point isn't glued to the frame.
+  const maxT = recent.length > 0 ? Math.max(...allTonnages) * 1.1 : 0
+  const minT = 0
   const range = maxT - minT || 1
 
   const W = 300
@@ -136,14 +138,25 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
   const PAD_X = 4
   const PAD_Y = 8
 
+  const xAt = (i: number) => PAD_X + (i / Math.max(recent.length - 1, 1)) * (W - PAD_X * 2)
+  const yAt = (val: number) => PAD_Y + (1 - (val - minT) / range) * (H - PAD_Y * 2)
+
   const linesByIntensity: Record<string, { x: number; y: number; sv: SessionVolume }[]> = {}
   recent.forEach((sv, i) => {
     const key = sv.intensity ?? 'moderate'
     if (!linesByIntensity[key]) linesByIntensity[key] = []
-    const x = PAD_X + (i / Math.max(recent.length - 1, 1)) * (W - PAD_X * 2)
-    const y = PAD_Y + (1 - (sv.tonnageKg - minT) / range) * (H - PAD_Y * 2)
-    linesByIntensity[key].push({ x, y, sv })
+    linesByIntensity[key].push({ x: xAt(i), y: yAt(sv.tonnageKg), sv })
   })
+
+  // 3-session moving average — only when ≥3 points so the trend is meaningful.
+  const trendPoints = recent.length >= 3
+    ? recent.map((_, i) => {
+        const start = Math.max(0, i - 2)
+        const window = recent.slice(start, i + 1)
+        const avg = window.reduce((sum, s) => sum + s.tonnageKg, 0) / window.length
+        return { x: xAt(i), y: yAt(avg) }
+      })
+    : []
 
   const activeKeys = Object.keys(linesByIntensity).filter(k => intensityStyle[k])
   const selectedInfo = selected && linesByIntensity[selected.key]?.[selected.idx]
@@ -233,6 +246,19 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
           )
         })}
 
+        {/* 3-session moving average trendline (dashed, behind the data lines) */}
+        {trendPoints.length >= 2 && (
+          <polyline
+            points={trendPoints.map(p => `${p.x},${p.y}`).join(' ')}
+            fill="none"
+            stroke="#a1a1aa"
+            strokeWidth="1.5"
+            strokeDasharray="4 3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+
         {/* Lines + dots per intensity */}
         {activeKeys.map(key => {
           const points = linesByIntensity[key]
@@ -278,7 +304,7 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
       </svg>
 
       {/* Legend */}
-      <div className="flex gap-4 mt-2">
+      <div className="flex gap-4 mt-2 flex-wrap">
         {activeKeys.map(key => {
           const cfg = intensityStyle[key]
           return (
@@ -288,6 +314,14 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
             </div>
           )
         })}
+        {trendPoints.length >= 2 && (
+          <div className="flex items-center gap-1.5">
+            <svg width="14" height="3" className="overflow-visible">
+              <line x1="0" y1="1.5" x2="14" y2="1.5" stroke="#a1a1aa" strokeWidth="1.5" strokeDasharray="3 2" />
+            </svg>
+            <span className="text-zinc-500 text-[10px] font-medium">Moyenne 3 séances</span>
+          </div>
+        )}
       </div>
         </>
       )}
