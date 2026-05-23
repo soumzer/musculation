@@ -39,8 +39,14 @@ import type {
  *        Pull-Through (3×8/60s), and Lower 1 Core (3×8/60s).
  *   v7 — Upper 1 Force slot order: Triceps now precedes Biceps (was the
  *        opposite). Sets/reps/rest unchanged.
+ *   v8 — New heavy-Core prescription rule (3×8/60s) handled globally in
+ *        buildStructuredSession, replacing the per-slot overrideIntensity
+ *        that Lower 1 Core was carrying. Legs A Force drops the Unilateral
+ *        legs slot (7 → 6). Legs B Volume reordered (Leg curl first, then
+ *        Hip thrust, then RDL at 3×12/90, Quad compound, Leg extension,
+ *        Calf).
  */
-export const ENGINE_VERSION = 7
+export const ENGINE_VERSION = 8
 
 // ---------------------------------------------------------------------------
 // Timing constants
@@ -347,6 +353,12 @@ function buildStructuredSession(
       // Heavy isolations (excluding Calf which stays volume-style): 3×8, 90s rest
       reps = 8
       rest = 90
+    } else if (intensity === 'heavy' && picked.category === 'core') {
+      // Heavy core: short reps & rest to keep a Force session crisp without
+      // pushing core into pure conditioning (was previously falling into the
+      // volume branch with reps≥15).
+      reps = 8
+      rest = 60
     } else if (intensity === 'moderate' && !isIsolationOrCore) {
       // Moderate compounds: keep slot reps, cap rest at 90s
       rest = Math.min(slot.rest, 90)
@@ -863,7 +875,6 @@ function buildUpperLowerSessions(
       sets: 3,
       reps: 8,
       rest: 60,
-      overrideIntensity: true,
     },
   ]
 
@@ -1423,7 +1434,7 @@ function buildPushPullLegsSessions(
   // Legs A — Quad Focus
   // -----------------------------------------------------------------------
 
-  // Legs A: 3 compounds + 3 isolations + 1 core = 7 exercices
+  // Legs A: 2 compounds + 2 isolations + 1 calf + 1 core = 6 exercices
   const legsASlots: ExerciseSlot[] = [
     {
       label: 'Quad compound',
@@ -1431,14 +1442,6 @@ function buildPushPullLegsSessions(
       preferredName: 'leg press',
       sets: 4,
       reps: 8,
-      rest: 150,
-    },
-    {
-      label: 'Unilateral legs',
-      candidates: () => unilateralLegs,
-      preferredName: 'fentes',
-      sets: 4,
-      reps: 10,
       rest: 150,
     },
     {
@@ -1478,7 +1481,7 @@ function buildPushPullLegsSessions(
       candidates: () => coreExercises,
       preferredName: ['pallof press', 'dead bug'],
       sets: 3,
-      reps: 15,
+      reps: 8,
       rest: 60,
     },
   ]
@@ -1490,12 +1493,12 @@ function buildPushPullLegsSessions(
   // Legs B: 3 compounds + 3 isolations = 6 exercices (volume, core on Legs A only)
   const legsBSlots: ExerciseSlot[] = [
     {
-      label: 'Hip hinge',
-      candidates: () => hipHinges,
-      preferredName: 'soulevé de terre roumain',
-      sets: 4,
-      reps: 10,
-      rest: 150,
+      label: 'Leg curl',
+      candidates: () => legCurls,
+      preferredName: 'leg curl',
+      sets: 3,
+      reps: 12,
+      rest: 60,
     },
     {
       label: 'Hip thrust',
@@ -1504,6 +1507,14 @@ function buildPushPullLegsSessions(
       sets: 4,
       reps: 10,
       rest: 150,
+    },
+    {
+      label: 'Hip hinge',
+      candidates: () => hipHinges,
+      preferredName: 'soulevé de terre roumain',
+      sets: 3,
+      reps: 12,
+      rest: 90,
     },
     {
       label: 'Quad compound',
@@ -1517,14 +1528,6 @@ function buildPushPullLegsSessions(
       label: 'Leg extension',
       candidates: () => quadIsolation,
       preferredName: 'leg extension',
-      sets: 3,
-      reps: 12,
-      rest: 60,
-    },
-    {
-      label: 'Leg curl',
-      candidates: () => legCurls,
-      preferredName: 'leg curl',
       sets: 3,
       reps: 12,
       rest: 60,
