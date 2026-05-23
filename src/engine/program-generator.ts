@@ -370,6 +370,8 @@ function buildStructuredSession(
       restSeconds: rest,
       isRehab: picked.isRehab,
       isTimeBased: isIsometric,
+      slotLabel: slot.label,
+      defaultExerciseId: picked.id ?? 0,
     })
   }
 
@@ -1621,6 +1623,8 @@ function buildSAProgram(
           targetReps: spec.reps,
           restSeconds: spec.rest,
           isRehab: false,
+          slotLabel: spec.name,
+          defaultExerciseId: exercise.id,
         })
       }
     }
@@ -1708,6 +1712,8 @@ function buildBodyweightProgram(
           restSeconds: spec.rest,
           isRehab: false,
           isTimeBased: spec.isTimeBased,
+          slotLabel: spec.name,
+          defaultExerciseId: exercise.id,
         })
       }
     }

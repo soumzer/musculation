@@ -1,13 +1,50 @@
 import { useCallback, useState } from 'react'
 import { db } from '../db'
 import { generateProgram, ENGINE_VERSION } from '../engine/program-generator'
+import type { ProgramSession, WorkoutProgram } from '../db/types'
+
+/**
+ * Re-apply user swaps from the previous program onto a freshly generated one.
+ *
+ * A swap is detected on the OLD program by `exerciseId !== defaultExerciseId`
+ * for a given ProgramExercise. We index those by (sessionName, slotLabel) and
+ * patch the matching slot in the new program. Slots that no longer exist
+ * (renamed/removed) silently drop their swap, which is the desired behavior
+ * when the program structure has changed.
+ */
+function applyUserSwaps(
+  newSessions: ProgramSession[],
+  oldProgram: WorkoutProgram | undefined,
+): ProgramSession[] {
+  if (!oldProgram) return newSessions
+  const swaps = new Map<string, number>() // key: "sessionName||slotLabel"
+  for (const oldSession of oldProgram.sessions) {
+    for (const ex of oldSession.exercises) {
+      if (!ex.slotLabel || ex.defaultExerciseId === undefined) continue
+      if (ex.exerciseId === ex.defaultExerciseId) continue
+      swaps.set(`${oldSession.name}||${ex.slotLabel}`, ex.exerciseId)
+    }
+  }
+  if (swaps.size === 0) return newSessions
+  return newSessions.map((s) => ({
+    ...s,
+    exercises: s.exercises.map((ex) => {
+      if (!ex.slotLabel) return ex
+      const key = `${s.name}||${ex.slotLabel}`
+      const swappedId = swaps.get(key)
+      if (swappedId === undefined) return ex
+      return { ...ex, exerciseId: swappedId }
+    }),
+  }))
+}
 
 /**
  * Hook that returns a function to regenerate the workout program.
  *
  * Used when health conditions change — reads current user profile, conditions,
  * equipment, weights, and the exercise catalog, then generates a fresh program
- * while deactivating (not deleting) the old one.
+ * while deactivating (not deleting) the old one. User swaps from the previous
+ * active program are preserved across regeneration.
  */
 export function useRegenerateProgram() {
   const [isRegenerating, setIsRegenerating] = useState(false)
@@ -47,6 +84,14 @@ export function useRegenerateProgram() {
         exerciseCatalog,
       )
 
+      // 6a. Read the previous active program (if any) so we can carry swaps over.
+      const previousProgram = await db.workoutPrograms
+        .where('userId').equals(userId)
+        .filter(p => p.isActive)
+        .first()
+
+      const patchedSessions = applyUserSwaps(generatedProgram.sessions, previousProgram)
+
       // 6b. Deactivate old + save new in a single transaction
       // Note: ProgramExercise is pure prescription (sets/reps/rest).
       // Progression data (weights) lives in WorkoutSession logs, not here.
@@ -67,7 +112,7 @@ export function useRegenerateProgram() {
           userId,
           name: generatedProgram.name,
           type: generatedProgram.type,
-          sessions: generatedProgram.sessions,
+          sessions: patchedSessions,
           isActive: true,
           createdAt: new Date(),
           engineVersion: ENGINE_VERSION,

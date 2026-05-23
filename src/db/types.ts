@@ -121,6 +121,19 @@ export interface ProgramExercise {
   restSeconds: number
   isRehab: boolean
   isTimeBased?: boolean // true for isometric exercises (plank, etc.) - targetReps = seconds
+  /**
+   * Slot identifier from the generator (e.g. 'Quad compound', 'Core'). Stable
+   * across slot reordering — used to re-apply user swaps when the program is
+   * regenerated. Optional for backward compat with programs created before
+   * swap preservation was introduced.
+   */
+  slotLabel?: string
+  /**
+   * The exercise the generator originally selected for this slot. Unchanged
+   * by user swaps. A divergence between `exerciseId` and `defaultExerciseId`
+   * marks an active user swap that should survive regenerations.
+   */
+  defaultExerciseId?: number
 }
 
 // Actual workout session (logged)
