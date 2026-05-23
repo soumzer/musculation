@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
 import { useDashboardData, type ExerciseHistory, type SessionVolume } from '../hooks/useDashboardData'
@@ -105,11 +105,30 @@ function ExerciseRow({ exercise }: { exercise: ExerciseHistory }) {
 function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
   const [expanded, setExpanded] = useState(false)
   const [selected, setSelected] = useState<{ key: string; idx: number } | null>(null)
+  const [sessionFilter, setSessionFilter] = useState<string | null>(null) // null = all
 
-  const recent = sessionVolumes.slice(0, 12).reverse()
+  // Unique session names (most recent first) with counts. Volumes without
+  // a resolved name are grouped under '__unknown'.
+  const sessionNames = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const sv of sessionVolumes) {
+      const key = sv.sessionName ?? '__unknown'
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }))
+  }, [sessionVolumes])
+
+  const filteredVolumes = useMemo(() => {
+    if (sessionFilter === null) return sessionVolumes
+    return sessionVolumes.filter(sv => (sv.sessionName ?? '__unknown') === sessionFilter)
+  }, [sessionVolumes, sessionFilter])
+
+  const recent = filteredVolumes.slice(0, 12).reverse()
   const allTonnages = recent.map(s => s.tonnageKg)
-  const maxT = Math.max(...allTonnages)
-  const minT = Math.min(...allTonnages)
+  const maxT = recent.length > 0 ? Math.max(...allTonnages) : 0
+  const minT = recent.length > 0 ? Math.min(...allTonnages) : 0
   const range = maxT - minT || 1
 
   const W = 300
@@ -130,6 +149,9 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
   const selectedInfo = selected && linesByIntensity[selected.key]?.[selected.idx]
   const selectedCfg = selected ? intensityStyle[selected.key] : null
 
+  // Reset selection when filter changes — its (key, idx) is now stale.
+  useEffect(() => { setSelected(null) }, [sessionFilter])
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
@@ -142,6 +164,46 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
         </button>
       </div>
 
+      {/* Filter chips */}
+      {sessionNames.length > 1 && (
+        <div className="flex gap-1.5 mb-3 overflow-x-auto -mx-1 px-1 pb-1">
+          <button
+            onClick={() => setSessionFilter(null)}
+            className={`flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors ${
+              sessionFilter === null
+                ? 'bg-emerald-500 text-zinc-950'
+                : 'bg-zinc-800 text-zinc-400 active:bg-zinc-700'
+            }`}
+          >
+            Toutes
+          </button>
+          {sessionNames.map(({ name, count }) => {
+            const label = name === '__unknown' ? '?' : name
+            const isActive = sessionFilter === name
+            return (
+              <button
+                key={name}
+                onClick={() => setSessionFilter(name)}
+                className={`flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors whitespace-nowrap ${
+                  isActive
+                    ? 'bg-emerald-500 text-zinc-950'
+                    : 'bg-zinc-800 text-zinc-400 active:bg-zinc-700'
+                }`}
+              >
+                {label} <span className={isActive ? 'text-zinc-700' : 'text-zinc-600'}>({count})</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Empty state for current filter */}
+      {recent.length === 0 ? (
+        <div className="text-zinc-600 text-xs py-6 text-center">
+          Aucune séance pour ce filtre
+        </div>
+      ) : (
+        <>
       {/* Selected point tooltip */}
       {selectedInfo && selectedCfg && (
         <div className="flex items-center gap-2 mb-2 text-xs">
@@ -227,6 +289,8 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
           )
         })}
       </div>
+        </>
+      )}
     </div>
   )
 }

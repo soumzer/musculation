@@ -22,6 +22,13 @@ export interface SessionVolume {
   tonnageKg: number
   exerciseCount: number
   intensity: 'heavy' | 'volume' | 'moderate' | null
+  /**
+   * Name of the workout session (e.g. 'Lower 1 — Force'). Derived from a
+   * matching WorkoutSession on the same calendar day, with a fallback to
+   * inferring from the active program's exercise overlap. Undefined when
+   * neither source can resolve a name.
+   */
+  sessionName?: string
 }
 
 export interface DashboardData {
@@ -50,6 +57,25 @@ export function useDashboardData(userId: number | undefined): DashboardData {
 
     if (allEntries.length === 0) {
       return { ...emptyData, isLoading: false }
+    }
+
+    // Companion sources used to attach a sessionName to each day's tonnage:
+    //   1. Formal WorkoutSession records (when the user clicked "Terminer")
+    //   2. The active program — for days with notebook entries but no formal
+    //      session, we match by exerciseId overlap (same heuristic as Calendar)
+    const formalSessions = await db.workoutSessions
+      .where('userId').equals(userId)
+      .toArray()
+    const activeProgram = await db.workoutPrograms
+      .where('userId').equals(userId)
+      .filter(p => p.isActive)
+      .first()
+    const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+    const formalByDay = new Map<string, string>()
+    for (const ws of formalSessions) {
+      const ref = ws.completedAt ?? ws.startedAt
+      const d = ref instanceof Date ? ref : new Date(ref)
+      formalByDay.set(dayKey(d), ws.sessionName)
     }
 
     // Group by exerciseName (more reliable than exerciseId, handles rehab exercises with id=0)
@@ -120,11 +146,11 @@ export function useDashboardData(userId: number | undefined): DashboardData {
     for (const entry of allEntries) {
       if (entry.skipped || entry.sets.length === 0) continue
       const d = entry.date instanceof Date ? entry.date : new Date(entry.date)
-      const dayKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
-      if (!byDay.has(dayKey)) {
-        byDay.set(dayKey, { date: d, tonnage: 0, exerciseIds: new Set(), intensities: new Map() })
+      const key = dayKey(d)
+      if (!byDay.has(key)) {
+        byDay.set(key, { date: d, tonnage: 0, exerciseIds: new Set(), intensities: new Map() })
       }
-      const day = byDay.get(dayKey)!
+      const day = byDay.get(key)!
       for (const s of entry.sets) {
         day.tonnage += s.weightKg * s.reps
       }
@@ -133,15 +159,30 @@ export function useDashboardData(userId: number | undefined): DashboardData {
         day.intensities.set(entry.sessionIntensity, (day.intensities.get(entry.sessionIntensity) ?? 0) + 1)
       }
     }
-    const sessionVolumes: SessionVolume[] = [...byDay.values()]
-      .map(d => {
+    const sessionVolumes: SessionVolume[] = [...byDay.entries()]
+      .map(([key, d]) => {
         // Dominant intensity = most frequent
         let intensity: 'heavy' | 'volume' | 'moderate' | null = null
         let maxCount = 0
         for (const [k, v] of d.intensities) {
           if (v > maxCount) { maxCount = v; intensity = k as 'heavy' | 'volume' | 'moderate' }
         }
-        return { date: d.date, tonnageKg: Math.round(d.tonnage), exerciseCount: d.exerciseIds.size, intensity }
+        // Resolve session name: formal WorkoutSession first, then infer from
+        // exerciseId overlap with the active program's sessions (≥2 matches
+        // to avoid false positives on warmup-only or near-empty days).
+        let sessionName = formalByDay.get(key)
+        if (!sessionName && activeProgram) {
+          let bestName: string | undefined
+          let bestScore = 0
+          for (const s of activeProgram.sessions) {
+            const sIds = new Set(s.exercises.map(pe => pe.exerciseId))
+            let score = 0
+            for (const id of d.exerciseIds) { if (sIds.has(id)) score++ }
+            if (score > bestScore) { bestScore = score; bestName = s.name }
+          }
+          if (bestScore >= 2) sessionName = bestName
+        }
+        return { date: d.date, tonnageKg: Math.round(d.tonnage), exerciseCount: d.exerciseIds.size, intensity, sessionName }
       })
       .sort((a, b) => b.date.getTime() - a.date.getTime())
 
