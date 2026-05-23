@@ -107,23 +107,29 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
   const [selected, setSelected] = useState<{ key: string; idx: number } | null>(null)
   const [sessionFilter, setSessionFilter] = useState<string | null>(null) // null = all
 
-  // Unique session names (most recent first) with counts. Volumes without
-  // a resolved name are grouped under '__unknown'.
+  // Drop volumes we couldn't tag with a session name — they're either old data
+  // from a previous program structure or ad-hoc days that don't map to anything
+  // in the current program. Showing them as '?' was more confusing than useful.
+  const identifiedVolumes = useMemo(
+    () => sessionVolumes.filter(sv => sv.sessionName !== undefined),
+    [sessionVolumes],
+  )
+
+  // Unique session names with counts, sorted by frequency.
   const sessionNames = useMemo(() => {
     const counts = new Map<string, number>()
-    for (const sv of sessionVolumes) {
-      const key = sv.sessionName ?? '__unknown'
-      counts.set(key, (counts.get(key) ?? 0) + 1)
+    for (const sv of identifiedVolumes) {
+      counts.set(sv.sessionName!, (counts.get(sv.sessionName!) ?? 0) + 1)
     }
     return [...counts.entries()]
       .sort((a, b) => b[1] - a[1])
       .map(([name, count]) => ({ name, count }))
-  }, [sessionVolumes])
+  }, [identifiedVolumes])
 
   const filteredVolumes = useMemo(() => {
-    if (sessionFilter === null) return sessionVolumes
-    return sessionVolumes.filter(sv => (sv.sessionName ?? '__unknown') === sessionFilter)
-  }, [sessionVolumes, sessionFilter])
+    if (sessionFilter === null) return identifiedVolumes
+    return identifiedVolumes.filter(sv => sv.sessionName === sessionFilter)
+  }, [identifiedVolumes, sessionFilter])
 
   const recent = filteredVolumes.slice(0, 12).reverse()
   const allTonnages = recent.map(s => s.tonnageKg)
@@ -187,7 +193,7 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
             Toutes
           </button>
           {sessionNames.map(({ name, count }) => {
-            const label = name === '__unknown' ? '?' : name
+            const label = name
             const isActive = sessionFilter === name
             return (
               <button
