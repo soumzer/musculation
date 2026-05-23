@@ -96,8 +96,10 @@ function sanitizePainReport(r: Record<string, unknown>, userId: number): Omit<Pa
   }
 }
 
-function sanitizeExercise(e: Record<string, unknown>): Omit<Exercise, 'id'> {
+function sanitizeExercise(e: Record<string, unknown>): Exercise {
   return {
+    // Preserve original id so programs/notebook entries remain consistent after import
+    id: e.id !== undefined && Number(e.id) > 0 ? Number(e.id) : undefined,
     name: String(e.name ?? ''),
     category: String(e.category ?? 'compound') as Exercise['category'],
     primaryMuscles: Array.isArray(e.primaryMuscles) ? e.primaryMuscles.map(String) : [],
@@ -245,7 +247,7 @@ export async function importData(json: string): Promise<number> {
         )
       }
       if (data.exercises?.length) {
-        await db.exercises.bulkAdd(
+        await db.exercises.bulkPut(
           (data.exercises as Record<string, unknown>[]).map(e => sanitizeExercise(e))
         )
       }

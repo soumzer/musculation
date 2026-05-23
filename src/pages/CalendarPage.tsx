@@ -29,6 +29,8 @@ const STATUS_CELL: Record<DayStatus, string> = {
 interface DayData {
   sessions: WorkoutSession[]
   rehabDone: NotebookEntry[]
+  // Fallback when session was done but "Terminer" was never clicked
+  muscuEntries: NotebookEntry[]
 }
 
 // ---------------------------------------------------------------------------
@@ -39,7 +41,7 @@ const toDate = (d: Date | string): Date => (d instanceof Date ? d : new Date(d))
 
 function dayStatus(d?: DayData): DayStatus | null {
   if (!d) return null
-  if (d.sessions.length > 0) return 'muscu'
+  if (d.sessions.length > 0 || d.muscuEntries.length > 0) return 'muscu'
   if (d.rehabDone.length > 0) return 'rehab'
   return null
 }
@@ -72,6 +74,16 @@ export default function CalendarPage() {
       : []),
     [userId],
   )
+  // Muscu notebook entries — fallback for sessions where "Terminer" was never clicked
+  const allMuscuEntries = useLiveQuery(
+    () => (userId
+      ? db.notebookEntries
+          .where('userId').equals(userId)
+          .filter(e => e.sessionIntensity !== 'rehab' && !e.skipped && e.sets.length > 0)
+          .toArray()
+      : []),
+    [userId],
+  )
 
   const [view, setView] = useState(() => {
     const now = new Date()
@@ -93,16 +105,27 @@ export default function CalendarPage() {
     const get = (day: number): DayData => {
       let d = map.get(day)
       if (!d) {
-        d = { sessions: [], rehabDone: [] }
+        d = { sessions: [], rehabDone: [], muscuEntries: [] }
         map.set(day, d)
       }
       return d
     }
+    const sessionDays = new Set<number>()
     for (const s of allSessions ?? []) {
       if (!s.completedAt) continue
       const d = toDate(s.completedAt)
       if (d.getFullYear() === view.year && d.getMonth() === view.month) {
         get(d.getDate()).sessions.push(s)
+        sessionDays.add(d.getDate())
+      }
+    }
+    // Fallback: mark muscu days from notebook entries when no session record exists
+    for (const e of allMuscuEntries ?? []) {
+      const d = toDate(e.date)
+      if (d.getFullYear() === view.year && d.getMonth() === view.month) {
+        if (!sessionDays.has(d.getDate())) {
+          get(d.getDate()).muscuEntries.push(e)
+        }
       }
     }
     for (const e of allRehab ?? []) {
@@ -113,10 +136,10 @@ export default function CalendarPage() {
       }
     }
     return map
-  }, [allSessions, allRehab, view])
+  }, [allSessions, allRehab, allMuscuEntries, view])
 
   // Loading
-  if (!user || allSessions === undefined || allRehab === undefined) {
+  if (!user || allSessions === undefined || allRehab === undefined || allMuscuEntries === undefined) {
     return (
       <div className="flex items-center justify-center h-[var(--content-h)]">
         <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
@@ -232,7 +255,7 @@ function LegendDot({ className, label }: { className: string; label: string }) {
 }
 
 function DaySummary({ data, label }: { data: DayData; label: string }) {
-  // --- Muscu day ---
+  // --- Muscu day (with full session record) ---
   if (data.sessions.length > 0) {
     const s = data.sessions[0]
     const done = s.exercises.filter(e => e.status === 'completed')
@@ -260,6 +283,29 @@ function DaySummary({ data, label }: { data: DayData; label: string }) {
             ))}
           </div>
         )}
+      </div>
+    )
+  }
+
+  // --- Muscu day (fallback: only notebook entries, no session record) ---
+  if (data.muscuEntries.length > 0) {
+    const exerciseNames = [...new Set(data.muscuEntries.map(e => e.exerciseName))]
+    return (
+      <div className={CARD}>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <p className="text-zinc-600 text-xs uppercase tracking-wider mb-0.5">{label}</p>
+            <p className="text-white font-bold">Séance</p>
+          </div>
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 flex-shrink-0">
+            {exerciseNames.length} exercice{exerciseNames.length > 1 ? 's' : ''}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {exerciseNames.map((n, i) => (
+            <span key={i} className="text-xs text-zinc-300 bg-zinc-800 rounded-lg px-2 py-1">{n}</span>
+          ))}
+        </div>
       </div>
     )
   }
