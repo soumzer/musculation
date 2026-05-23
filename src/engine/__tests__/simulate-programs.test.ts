@@ -349,7 +349,7 @@ describe('Fix verification: programme generator corrections', () => {
     expect(name).toContain('incliné')
   })
 
-  it('Fix 3 — Heavy sessions: compound rest is 150s (v4)', () => {
+  it('Fix 3 — Heavy sessions: compound rest is 120–150s (v4+, v6 allows slot override)', () => {
     const program = generateProgram(
       { userId: 1, conditions: [], equipment: fullEquipment, daysPerWeek: 4, minutesPerSession: 60 },
       catalog,
@@ -360,7 +360,10 @@ describe('Fix verification: programme generator corrections', () => {
     for (const session of heavySessions) {
       const compounds = session.exercises.filter(ex => categoryOf(ex.exerciseId) === 'compound')
       for (const ex of compounds) {
-        expect(ex.restSeconds).toBe(150)
+        // v4 default is 150s; v6 allows overrideIntensity to drop to 120s
+        // for select hip-hinge accessories. Never lower than 120s in heavy.
+        expect(ex.restSeconds).toBeGreaterThanOrEqual(120)
+        expect(ex.restSeconds).toBeLessThanOrEqual(150)
       }
     }
   })

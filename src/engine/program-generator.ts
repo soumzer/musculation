@@ -32,8 +32,13 @@ import type {
  *   v5 — Upper 2 Volume slot order reshuffled: chest work first (incline,
  *        écarté pecs), then pull (vertical, unilateral), then isolations,
  *        then Core. Sets/reps/rest unchanged.
+ *   v6 — Lower 1 Force reworked: dropped Unilateral leg and Fessiers slots
+ *        (was 7 → now 6). New Cable Pull-Through slot before Core. Slots
+ *        with custom prescription gain a new `overrideIntensity` flag that
+ *        bypasses the global heavy/volume transform; used by RDL (120s rest),
+ *        Pull-Through (3×8/60s), and Lower 1 Core (3×8/60s).
  */
-export const ENGINE_VERSION = 5
+export const ENGINE_VERSION = 6
 
 // ---------------------------------------------------------------------------
 // Timing constants
@@ -220,6 +225,13 @@ export interface ExerciseSlot {
   reps: number
   /** Rest in seconds */
   rest: number
+  /**
+   * When true, the session intensity adjustment in buildStructuredSession is
+   * skipped for this slot — the prescribed sets/reps/rest are used verbatim.
+   * Use sparingly, only when a slot needs to defy the global heavy/volume
+   * defaults (e.g. a hip thrust accessory at 3×8/60s inside a Force session).
+   */
+  overrideIntensity?: boolean
 }
 
 /**
@@ -322,7 +334,9 @@ function buildStructuredSession(
     let sets = slot.sets
 
     const isIsolationOrCore = picked.category === 'isolation' || picked.category === 'core'
-    if (intensity === 'heavy' && !isIsolationOrCore) {
+    if (slot.overrideIntensity) {
+      // Slot opts out of the global intensity adjustment — use values verbatim.
+    } else if (intensity === 'heavy' && !isIsolationOrCore) {
       // Heavy compounds: low reps, 150s rest (compound strength), +1 set
       reps = Math.min(slot.reps, 6)
       rest = 150
@@ -722,6 +736,12 @@ function buildUpperLowerSessions(
     ),
   )
 
+  // Cable pull-through (categorized as isolation in the catalog but used as
+  // a glute accessory slot in Force sessions).
+  const pullThroughs = nonRehab.filter(
+    (e) => e.name.toLowerCase().includes('pull-through'),
+  )
+
   // Horizontal push: pectoraux compound
   const horizontalPush = nonRehab.filter(
     (e) => e.category === 'compound' && exercisesForMuscles([e], ['pectoraux']).length > 0,
@@ -788,63 +808,58 @@ function buildUpperLowerSessions(
   // Lower 1 — Quadriceps Focus
   // -----------------------------------------------------------------------
 
-  // Lower 1: 3 compounds + 3 isolations + 1 core = 7 exercices
+  // Lower 1: 2 compounds + 2 quad/ham isolations + 1 glute accessory + 1 core = 6 exercices
   const lower1Slots: ExerciseSlot[] = [
     {
       label: 'Quad compound',
       candidates: () => quadCompounds,
       preferredName: 'leg press',
       sets: 4,
-      reps: 8,
-      rest: 150,
-    },
-    {
-      label: 'Unilateral leg',
-      candidates: () => unilateralLegs,
-      preferredName: 'fentes',
-      sets: 4,
-      reps: 10,
+      reps: 6,
       rest: 150,
     },
     {
       label: 'Hip hinge',
       candidates: () => hipHinges,
       preferredName: 'soulevé de terre roumain',
-      sets: 3,
-      reps: 10,
-      rest: 150,
+      sets: 4,
+      reps: 6,
+      rest: 120,
+      overrideIntensity: true,
     },
     {
       label: 'Leg extension',
       candidates: () => quadIsolation,
       preferredName: 'leg extension',
       sets: 3,
-      reps: 12,
-      rest: 60,
+      reps: 8,
+      rest: 90,
     },
     {
       label: 'Leg curl',
       candidates: () => legCurls,
       preferredName: 'leg curl',
       sets: 3,
-      reps: 12,
-      rest: 60,
+      reps: 8,
+      rest: 90,
     },
     {
-      label: 'Fessiers',
-      candidates: () => [...hipThrusts, ...hipHinges],
-      preferredName: 'hip thrust',
+      label: 'Hip thrust câble',
+      candidates: () => pullThroughs,
+      preferredName: 'pull-through',
       sets: 3,
-      reps: 12,
-      rest: 90,
+      reps: 8,
+      rest: 60,
+      overrideIntensity: true,
     },
     {
       label: 'Core',
       candidates: () => coreExercises,
       preferredName: ['pallof press', 'dead bug'],
       sets: 3,
-      reps: 15,
+      reps: 8,
       rest: 60,
+      overrideIntensity: true,
     },
   ]
 
