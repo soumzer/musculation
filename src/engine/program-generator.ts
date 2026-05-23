@@ -7,6 +7,24 @@ import type {
 } from '../db/types'
 
 // ---------------------------------------------------------------------------
+// Engine version
+// ---------------------------------------------------------------------------
+
+/**
+ * Monotonically increasing version of the program generator's output structure.
+ * Bump this whenever a change to the generator would produce a materially
+ * different program (slot composition, prescribed sets/reps/rest, fallback
+ * behavior, etc.). Stored on each WorkoutProgram so the app can detect when
+ * a user's cached program is from an older engine and auto-regenerate.
+ *
+ * History:
+ *   v1 — initial release.
+ *   v2 — Lower 2 dropped Core slot (now 6), Upper 2 added Core slot (now 9);
+ *        buildStructuredSession fallback respects upper/lower body region.
+ */
+export const ENGINE_VERSION = 2
+
+// ---------------------------------------------------------------------------
 // Timing constants
 // ---------------------------------------------------------------------------
 

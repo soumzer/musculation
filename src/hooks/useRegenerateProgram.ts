@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { db } from '../db'
-import { generateProgram } from '../engine/program-generator'
+import { generateProgram, ENGINE_VERSION } from '../engine/program-generator'
 
 /**
  * Hook that returns a function to regenerate the workout program.
@@ -70,6 +70,7 @@ export function useRegenerateProgram() {
           sessions: generatedProgram.sessions,
           isActive: true,
           createdAt: new Date(),
+          engineVersion: ENGINE_VERSION,
         })
       })
 
@@ -141,6 +142,7 @@ export function useRegenerateProgram() {
           sessions: generatedProgram.sessions,
           isActive: true,
           createdAt: new Date(),
+          engineVersion: ENGINE_VERSION,
         })
       })
 

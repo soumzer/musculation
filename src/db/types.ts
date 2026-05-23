@@ -90,6 +90,12 @@ export interface WorkoutProgram {
   sessions: ProgramSession[]
   isActive: boolean
   createdAt: Date
+  /**
+   * Version of the program generator that produced this program. Used to detect
+   * when a user's cached program is from an older engine and trigger an
+   * automatic regeneration. Missing/undefined = pre-versioning (treated as v1).
+   */
+  engineVersion?: number
 }
 
 export type SessionIntensity = 'heavy' | 'moderate' | 'volume'

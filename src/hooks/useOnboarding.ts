@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { db } from '../db'
 import type { HealthCondition, GymEquipment } from '../db/types'
-import { generateProgram } from '../engine/program-generator'
+import { generateProgram, ENGINE_VERSION } from '../engine/program-generator'
 
 export interface OnboardingState {
   step: number
@@ -93,6 +93,7 @@ export function useOnboarding() {
       sessions: generatedProgram.sessions,
       isActive: true,
       createdAt: new Date(),
+      engineVersion: ENGINE_VERSION,
     })
 
     return userId
