@@ -299,7 +299,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['ischio-jambiers', 'core'],
     equipmentNeeded: ['bench', 'barbell'],
     contraindications: ['hip_left', 'hip_right'],
-    alternatives: ['Hip thrust haltère', 'Hip thrust smith machine', 'Glute bridge'],
+    alternatives: ['Hip thrust haltère', 'Hip thrust smith machine', 'Glute bridge', 'Pull-through câble (tirage entre les jambes)'],
     instructions:
       'Haut du dos appuyé sur un banc, barre sur les hanches (avec coussin). Pieds à plat, genoux à 90°. Poussez les hanches vers le plafond en serrant les fessiers. Descendez lentement. Ne cambrez pas le bas du dos.',
     isRehab: false,
@@ -312,7 +312,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['ischio-jambiers', 'core'],
     equipmentNeeded: ['bench', 'dumbbells'],
     contraindications: ['hip_left', 'hip_right'],
-    alternatives: ['Hip thrust barre', 'Hip thrust smith machine', 'Glute bridge'],
+    alternatives: ['Hip thrust barre', 'Hip thrust smith machine', 'Glute bridge', 'Pull-through câble (tirage entre les jambes)'],
     instructions:
       'Haut du dos appuyé sur un banc, un haltère posé sur les hanches (maintenu avec les mains). Pieds à plat, genoux à 90°. Poussez les hanches vers le plafond en serrant les fessiers. Descendez lentement. Bonne alternative quand la barre n\'est pas disponible.',
     isRehab: false,
@@ -325,7 +325,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['ischio-jambiers', 'core'],
     equipmentNeeded: ['resistance_band'],
     contraindications: ['hip_left', 'hip_right'],
-    alternatives: ['Glute bridge', 'Hip thrust haltère', 'Hip thrust barre'],
+    alternatives: ['Glute bridge', 'Hip thrust haltère', 'Hip thrust barre', 'Pull-through câble (tirage entre les jambes)'],
     instructions:
       'Assis au sol, dos contre un banc ou un support stable, bande élastique passée au-dessus des hanches et ancrée au sol sous les pieds. Poussez les hanches vers le plafond contre la résistance de la bande. Serrez les fessiers en haut, redescendez lentement. Idéal en home gym ou en voyage.',
     isRehab: false,
@@ -1149,7 +1149,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['ischio-jambiers', 'core'],
     equipmentNeeded: ['smith_machine', 'bench'],
     contraindications: ['hip_left', 'hip_right'],
-    alternatives: ['Hip thrust barre', 'Hip thrust haltère', 'Glute bridge'],
+    alternatives: ['Hip thrust barre', 'Hip thrust haltère', 'Glute bridge', 'Pull-through câble (tirage entre les jambes)'],
     instructions:
       'Placez un banc perpendiculaire à la Smith machine. Haut du dos appuyé sur le banc, barre sur les hanches (avec coussin). Pieds à plat, genoux à 90°. Décrochez la barre et poussez les hanches vers le plafond en serrant les fessiers. Descendez lentement. La Smith machine stabilise le mouvement et permet de charger lourd en sécurité.',
     isRehab: false,
@@ -1352,7 +1352,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['érecteurs du rachis', 'core'],
     equipmentNeeded: ['cable', 'rope_attachment'],
     contraindications: ['lower_back'],
-    alternatives: ['Kettlebell swing', 'Soulevé de terre roumain haltères', 'Hip thrust smith machine'],
+    alternatives: ['Kettlebell swing', 'Soulevé de terre roumain haltères', 'Hip thrust barre', 'Hip thrust haltère', 'Hip thrust smith machine'],
     instructions:
       'Dos au câble bas, enjambez la corde, pieds largeur épaules. Saisissez la corde entre les jambes. Basculez les hanches vers l\'arrière (hip hinge), genoux légèrement fléchis, puis projetez les hanches vers l\'avant en contractant les fessiers. Le câble maintient une tension constante sur les fessiers. Bon exercice d\'apprentissage du hip hinge. 3 séries de 12-15 répétitions.',
     isRehab: false,
