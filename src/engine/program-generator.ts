@@ -21,8 +21,13 @@ import type {
  *   v1 — initial release.
  *   v2 — Lower 2 dropped Core slot (now 6), Upper 2 added Core slot (now 9);
  *        buildStructuredSession fallback respects upper/lower body region.
+ *   v3 — Full Body B gained a Core slot (now 8). Force Core slots prefer
+ *        pallof press with dead bug fallback. Volume Core slots prefer dead
+ *        bug. Calf slots prefer the smith machine variant when available
+ *        and fall back to the bodyweight version. preferredName accepts
+ *        a string-array priority list.
  */
-export const ENGINE_VERSION = 2
+export const ENGINE_VERSION = 3
 
 // ---------------------------------------------------------------------------
 // Timing constants
@@ -162,15 +167,20 @@ function pickOne(source: Exercise[], usedIds: Set<number>): Exercise | undefined
   return undefined
 }
 
-/** Pick the first exercise matching name fragment, falling back to the source list */
+/**
+ * Pick the first exercise matching a name fragment (or any of several
+ * fragments tried in priority order), falling back to a random pick from
+ * the source list.
+ */
 function pickPreferred(
-  nameFragment: string,
+  nameFragment: string | string[],
   fallbackSource: Exercise[],
   usedIds: Set<number>,
 ): Exercise | undefined {
-  const preferred = findByName(fallbackSource, nameFragment)
-  if (preferred && preferred.id !== undefined) {
-    if (!usedIds.has(preferred.id)) {
+  const fragments = Array.isArray(nameFragment) ? nameFragment : [nameFragment]
+  for (const frag of fragments) {
+    const preferred = findByName(fallbackSource, frag)
+    if (preferred && preferred.id !== undefined && !usedIds.has(preferred.id)) {
       usedIds.add(preferred.id)
       return preferred
     }
@@ -189,8 +199,15 @@ export interface ExerciseSlot {
   label: string
   /** Function that returns candidate exercises for this slot */
   candidates: (pool: Exercise[]) => Exercise[]
-  /** Preferred exercise name fragment to try first */
-  preferredName?: string
+  /**
+   * Preferred exercise name fragment(s) to try first.
+   * Accepts either a single string or an array of strings tried in priority
+   * order. The first match found in the candidate pool wins; if none match,
+   * the picker falls back to a random pick from the candidates. Useful when
+   * an exercise depends on optional equipment (e.g. cable, smith machine)
+   * and we want a deterministic bodyweight backup.
+   */
+  preferredName?: string | string[]
   /** Prescribed sets */
   sets: number
   /** Prescribed target reps */
@@ -499,7 +516,7 @@ function buildFullBodySessions(
   // Full Body B
   // -----------------------------------------------------------------------
 
-  // Full Body B: 3 compounds + 4 isolations = 7 exercices (volume profile)
+  // Full Body B: 3 compounds + 4 isolations + 1 core = 8 exercices (volume profile)
   const fullBodyBSlots: ExerciseSlot[] = [
     {
       label: 'Quad unilatéral',
@@ -555,6 +572,14 @@ function buildFullBodySessions(
       preferredName: 'extension poulie haute',
       sets: 3,
       reps: 12,
+      rest: 60,
+    },
+    {
+      label: 'Core',
+      candidates: () => coreExercises,
+      preferredName: 'dead bug',
+      sets: 3,
+      reps: 15,
       rest: 60,
     },
   ]
@@ -806,7 +831,7 @@ function buildUpperLowerSessions(
     {
       label: 'Core',
       candidates: () => coreExercises,
-      preferredName: 'planche',
+      preferredName: ['pallof press', 'dead bug'],
       sets: 3,
       reps: 15,
       rest: 60,
@@ -918,6 +943,7 @@ function buildUpperLowerSessions(
     {
       label: 'Calf',
       candidates: () => calves,
+      preferredName: ['mollets debout smith machine', 'mollets debout poids de corps'],
       sets: 3,
       reps: 15,
       rest: 60,
@@ -997,7 +1023,7 @@ function buildUpperLowerSessions(
     {
       label: 'Core',
       candidates: () => coreExercises,
-      preferredName: 'pallof press',
+      preferredName: 'dead bug',
       sets: 3,
       reps: 15,
       rest: 60,
@@ -1301,7 +1327,7 @@ function buildPushPullLegsSessions(
     {
       label: 'Core',
       candidates: () => coreExercises,
-      preferredName: 'pallof press',
+      preferredName: ['pallof press', 'dead bug'],
       sets: 3,
       reps: 15,
       rest: 60,
@@ -1413,6 +1439,7 @@ function buildPushPullLegsSessions(
     {
       label: 'Calf',
       candidates: () => calves,
+      preferredName: ['mollets debout smith machine', 'mollets debout poids de corps'],
       sets: 3,
       reps: 15,
       rest: 60,
@@ -1420,7 +1447,7 @@ function buildPushPullLegsSessions(
     {
       label: 'Core',
       candidates: () => coreExercises,
-      preferredName: 'planche',
+      preferredName: ['pallof press', 'dead bug'],
       sets: 3,
       reps: 15,
       rest: 60,
@@ -1476,6 +1503,7 @@ function buildPushPullLegsSessions(
     {
       label: 'Calf',
       candidates: () => calves,
+      preferredName: ['mollets debout smith machine', 'mollets debout poids de corps'],
       sets: 3,
       reps: 15,
       rest: 60,

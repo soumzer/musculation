@@ -8,7 +8,7 @@ import type { WorkoutProgram, ActiveSessionState } from '../db/types'
 const userId = 1
 
 async function addProgram(engineVersion: number | undefined): Promise<number> {
-  return await db.workoutPrograms.add({
+  const id = await db.workoutPrograms.add({
     userId,
     name: 'Test Program',
     type: 'upper_lower',
@@ -17,6 +17,7 @@ async function addProgram(engineVersion: number | undefined): Promise<number> {
     createdAt: new Date(),
     ...(engineVersion !== undefined ? { engineVersion } : {}),
   } as WorkoutProgram)
+  return id as number
 }
 
 async function addActiveSession(programId: number) {
@@ -24,7 +25,7 @@ async function addActiveSession(programId: number) {
     id: 1,
     programId,
     sessionIndex: 0,
-    phase: 'in_progress',
+    phase: 'exercises',
     currentExerciseIdx: 0,
     exerciseStatuses: [],
     sessionStartTime: new Date(),
@@ -32,7 +33,7 @@ async function addActiveSession(programId: number) {
     draftSets: [],
     restTimerEndTime: null,
     updatedAt: new Date(),
-  } as ActiveSessionState)
+  } satisfies ActiveSessionState)
 }
 
 // Wait long enough for the hook's async effect to settle, then assert no upgrade.

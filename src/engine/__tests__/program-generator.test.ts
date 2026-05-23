@@ -1591,9 +1591,9 @@ describe('Full Body structured sessions', () => {
       expect(ids).toContain(203)
       // Vertical pull
       expect(ids).toContain(213)
-      // 6-7 exercises (7 if unilateral legs available in catalog, 6 otherwise)
+      // 6-8 exercises (8 if unilateral legs available in catalog, 6 otherwise)
       expect(fbB.exercises.length).toBeGreaterThanOrEqual(6)
-      expect(fbB.exercises.length).toBeLessThanOrEqual(7)
+      expect(fbB.exercises.length).toBeLessThanOrEqual(8)
     })
 
     it('no duplicates within any session', () => {
@@ -1603,10 +1603,10 @@ describe('Full Body structured sessions', () => {
       }
     })
 
-    it('each session has fixed slot count (6-7)', () => {
+    it('each session has fixed slot count (6-8)', () => {
       for (const session of result2.sessions) {
         expect(session.exercises.length).toBeGreaterThanOrEqual(6)
-        expect(session.exercises.length).toBeLessThanOrEqual(7)
+        expect(session.exercises.length).toBeLessThanOrEqual(8)
       }
     })
   })
