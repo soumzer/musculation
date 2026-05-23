@@ -37,8 +37,10 @@ import type {
  *        with custom prescription gain a new `overrideIntensity` flag that
  *        bypasses the global heavy/volume transform; used by RDL (120s rest),
  *        Pull-Through (3×8/60s), and Lower 1 Core (3×8/60s).
+ *   v7 — Upper 1 Force slot order: Triceps now precedes Biceps (was the
+ *        opposite). Sets/reps/rest unchanged.
  */
-export const ENGINE_VERSION = 6
+export const ENGINE_VERSION = 7
 
 // ---------------------------------------------------------------------------
 // Timing constants
@@ -904,20 +906,20 @@ function buildUpperLowerSessions(
       rest: 120,
     },
     {
-      label: 'Biceps',
-      candidates: () => bicepsExercises,
-      preferredName: 'curl biceps',
-      sets: 3,
-      reps: 10,
-      rest: 90,
-    },
-    {
       label: 'Triceps',
       candidates: () => tricepsExercises,
       preferredName: 'extension poulie haute',
       sets: 3,
       reps: 12,
       rest: 60,
+    },
+    {
+      label: 'Biceps',
+      candidates: () => bicepsExercises,
+      preferredName: 'curl biceps',
+      sets: 3,
+      reps: 10,
+      rest: 90,
     },
   ]
 
