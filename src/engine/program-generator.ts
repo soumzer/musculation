@@ -1162,11 +1162,6 @@ function buildPushPullLegsSessions(
     (e) => e.category === 'compound' && exercisesForMuscles([e], ['quadriceps']).length > 0,
   )
 
-  // Unilateral legs
-  const unilateralLegs = nonRehab.filter(
-    (e) => e.category === 'compound' && e.tags.includes('unilateral') && e.tags.includes('lower_body'),
-  )
-
   // Leg curl
   const legCurls = nonRehab.filter(
     (e) => e.name.toLowerCase().includes('leg curl'),
