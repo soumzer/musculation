@@ -291,14 +291,14 @@ export default function ExerciseNotebook({
                 const dateStr = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`
                 const colors = entry.sessionIntensity ? INTENSITY_COLORS[entry.sessionIntensity] : null
                 return (
-                  <div key={entry.id ?? i} className="flex items-center gap-2 text-sm">
+                  <div key={entry.id ?? i} className="flex items-start gap-2 text-sm">
                     <span className="text-zinc-500 w-12 flex-shrink-0 tabular-nums">{dateStr}</span>
                     {colors && (
                       <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md flex-shrink-0 ${colors.bg} ${colors.text}`}>
                         {colors.label}
                       </span>
                     )}
-                    <span className="text-white truncate">
+                    <span className="text-white break-words min-w-0 flex-1">
                       {entry.sets.map(s => `${s.weightKg}kg × ${s.reps}`).join(' · ')}
                     </span>
                   </div>
