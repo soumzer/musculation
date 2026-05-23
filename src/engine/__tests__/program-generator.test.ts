@@ -775,9 +775,9 @@ describe('Upper/Lower structured sessions', () => {
       expect(new Set(ids).size).toBe(ids.length)
     })
 
-    it('has between 5 and 8 exercises', () => {
+    it('has between 5 and 9 exercises', () => {
       expect(upper2.exercises.length).toBeGreaterThanOrEqual(5)
-      expect(upper2.exercises.length).toBeLessThanOrEqual(8)
+      expect(upper2.exercises.length).toBeLessThanOrEqual(9)
     })
   })
 
@@ -785,11 +785,11 @@ describe('Upper/Lower structured sessions', () => {
   // Cross-session invariants
   // -----------------------------------------------------------------------
   describe('Cross-session invariants', () => {
-    it('upper force has 6 exercises, upper volume has 8', () => {
+    it('upper force has 6 exercises, upper volume has 9', () => {
       const upper1 = getSession(result, 'upper 1')
       const upper2 = getSession(result, 'upper 2')
       expect(upper1.exercises.length).toBe(6)
-      expect(upper2.exercises.length).toBe(8)
+      expect(upper2.exercises.length).toBe(9)
     })
 
     it('no exercise ID duplicated within any single session', () => {
@@ -799,10 +799,10 @@ describe('Upper/Lower structured sessions', () => {
       }
     })
 
-    it('every session has between 5 and 8 exercises', () => {
+    it('every session has between 5 and 9 exercises', () => {
       for (const session of result.sessions) {
         expect(session.exercises.length).toBeGreaterThanOrEqual(5)
-        expect(session.exercises.length).toBeLessThanOrEqual(8)
+        expect(session.exercises.length).toBeLessThanOrEqual(9)
       }
     })
 

@@ -197,12 +197,45 @@ export function estimateSessionMinutes(exercises: ProgramExercise[]): number {
   return Math.round(totalSec / 60) + 10 // +10 min for warmup + cooldown
 }
 
+// Muscle keywords used to constrain fallback picks by body region.
+// Core muscles are intentionally neutral (allowed in any session).
+const UPPER_MUSCLE_KEYWORDS = [
+  'pectoraux',
+  'dorsaux',
+  'rhomboïdes',
+  'deltoïdes',
+  'biceps',
+  'brachial',
+  'brachioradial',
+  'triceps',
+  'grand rond',
+  'trapèzes',
+]
+const LOWER_MUSCLE_KEYWORDS = [
+  'quadriceps',
+  'ischio-jambiers',
+  'fessiers',
+  'moyen fessier',
+  'petit fessier',
+  'gastrocnémiens',
+  'soléaire',
+  'mollets',
+]
+
+function isUpperBodyExercise(e: Exercise): boolean {
+  return exercisesForMuscles([e], UPPER_MUSCLE_KEYWORDS).length > 0
+}
+function isLowerBodyExercise(e: Exercise): boolean {
+  return exercisesForMuscles([e], LOWER_MUSCLE_KEYWORDS).length > 0
+}
+
 function buildStructuredSession(
   name: string,
   order: number,
   slots: ExerciseSlot[],
   pool: Exercise[],
   intensity?: import('../db/types').SessionIntensity,
+  bodyPart: 'upper' | 'lower' | 'full' = 'full',
 ): ProgramSession {
   const usedIds = new Set<number>()
   const programExercises: ProgramExercise[] = []
@@ -221,11 +254,17 @@ function buildStructuredSession(
     // Fallback — the slot's specific candidate pool is empty (e.g. all its
     // exercises were filtered out by the user's equipment). Rather than
     // dropping the slot (which leaves the session short), fill it with any
-    // unused non-rehab exercise, preferring compounds.
+    // unused non-rehab exercise, preferring compounds. Respect the session's
+    // body region: an Upper session must never fall back to leg exercises.
     if (!picked) {
-      const unused = pool.filter(
+      let unused = pool.filter(
         (e) => e.id !== undefined && !usedIds.has(e.id) && !e.isRehab,
       )
+      if (bodyPart === 'upper') {
+        unused = unused.filter((e) => !isLowerBodyExercise(e))
+      } else if (bodyPart === 'lower') {
+        unused = unused.filter((e) => !isUpperBodyExercise(e))
+      }
       const compounds = unused.filter((e) => e.category === 'compound')
       picked = pickOne(compounds.length > 0 ? compounds : unused, usedIds)
     }
@@ -564,13 +603,13 @@ function buildFullBodySessions(
 
   // DUP: Day A = heavy, Day B = volume, Day C = moderate
   const sessions: ProgramSession[] = [
-    buildStructuredSession('Full Body A — Force', 1, fullBodyASlots, available, 'heavy'),
-    buildStructuredSession('Full Body B — Volume', 2, fullBodyBSlots, available, 'volume'),
+    buildStructuredSession('Full Body A — Force', 1, fullBodyASlots, available, 'heavy', 'full'),
+    buildStructuredSession('Full Body B — Volume', 2, fullBodyBSlots, available, 'volume', 'full'),
   ]
 
   if (daysPerWeek >= 3) {
     sessions.push(
-      buildStructuredSession('Full Body C — Moderé', 3, fullBodyCSlots, available, 'moderate'),
+      buildStructuredSession('Full Body C — Moderé', 3, fullBodyCSlots, available, 'moderate', 'full'),
     )
   }
 
@@ -816,7 +855,7 @@ function buildUpperLowerSessions(
   // Lower 2 — Hamstring/Glute Focus
   // -----------------------------------------------------------------------
 
-  // Lower 2: 3 compounds + 3 isolations + 1 core = 7 exercices (volume)
+  // Lower 2: 3 compounds + 3 isolations = 6 exercices (volume)
   const lower2Slots: ExerciseSlot[] = [
     {
       label: 'Quad unilatéral',
@@ -865,21 +904,13 @@ function buildUpperLowerSessions(
       reps: 15,
       rest: 60,
     },
-    {
-      label: 'Core',
-      candidates: () => coreExercises,
-      preferredName: 'pallof press',
-      sets: 3,
-      reps: 15,
-      rest: 60,
-    },
   ]
 
   // -----------------------------------------------------------------------
   // Upper 2 — Pull Focus (with push for 2x/week chest frequency)
   // -----------------------------------------------------------------------
 
-  // Upper 2: 3 compounds + 5 isolations = 8 exercices (volume)
+  // Upper 2: 3 compounds + 5 isolations + 1 core = 9 exercices (volume)
   const upper2Slots: ExerciseSlot[] = [
     {
       label: 'Vertical pull',
@@ -945,6 +976,14 @@ function buildUpperLowerSessions(
       reps: 12,
       rest: 60,
     },
+    {
+      label: 'Core',
+      candidates: () => coreExercises,
+      preferredName: 'pallof press',
+      sets: 3,
+      reps: 15,
+      rest: 60,
+    },
   ]
 
   // -----------------------------------------------------------------------
@@ -954,10 +993,10 @@ function buildUpperLowerSessions(
   // DUP: Session 1 & 2 = heavy (fewer reps, more weight)
   //      Session 3 & 4 = volume (more reps, less weight)
   const sessions: ProgramSession[] = [
-    buildStructuredSession('Lower 1 — Force', 1, lower1Slots, available, 'heavy'),
-    buildStructuredSession('Upper 1 — Force', 2, upper1Slots, available, 'heavy'),
-    buildStructuredSession('Lower 2 — Volume', 3, lower2Slots, available, 'volume'),
-    buildStructuredSession('Upper 2 — Volume', 4, upper2Slots, available, 'volume'),
+    buildStructuredSession('Lower 1 — Force', 1, lower1Slots, available, 'heavy', 'lower'),
+    buildStructuredSession('Upper 1 — Force', 2, upper1Slots, available, 'heavy', 'upper'),
+    buildStructuredSession('Lower 2 — Volume', 3, lower2Slots, available, 'volume', 'lower'),
+    buildStructuredSession('Upper 2 — Volume', 4, upper2Slots, available, 'volume', 'upper'),
   ]
 
   return sessions
@@ -1431,12 +1470,12 @@ function buildPushPullLegsSessions(
 
   // DUP: A sessions = heavy, B sessions = volume
   return [
-    buildStructuredSession('Push A — Force', 1, pushASlots, available, 'heavy'),
-    buildStructuredSession('Pull A — Force', 2, pullASlots, available, 'heavy'),
-    buildStructuredSession('Legs A — Force', 3, legsASlots, available, 'heavy'),
-    buildStructuredSession('Push B — Volume', 4, pushBSlots, available, 'volume'),
-    buildStructuredSession('Pull B — Volume', 5, pullBSlots, available, 'volume'),
-    buildStructuredSession('Legs B — Volume', 6, legsBSlots, available, 'volume'),
+    buildStructuredSession('Push A — Force', 1, pushASlots, available, 'heavy', 'upper'),
+    buildStructuredSession('Pull A — Force', 2, pullASlots, available, 'heavy', 'upper'),
+    buildStructuredSession('Legs A — Force', 3, legsASlots, available, 'heavy', 'lower'),
+    buildStructuredSession('Push B — Volume', 4, pushBSlots, available, 'volume', 'upper'),
+    buildStructuredSession('Pull B — Volume', 5, pullBSlots, available, 'volume', 'upper'),
+    buildStructuredSession('Legs B — Volume', 6, legsBSlots, available, 'volume', 'lower'),
   ]
 }
 

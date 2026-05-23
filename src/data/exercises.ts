@@ -549,7 +549,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: [],
     equipmentNeeded: ['hip_abduction'],
     contraindications: ['hip_left', 'hip_right'],
-    alternatives: [],
+    alternatives: ['Pont fessier', 'Hip thrust élastique'],
     instructions:
       'Assise à la machine, dos droit. Ouvrez les jambes contre la résistance en contractant les fessiers latéraux. Contrôlez le retour. Important pour la stabilité du genou et la marche.',
     isRehab: false,
@@ -3250,7 +3250,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['ischio-jambiers', 'mollets'],
     equipmentNeeded: [],
     contraindications: ['knee_left', 'knee_right'],
-    alternatives: [],
+    alternatives: ['Squat bulgare poids de corps', 'Squat sumo poids de corps', 'Fentes poids de corps'],
     instructions:
       "Pieds largeur d'épaules, pointes légèrement ouvertes. Descendre en poussant les hanches en arrière jusqu'à ce que les cuisses soient parallèles au sol. Garder le dos droit et les talons au sol.",
     isRehab: false,
@@ -3263,7 +3263,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['ischio-jambiers'],
     equipmentNeeded: [],
     contraindications: ['knee_left', 'knee_right', 'hip_left', 'hip_right'],
-    alternatives: [],
+    alternatives: ['Squat poids de corps', 'Squat bulgare poids de corps'],
     instructions:
       "Pieds largement écartés (1.5x largeur d'épaules), pointes à 45°. Descendre en gardant les genoux dans l'axe des pieds. Accentue le travail des adducteurs et fessiers.",
     isRehab: false,
@@ -3276,7 +3276,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['ischio-jambiers'],
     equipmentNeeded: [],
     contraindications: ['knee_left', 'knee_right', 'ankle_left', 'ankle_right'],
-    alternatives: [],
+    alternatives: ['Squat bulgare poids de corps', 'Squat poids de corps'],
     instructions:
       'Grand pas en avant, descendre jusqu\'à ce que le genou arrière frôle le sol. Le genou avant ne dépasse pas la pointe du pied. Alterner les jambes.',
     isRehab: false,
@@ -3289,7 +3289,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['ischio-jambiers'],
     equipmentNeeded: [],
     contraindications: ['knee_left', 'knee_right', 'ankle_left', 'ankle_right'],
-    alternatives: [],
+    alternatives: ['Fentes poids de corps', 'Squat poids de corps'],
     instructions:
       'Pied arrière surélevé sur une chaise ou un banc. Descendre en contrôlant jusqu\'à ce que le genou arrière frôle le sol. Garder le buste droit.',
     isRehab: false,
@@ -3332,7 +3332,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['triceps', 'deltoïdes antérieurs'],
     equipmentNeeded: [],
     contraindications: ['shoulder_left', 'shoulder_right', 'wrist_left', 'wrist_right'],
-    alternatives: [],
+    alternatives: ['Pompes inclinées', 'Pompes pieds surélevés', 'Pompes diamant'],
     instructions:
       'Mains légèrement plus larges que les épaules. Corps gainé en planche. Descendre la poitrine au sol, coudes à 45°. Remonter en poussant fort.',
     isRehab: false,
@@ -3345,7 +3345,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['triceps', 'deltoïdes antérieurs'],
     equipmentNeeded: [],
     contraindications: ['shoulder_left', 'shoulder_right', 'wrist_left', 'wrist_right'],
-    alternatives: [],
+    alternatives: ['Pompes classiques', 'Pompes inclinées', 'Pompes diamant'],
     instructions:
       'Pieds surélevés sur un banc ou une chaise (30-45cm). Accentue le travail du haut des pectoraux et des deltoïdes. Descendre la poitrine au sol.',
     isRehab: false,
@@ -3358,7 +3358,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['triceps', 'deltoïdes antérieurs'],
     equipmentNeeded: [],
     contraindications: ['shoulder_left', 'shoulder_right', 'wrist_left', 'wrist_right'],
-    alternatives: [],
+    alternatives: ['Pompes classiques', 'Pompes pieds surélevés'],
     instructions:
       'Mains surélevées sur un banc ou un rebord. Version plus facile, cible le bas des pectoraux. Idéal pour les débutants ou en fin de série.',
     isRehab: false,
@@ -3371,7 +3371,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['pectoraux', 'deltoïdes antérieurs'],
     equipmentNeeded: [],
     contraindications: ['shoulder_left', 'shoulder_right', 'wrist_left', 'wrist_right', 'elbow_left', 'elbow_right'],
-    alternatives: [],
+    alternatives: ['Pompes classiques', 'Pompes pieds surélevés'],
     instructions:
       'Mains rapprochées sous la poitrine, pouces et index formant un losange. Coudes près du corps. Accentue le travail des triceps.',
     isRehab: false,
@@ -3384,7 +3384,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['triceps', 'trapèzes'],
     equipmentNeeded: [],
     contraindications: ['shoulder_left', 'shoulder_right', 'wrist_left', 'wrist_right'],
-    alternatives: [],
+    alternatives: ['Pompes diamant', 'Pompes classiques'],
     instructions:
       'Position en V inversé, hanches hautes, tête entre les bras. Descendre le front vers le sol en pliant les coudes. Remplace le développé militaire sans matériel.',
     isRehab: false,
@@ -3401,7 +3401,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['biceps', 'trapèzes'],
     equipmentNeeded: [],
     contraindications: ['shoulder_left', 'shoulder_right'],
-    alternatives: [],
+    alternatives: ['Traction (pull-up)', 'Chin-up (traction supination)'],
     instructions:
       'Sous une barre basse ou une table solide. Corps en planche, tirer la poitrine vers la barre. Plus les pieds sont avancés, plus c\'est difficile. Alternative aux tractions sans barre de traction.',
     isRehab: false,

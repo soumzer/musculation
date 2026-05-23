@@ -184,7 +184,7 @@ describe('E2E flow: onboarding -> programme -> notebook session -> dashboard', (
       )
       for (const session of upperSessions) {
         expect(session.exercises.length).toBeGreaterThanOrEqual(4)
-        expect(session.exercises.length).toBeLessThanOrEqual(8)
+        expect(session.exercises.length).toBeLessThanOrEqual(9)
       }
     })
 
