@@ -81,12 +81,12 @@ function ExerciseRow({ exercise }: { exercise: ExerciseHistory }) {
             }
             const ist = entry.sessionIntensity ? intensityStyle[entry.sessionIntensity] : null
             return (
-              <div key={entry.id ?? i} className="flex items-center gap-2 text-xs">
+              <div key={entry.id ?? i} className="flex items-start gap-2 text-xs">
                 <span className="text-zinc-600 w-12 flex-shrink-0 tabular-nums">{formatDate(d)}</span>
                 {ist && (
                   <span className={`font-bold w-3 flex-shrink-0 ${ist.text}`}>{ist.letter}</span>
                 )}
-                <span className="text-zinc-300 truncate">
+                <span className="text-zinc-300 break-words min-w-0 flex-1">
                   {entry.sets.map(s => `${s.weightKg}kg\u00d7${s.reps}`).join(' \u00b7 ')}
                 </span>
               </div>
