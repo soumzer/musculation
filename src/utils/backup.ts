@@ -96,10 +96,8 @@ function sanitizePainReport(r: Record<string, unknown>, userId: number): Omit<Pa
   }
 }
 
-function sanitizeExercise(e: Record<string, unknown>): Exercise {
+function sanitizeExercise(e: Record<string, unknown>): Omit<Exercise, 'id'> {
   return {
-    // Preserve original id so programs/notebook entries remain consistent after import
-    id: e.id !== undefined && Number(e.id) > 0 ? Number(e.id) : undefined,
     name: String(e.name ?? ''),
     category: String(e.category ?? 'compound') as Exercise['category'],
     primaryMuscles: Array.isArray(e.primaryMuscles) ? e.primaryMuscles.map(String) : [],
@@ -212,11 +210,10 @@ export async function importData(json: string): Promise<number> {
      db.exerciseNotes, db.notebookEntries, db.painReports,
      db.activeSession, db.rehabHistory],
     async () => {
-      await Promise.all([
+      const clearOps: Promise<void>[] = [
         db.userProfiles.clear(),
         db.healthConditions.clear(),
         db.gymEquipment.clear(),
-        db.exercises.clear(),
         db.workoutPrograms.clear(),
         db.workoutSessions.clear(),
         db.exerciseNotes.clear(),
@@ -224,7 +221,11 @@ export async function importData(json: string): Promise<number> {
         db.painReports.clear(),
         db.activeSession.clear(),
         db.rehabHistory.clear(),
-      ])
+      ]
+      // Only clear exercises when the backup actually contains them.
+      // Old backups (v2) have none — keep the seeded catalog intact.
+      if (data.exercises?.length) clearOps.push(db.exercises.clear())
+      await Promise.all(clearOps)
 
       const profile = data.profile as Record<string, unknown>
       const profileData: Omit<UserProfile, 'id'> = {
@@ -246,16 +247,28 @@ export async function importData(json: string): Promise<number> {
           (data.equipment as Record<string, unknown>[]).map(e => sanitizeEquipment(e, userId))
         )
       }
+      // Build exerciseId map: backup_id → new_db_id (so all references stay consistent)
+      const exerciseIdMap = new Map<number, number>()
       if (data.exercises?.length) {
-        await db.exercises.bulkPut(
-          (data.exercises as Record<string, unknown>[]).map(e => sanitizeExercise(e))
-        )
+        const rawExercises = data.exercises as Record<string, unknown>[]
+        const backupIds = rawExercises.map(e => Number(e.id ?? 0))
+        const sanitized = rawExercises.map(e => sanitizeExercise(e))
+        const newIds = await db.exercises.bulkAdd(sanitized, { allKeys: true }) as number[]
+        backupIds.forEach((bid, i) => { if (bid > 0) exerciseIdMap.set(bid, newIds[i]) })
       }
+      const remapEx = (id: number) => exerciseIdMap.get(id) ?? id
+
       const programIdMap = new Map<number, number>()
       if (data.programs?.length) {
         for (const p of data.programs as Record<string, unknown>[]) {
           const oldId = Number(p.id ?? 0)
-          const newId = await db.workoutPrograms.add(sanitizeProgram(p, userId)) as number
+          const sanitized = sanitizeProgram(p, userId)
+          // Remap exerciseIds inside each program session
+          sanitized.sessions = sanitized.sessions.map(s => ({
+            ...s,
+            exercises: s.exercises.map(pe => ({ ...pe, exerciseId: remapEx(pe.exerciseId) })),
+          }))
+          const newId = await db.workoutPrograms.add(sanitized) as number
           if (oldId > 0) programIdMap.set(oldId, newId)
         }
       }
@@ -264,21 +277,28 @@ export async function importData(json: string): Promise<number> {
           (data.sessions as Record<string, unknown>[]).map(s => {
             const sanitized = sanitizeSession(s, userId)
             const oldProgramId = Number((s as Record<string, unknown>).programId ?? 0)
-            if (programIdMap.has(oldProgramId)) {
-              sanitized.programId = programIdMap.get(oldProgramId)!
-            }
+            if (programIdMap.has(oldProgramId)) sanitized.programId = programIdMap.get(oldProgramId)!
+            sanitized.exercises = sanitized.exercises.map(ex => ({ ...ex, exerciseId: remapEx(ex.exerciseId) }))
             return sanitized
           })
         )
       }
       if (data.exerciseNotes?.length) {
         await db.exerciseNotes.bulkAdd(
-          (data.exerciseNotes as Record<string, unknown>[]).map(n => sanitizeExerciseNote(n, userId))
+          (data.exerciseNotes as Record<string, unknown>[]).map(n => {
+            const s = sanitizeExerciseNote(n, userId)
+            s.exerciseId = remapEx(s.exerciseId)
+            return s
+          })
         )
       }
       if (data.notebookEntries?.length) {
         await db.notebookEntries.bulkAdd(
-          (data.notebookEntries as Record<string, unknown>[]).map(e => sanitizeNotebookEntry(e, userId))
+          (data.notebookEntries as Record<string, unknown>[]).map(e => {
+            const s = sanitizeNotebookEntry(e, userId)
+            s.exerciseId = remapEx(s.exerciseId)
+            return s
+          })
         )
       }
       if (data.painReports?.length) {
@@ -287,7 +307,11 @@ export async function importData(json: string): Promise<number> {
         )
       }
       if (data.activeSession && typeof data.activeSession === 'object') {
-        await db.activeSession.put(sanitizeActiveSession(data.activeSession as Record<string, unknown>))
+        const s = sanitizeActiveSession(data.activeSession as Record<string, unknown>)
+        const oldProgId = Number((data.activeSession as Record<string, unknown>).programId ?? 0)
+        if (programIdMap.has(oldProgId)) s.programId = programIdMap.get(oldProgId)!
+        s.exerciseStatuses = s.exerciseStatuses.map(es => ({ ...es, exerciseId: remapEx(es.exerciseId) }))
+        await db.activeSession.put(s)
       }
       if (data.rehabHistory?.length) {
         await db.rehabHistory.bulkAdd(

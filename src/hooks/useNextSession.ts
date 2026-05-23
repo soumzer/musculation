@@ -92,8 +92,48 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
         (s) => s.name === lastSession.sessionName
       )
       if (lastIndex >= 0) {
-        // Cycle to next session, wrap around
         nextSessionIndex = (lastIndex + 1) % activeProgram.sessions.length
+      }
+    }
+
+    // Fallback: check notebook entries newer than the last formal session.
+    // Handles the case where the user did a session but never clicked "Terminer".
+    const lastFormalDate = lastSession?.completedAt ?? new Date(0)
+    const informalEntries = await db.notebookEntries
+      .where('userId').equals(userId)
+      .filter(e => {
+        if (e.sessionIntensity === 'rehab' || e.skipped || e.sets.length === 0) return false
+        const d = e.date instanceof Date ? e.date : new Date(e.date)
+        return d > lastFormalDate
+      })
+      .toArray()
+
+    if (informalEntries.length >= 2) {
+      // Find the most recent calendar day among those entries
+      const latestMs = Math.max(...informalEntries.map(e => {
+        const d = e.date instanceof Date ? e.date : new Date(e.date)
+        return d.getTime()
+      }))
+      const latestDay = new Date(latestMs)
+      const dayEntries = informalEntries.filter(e => {
+        const d = e.date instanceof Date ? e.date : new Date(e.date)
+        return d.getFullYear() === latestDay.getFullYear() &&
+               d.getMonth() === latestDay.getMonth() &&
+               d.getDate() === latestDay.getDate()
+      })
+      const doneExIds = new Set(dayEntries.map(e => e.exerciseId))
+
+      // Match against program sessions by exerciseId overlap
+      let bestIdx = -1, bestScore = 0
+      activeProgram.sessions.forEach((s, idx) => {
+        const sExIds = new Set(s.exercises.map(pe => pe.exerciseId))
+        let score = 0
+        for (const id of doneExIds) { if (sExIds.has(id)) score++ }
+        if (score > bestScore) { bestScore = score; bestIdx = idx }
+      })
+
+      if (bestIdx >= 0 && bestScore >= 2) {
+        nextSessionIndex = (bestIdx + 1) % activeProgram.sessions.length
       }
     }
 
@@ -168,11 +208,13 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
           canStart: false,
           restRecommendation: null,
           program: activeProgram,
-          preview: null,
+          preview,
           deloadReminder: null,
           lastSessionName: lastSession.sessionName,
           lastSessionIndex: lastSessionIndex >= 0 ? lastSessionIndex : 0,
           editingHoursRemaining: remainingHours,
+          nextSessionName: nextProgramSession.name,
+          nextSessionIndex,
         }
       }
     }

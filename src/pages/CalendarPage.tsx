@@ -31,6 +31,7 @@ interface DayData {
   rehabDone: NotebookEntry[]
   // Fallback when session was done but "Terminer" was never clicked
   muscuEntries: NotebookEntry[]
+  inferredSessionName?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -84,6 +85,13 @@ export default function CalendarPage() {
       : []),
     [userId],
   )
+  // Active program — used to infer session name from notebook entries
+  const activeProgram = useLiveQuery(
+    () => (userId
+      ? db.workoutPrograms.where('userId').equals(userId).filter(p => p.isActive).first()
+      : undefined),
+    [userId],
+  )
 
   const [view, setView] = useState(() => {
     const now = new Date()
@@ -120,12 +128,33 @@ export default function CalendarPage() {
       }
     }
     // Fallback: mark muscu days from notebook entries when no session record exists
+    // Group by calendar day first
+    const muscuByDay = new Map<number, NotebookEntry[]>()
     for (const e of allMuscuEntries ?? []) {
       const d = toDate(e.date)
       if (d.getFullYear() === view.year && d.getMonth() === view.month) {
         if (!sessionDays.has(d.getDate())) {
-          get(d.getDate()).muscuEntries.push(e)
+          const dayNum = d.getDate()
+          if (!muscuByDay.has(dayNum)) muscuByDay.set(dayNum, [])
+          muscuByDay.get(dayNum)!.push(e)
         }
+      }
+    }
+    for (const [dayNum, entries] of muscuByDay) {
+      const dayData = get(dayNum)
+      dayData.muscuEntries = entries
+      // Infer session name by matching exerciseIds against active program sessions
+      if (activeProgram) {
+        const doneIds = new Set(entries.map(e => e.exerciseId))
+        let bestName: string | undefined
+        let bestScore = 0
+        for (const s of activeProgram.sessions) {
+          const sIds = new Set(s.exercises.map(pe => pe.exerciseId))
+          let score = 0
+          for (const id of doneIds) { if (sIds.has(id)) score++ }
+          if (score > bestScore) { bestScore = score; bestName = s.name }
+        }
+        if (bestScore >= 2) dayData.inferredSessionName = bestName
       }
     }
     for (const e of allRehab ?? []) {
@@ -136,7 +165,7 @@ export default function CalendarPage() {
       }
     }
     return map
-  }, [allSessions, allRehab, allMuscuEntries, view])
+  }, [allSessions, allRehab, allMuscuEntries, activeProgram, view])
 
   // Loading
   if (!user || allSessions === undefined || allRehab === undefined || allMuscuEntries === undefined) {
@@ -290,12 +319,13 @@ function DaySummary({ data, label }: { data: DayData; label: string }) {
   // --- Muscu day (fallback: only notebook entries, no session record) ---
   if (data.muscuEntries.length > 0) {
     const exerciseNames = [...new Set(data.muscuEntries.map(e => e.exerciseName))]
+    const sessionLabel = data.inferredSessionName ?? 'Séance'
     return (
       <div className={CARD}>
         <div className="flex items-center justify-between gap-3 mb-3">
           <div>
             <p className="text-zinc-600 text-xs uppercase tracking-wider mb-0.5">{label}</p>
-            <p className="text-white font-bold">Séance</p>
+            <p className="text-white font-bold">{sessionLabel}</p>
           </div>
           <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 flex-shrink-0">
             {exerciseNames.length} exercice{exerciseNames.length > 1 ? 's' : ''}

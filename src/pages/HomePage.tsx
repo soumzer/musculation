@@ -91,10 +91,16 @@ export default function HomePage() {
           <p className="text-zinc-400 text-sm mb-1">Seance terminee</p>
           <p className="text-3xl font-black text-white mb-3">{info.lastSessionName}</p>
           <p className="text-zinc-600 text-sm">
-            Tu peux encore la modifier — prochaine dans {info.editingHoursRemaining ?? 0}h
+            Repos recommande — prochaine dans {info.editingHoursRemaining ?? 0}h
           </p>
         </div>
-        <div className="flex-shrink-0 pb-6">
+        <div className="flex-shrink-0 pb-6 flex flex-col gap-3">
+          <button
+            onClick={() => navigate(`/session?programId=${info.programId}&sessionIndex=${info.nextSessionIndex}`)}
+            className={CTA}
+          >
+            {info.nextSessionName ?? 'Seance suivante'}
+          </button>
           <button
             onClick={() => navigate(`/session?programId=${info.programId}&sessionIndex=${info.lastSessionIndex}`)}
             className={CTA_SECONDARY}
