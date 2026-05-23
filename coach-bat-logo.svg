@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#18181b"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </linearGradient>
+    <clipPath id="head-clip">
+      <ellipse cx="256" cy="195" rx="95" ry="110"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="url(#bg-grad)"/>
+
+  <!-- Body / black t-shirt -->
+  <path d="M160 310 Q160 290 200 280 Q230 272 256 270 Q282 272 312 280 Q352 290 352 310 L352 360 Q352 360 256 360 Q160 360 160 360 Z" fill="#1a1a1a"/>
+  <!-- T-shirt neckline -->
+  <path d="M228 272 Q256 285 284 272" fill="none" stroke="#111" stroke-width="2"/>
+
+  <!-- Neck -->
+  <rect x="236" y="260" width="40" height="20" rx="8" fill="#d4a574"/>
+  <!-- Neck shadow -->
+  <rect x="236" y="260" width="40" height="8" rx="4" fill="#c4956a" opacity="0.5"/>
+
+  <!-- Head shape (slightly angular jaw) -->
+  <path d="M175 180 Q175 105 256 100 Q337 105 337 180 L337 210 Q337 230 325 248 Q310 268 290 275 L280 278 Q268 282 256 282 Q244 282 232 278 L222 275 Q202 268 187 248 Q175 230 175 210 Z" fill="#d4a574"/>
+
+  <!-- Jaw shadow -->
+  <path d="M195 240 Q220 265 256 270 Q292 265 317 240 Q310 268 290 275 Q268 282 256 282 Q244 282 222 275 Q202 268 195 240 Z" fill="#c4956a" opacity="0.4"/>
+
+  <!-- Hair (dark curly) -->
+  <path d="M175 175 Q175 95 256 88 Q337 95 337 175 L337 155 Q337 100 310 95 Q285 88 256 88 Q227 88 202 95 Q175 100 175 155 Z" fill="#2a1a0e"/>
+  <!-- Curly hair texture -->
+  <circle cx="195" cy="118" r="18" fill="#2a1a0e"/>
+  <circle cx="220" cy="102" r="20" fill="#2a1a0e"/>
+  <circle cx="250" cy="95" r="19" fill="#2a1a0e"/>
+  <circle cx="280" cy="98" r="20" fill="#2a1a0e"/>
+  <circle cx="305" cy="108" r="18" fill="#2a1a0e"/>
+  <circle cx="320" cy="125" r="16" fill="#2a1a0e"/>
+  <circle cx="185" cy="138" r="15" fill="#2a1a0e"/>
+  <circle cx="330" cy="142" r="14" fill="#2a1a0e"/>
+  <!-- Extra curl volume -->
+  <circle cx="207" cy="98" r="14" fill="#3a2518"/>
+  <circle cx="265" cy="90" r="13" fill="#3a2518"/>
+  <circle cx="293" cy="94" r="12" fill="#3a2518"/>
+  <!-- Side hair -->
+  <path d="M175 160 Q168 140 172 120 Q175 108 185 105" fill="#2a1a0e" stroke="none"/>
+  <path d="M337 160 Q344 140 340 120 Q337 108 327 105" fill="#2a1a0e" stroke="none"/>
+
+  <!-- Eyebrows (thick, dark, straight-ish) -->
+  <path d="M207 162 Q220 155 240 158" stroke="#1a0e06" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <path d="M272 158 Q292 155 305 162" stroke="#1a0e06" stroke-width="5" stroke-linecap="round" fill="none"/>
+
+  <!-- Eyes -->
+  <ellipse cx="224" cy="182" rx="16" ry="13" fill="white"/>
+  <ellipse cx="288" cy="182" rx="16" ry="13" fill="white"/>
+  <!-- Iris (brown) -->
+  <circle cx="226" cy="183" r="8" fill="#6b4226"/>
+  <circle cx="290" cy="183" r="8" fill="#6b4226"/>
+  <!-- Pupil -->
+  <circle cx="226" cy="183" r="4" fill="#1a0e06"/>
+  <circle cx="290" cy="183" r="4" fill="#1a0e06"/>
+  <!-- Eye shine -->
+  <circle cx="229" cy="180" r="2.5" fill="white" opacity="0.8"/>
+  <circle cx="293" cy="180" r="2.5" fill="white" opacity="0.8"/>
+
+  <!-- Nose -->
+  <path d="M253 195 Q250 215 244 225 Q252 229 260 229 Q268 225 260 215 Q257 205 256 195" fill="#c4956a" opacity="0.6"/>
+
+  <!-- Stubble area (light) -->
+  <rect x="220" y="240" width="72" height="32" rx="16" fill="#b8956a" opacity="0.15"/>
+  <!-- Mustache stubble -->
+  <path d="M238 237 Q256 242 274 237" fill="#8a7060" opacity="0.25" stroke="none"/>
+  <!-- Chin stubble dots -->
+  <circle cx="244" cy="255" r="1" fill="#5a4030" opacity="0.3"/>
+  <circle cx="252" cy="258" r="1" fill="#5a4030" opacity="0.3"/>
+  <circle cx="260" cy="255" r="1" fill="#5a4030" opacity="0.3"/>
+  <circle cx="248" cy="262" r="1" fill="#5a4030" opacity="0.3"/>
+  <circle cx="256" cy="264" r="1" fill="#5a4030" opacity="0.3"/>
+  <circle cx="264" cy="262" r="1" fill="#5a4030" opacity="0.3"/>
+  <circle cx="240" cy="248" r="1" fill="#5a4030" opacity="0.3"/>
+  <circle cx="272" cy="248" r="1" fill="#5a4030" opacity="0.3"/>
+
+  <!-- Mouth (neutral/slight smirk) -->
+  <path d="M240 243 Q256 248 272 243" fill="none" stroke="#8a5a3a" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Ears -->
+  <ellipse cx="172" cy="190" rx="10" ry="16" fill="#d4a574"/>
+  <ellipse cx="340" cy="190" rx="10" ry="16" fill="#d4a574"/>
+  <ellipse cx="172" cy="190" rx="5" ry="10" fill="#c4956a" opacity="0.4"/>
+  <ellipse cx="340" cy="190" rx="5" ry="10" fill="#c4956a" opacity="0.4"/>
+
+  <!-- Coach whistle around neck -->
+  <path d="M240 290 L230 320" stroke="#888" stroke-width="2" fill="none"/>
+  <path d="M272 290 L282 320" stroke="#888" stroke-width="2" fill="none"/>
+  <path d="M230 320 Q256 330 282 320" stroke="#888" stroke-width="2" fill="none"/>
+  <!-- Whistle -->
+  <rect x="248" y="324" width="22" height="10" rx="4" fill="#fbbf24"/>
+  <circle cx="248" cy="329" r="6" fill="#fbbf24"/>
+  <circle cx="248" cy="329" r="3" fill="#d4a017"/>
+
+  <!-- "COACH BAT" text -->
+  <text x="256" y="415" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="50" fill="white" letter-spacing="3">COACH</text>
+  <text x="256" y="472" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="62" fill="#10b981" letter-spacing="5">BAT</text>
+</svg>

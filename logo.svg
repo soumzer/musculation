@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#09090b"/>
+  <!-- H: left pillar -->
+  <rect x="72" y="128" width="42" height="256" rx="6" fill="white"/>
+  <!-- H: right pillar -->
+  <rect x="200" y="128" width="42" height="256" rx="6" fill="white"/>
+  <!-- H crossbar = barbell bar (emerald) -->
+  <rect x="60" y="235" width="194" height="42" rx="6" fill="url(#accent)"/>
+  <!-- Barbell plate left -->
+  <rect x="42" y="218" width="26" height="76" rx="8" fill="url(#accent)" opacity="0.65"/>
+  <!-- Barbell plate right -->
+  <rect x="246" y="218" width="26" height="76" rx="8" fill="url(#accent)" opacity="0.65"/>
+  <!-- C: arc opening right -->
+  <path d="M432 190 A120 120 0 1 0 432 322" fill="none" stroke="white" stroke-width="42" stroke-linecap="round"/>
+</svg>
