@@ -155,7 +155,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['biceps', 'trapèzes', 'érecteurs du rachis'],
     equipmentNeeded: ['barbell'],
     contraindications: ['lower_back', 'elbow_left', 'elbow_right'],
-    alternatives: ['Rowing haltère unilatéral', 'Rowing machine (chest-supported)', 'Rowing câble assis'],
+    alternatives: ['Rowing haltère unilatéral', 'Rowing machine (chest-supported)', 'Rowing câble assis', 'Rowing câble assis unilatéral'],
     instructions:
       'Penchez le buste à 45°, dos neutre, barre suspendue bras tendus. Tirez la barre vers le nombril en serrant les omoplates. Contrôlez la descente sur 2-3 secondes. Éviter si douleurs lombaires.',
     isRehab: false,
@@ -168,7 +168,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['biceps', 'trapèzes'],
     equipmentNeeded: ['dumbbell', 'bench'],
     contraindications: ['elbow_left', 'elbow_right'],
-    alternatives: ['Rowing barre', 'Rowing machine (chest-supported)', 'Rowing câble assis'],
+    alternatives: ['Rowing barre', 'Rowing machine (chest-supported)', 'Rowing câble assis', 'Rowing câble assis unilatéral'],
     instructions:
       'Un genou et une main sur le banc, dos plat. Tirez l\'haltère vers la hanche en gardant le coude près du corps. Serrez l\'omoplate en haut du mouvement. Descendez lentement.',
     isRehab: false,
@@ -181,11 +181,24 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['biceps', 'trapèzes'],
     equipmentNeeded: ['cable'],
     contraindications: [],
-    alternatives: ['Rowing haltère unilatéral', 'Rowing machine (chest-supported)', 'Rowing barre'],
+    alternatives: ['Rowing haltère unilatéral', 'Rowing machine (chest-supported)', 'Rowing barre', 'Rowing câble assis unilatéral'],
     instructions:
       'Assis au câble, pieds calés, tirez la poignée vers l\'abdomen en serrant les omoplates. Gardez le buste droit sans balancer. Retour contrôlé en tendant les bras. Bon exercice pour la posture.',
     isRehab: false,
     tags: ['pull', 'upper_body', 'back', 'cable', 'posture'],
+  },
+  {
+    name: 'Rowing câble assis unilatéral',
+    category: 'compound',
+    primaryMuscles: ['dorsaux', 'rhomboïdes'],
+    secondaryMuscles: ['biceps', 'trapèzes', 'grand rond'],
+    equipmentNeeded: ['cable'],
+    contraindications: [],
+    alternatives: ['Rowing câble assis', 'Rowing haltère unilatéral', 'Tirage horizontal câble unilatéral'],
+    instructions:
+      'Assis au câble, pieds calés, une seule poignée unilatérale en prise neutre. Tirez la poignée vers la hanche en serrant l\'omoplate, coude près du corps. Buste stable, évitez la rotation. Le travail unilatéral assis isole mieux le dos qu\'en position debout et corrige les déséquilibres gauche/droite. 3-4 séries de 10-12 reps par côté.',
+    isRehab: false,
+    tags: ['pull', 'upper_body', 'back', 'cable', 'unilateral'],
   },
   {
     name: 'Rowing machine (chest-supported)',
@@ -194,7 +207,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['biceps', 'trapèzes'],
     equipmentNeeded: ['rowing_machine'],
     contraindications: [],
-    alternatives: ['Rowing câble assis', 'Rowing barre'],
+    alternatives: ['Rowing câble assis', 'Rowing barre', 'Rowing câble assis unilatéral'],
     instructions:
       'Poitrine appuyée contre le support, bras tendus. Tirez les poignées vers vous en serrant les omoplates. Machine idéale si douleurs lombaires car le torse est soutenu.',
     isRehab: false,
@@ -1243,7 +1256,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['biceps', 'trapèzes', 'obliques'],
     equipmentNeeded: ['cable'],
     contraindications: [],
-    alternatives: ['Rowing câble assis', 'Rowing haltère unilatéral'],
+    alternatives: ['Rowing câble assis', 'Rowing haltère unilatéral', 'Rowing câble assis unilatéral'],
     instructions:
       'Debout ou à demi-genou face au câble, une main sur la poignée. Tirez la poignée vers la hanche en serrant l\'omoplate, coude près du corps. Gardez le buste stable sans rotation. Le travail unilatéral corrige les déséquilibres et active les obliques pour la stabilisation. 3-4 séries de 10-12 répétitions par côté.',
     isRehab: false,
