@@ -63,12 +63,20 @@ export async function seedExercises(): Promise<void> {
 
   await db.transaction('rw', db.exercises, async () => {
     for (const sourceEx of exerciseCatalog) {
-      const existing = dbByName.get(sourceEx.name)
+      // Match courant. Fallback aux anciens noms pour gérer les renames
+      // (l'id de la ligne DB est préservé, donc les WorkoutPrograms /
+      // NotebookEntries qui pointent vers cet exo restent valides).
+      let existing = dbByName.get(sourceEx.name)
+      if (!existing && sourceEx.previousNames) {
+        for (const prev of sourceEx.previousNames) {
+          existing = dbByName.get(prev)
+          if (existing) break
+        }
+      }
       if (!existing) {
         await db.exercises.add(sourceEx)
         continue
       }
-      // Compare champ-à-champ en ignorant l'id (auto-assigné par Dexie).
       const existingNoId = { ...existing }
       delete (existingNoId as { id?: number }).id
       if (!exerciseFieldsEqual(existingNoId, sourceEx)) {

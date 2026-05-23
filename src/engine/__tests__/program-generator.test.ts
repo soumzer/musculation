@@ -848,7 +848,7 @@ describe('Push/Pull/Legs structured sessions', () => {
       equipmentNeeded: ['smith_machine', 'bench'],
     }),
     makeExercise({
-      id: 220, name: 'Développé couché machine', category: 'compound',
+      id: 220, name: 'Chest press', category: 'compound',
       primaryMuscles: ['pectoraux'],
       tags: ['push', 'upper_body', 'chest', 'machine'],
       equipmentNeeded: ['pec_press'],

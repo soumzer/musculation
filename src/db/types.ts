@@ -68,6 +68,12 @@ export interface GymEquipment {
 // Exercise definition (knowledge base)
 export interface Exercise {
   id?: number
+  /**
+   * Former names this exercise was known by. Used by the catalog seed-sync
+   * to migrate an existing DB row (keeping its id) when an exercise is renamed
+   * in the source catalog.
+   */
+  previousNames?: string[]
   name: string
   category: 'compound' | 'isolation' | 'rehab' | 'mobility' | 'core'
   primaryMuscles: string[]

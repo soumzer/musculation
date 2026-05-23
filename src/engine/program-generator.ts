@@ -1560,7 +1560,7 @@ function buildSAProgram(
   const sessionAExercises = [
     { name: 'Leg press', sets: 3, reps: 15, rest: 90 },
     { name: 'Pull-through câble', sets: 3, reps: 15, rest: 90 },
-    { name: 'Développé couché machine', sets: 3, reps: 15, rest: 90 },
+    { name: 'Chest press', sets: 3, reps: 15, rest: 90 },
     { name: 'Développé militaire machine', sets: 3, reps: 15, rest: 90 },
     { name: 'Élévations latérales', sets: 3, reps: 15, rest: 60 },
     { name: 'Leg extension', sets: 3, reps: 15, rest: 60 },

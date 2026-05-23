@@ -25,7 +25,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['deltoïdes antérieurs', 'triceps'],
     equipmentNeeded: ['bench', 'barbell'],
     contraindications: ['shoulder_left', 'shoulder_right', 'elbow_left', 'elbow_right'],
-    alternatives: ['Développé couché haltères', 'Développé couché machine', 'Développé couché smith machine'],
+    alternatives: ['Développé couché haltères', 'Chest press', 'Développé couché smith machine'],
     instructions:
       'Allongez-vous sur le banc, pieds au sol, omoplates serrées. Descendez la barre au niveau des pectoraux en contrôlant la descente (2-3 sec). Poussez en verrouillant les coudes sans hyper-extension.',
     isRehab: false,
@@ -38,14 +38,15 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['deltoïdes antérieurs', 'triceps'],
     equipmentNeeded: ['bench', 'dumbbells'],
     contraindications: ['shoulder_left', 'shoulder_right', 'elbow_left', 'elbow_right'],
-    alternatives: ['Développé couché machine', 'Développé couché smith machine', 'Développé couché barre'],
+    alternatives: ['Chest press', 'Développé couché smith machine', 'Développé couché barre'],
     instructions:
       'Allongez-vous sur le banc, un haltère dans chaque main. Descendez les haltères jusqu\'au niveau des pectoraux en ouvrant les coudes à 45°. Poussez en contractant les pectoraux au sommet.',
     isRehab: false,
     tags: ['push', 'upper_body', 'chest', 'dumbbells'],
   },
   {
-    name: 'Développé couché machine',
+    name: 'Chest press',
+    previousNames: ['Développé couché machine'],
     category: 'compound',
     primaryMuscles: ['pectoraux'],
     secondaryMuscles: ['deltoïdes antérieurs', 'triceps'],
@@ -53,7 +54,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     contraindications: ['shoulder_left', 'shoulder_right'],
     alternatives: ['Développé couché haltères', 'Développé couché barre'],
     instructions:
-      'Réglez le siège pour que les poignées soient au niveau des pectoraux. Poussez en expirant, revenez lentement en contrôlant le mouvement. Bon choix si douleur aux coudes car trajectoire guidée.',
+      'Assis à la machine, réglez le siège pour que les poignées soient au niveau des pectoraux. Poussez en expirant, revenez lentement en contrôlant le mouvement. Trajectoire guidée — bon choix si douleur aux coudes ou pour isoler les pectoraux sans stabilisateurs.',
     isRehab: false,
     tags: ['push', 'upper_body', 'chest', 'machine'],
   },
@@ -64,7 +65,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['deltoïdes antérieurs', 'triceps'],
     equipmentNeeded: ['bench', 'dumbbells'],
     contraindications: ['shoulder_left', 'shoulder_right', 'elbow_left', 'elbow_right'],
-    alternatives: ['Développé couché machine', 'Développé couché haltères'],
+    alternatives: ['Chest press', 'Développé couché haltères'],
     instructions:
       'Réglez le banc à 30-45°. Descendez les haltères de chaque côté de la poitrine haute, coudes à 45°. Poussez vers le haut en contractant les pectoraux supérieurs.',
     isRehab: false,
@@ -285,7 +286,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['deltoïdes antérieurs'],
     equipmentNeeded: ['dip_station'],
     contraindications: ['shoulder_left', 'shoulder_right', 'elbow_left', 'elbow_right'],
-    alternatives: ['Développé couché haltères', 'Extension triceps poulie haute', 'Développé couché machine'],
+    alternatives: ['Développé couché haltères', 'Extension triceps poulie haute', 'Chest press'],
     instructions:
       'Bras tendus sur les barres parallèles. Descendez en fléchissant les coudes à 90°, buste légèrement penché en avant pour cibler les pecs. Remontez en poussant. ATTENTION : forte contrainte sur les épaules et coudes.',
     isRehab: false,
@@ -1174,7 +1175,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['deltoïdes antérieurs', 'triceps'],
     equipmentNeeded: ['smith_machine', 'bench'],
     contraindications: ['shoulder_left', 'shoulder_right', 'elbow_left', 'elbow_right'],
-    alternatives: ['Développé couché haltères', 'Développé couché machine', 'Développé couché barre'],
+    alternatives: ['Développé couché haltères', 'Chest press', 'Développé couché barre'],
     instructions:
       'Allongez-vous sur un banc sous la Smith machine. Alignez la barre au niveau des pectoraux. Décrochez et descendez lentement la barre vers la poitrine, coudes à 45°. Poussez vers le haut sans hyper-extension des coudes. La trajectoire guidée offre une sécurité supplémentaire sans pareur.',
     isRehab: false,
