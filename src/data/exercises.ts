@@ -466,13 +466,26 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     tags: ['legs', 'lower_body', 'hamstrings', 'machine'],
   },
   {
+    name: 'Mollets sur leg press',
+    category: 'isolation',
+    primaryMuscles: ['gastrocnémiens'],
+    secondaryMuscles: ['soléaire'],
+    equipmentNeeded: ['leg_press'],
+    contraindications: ['ankle_left', 'ankle_right', 'foot_left', 'foot_right'],
+    alternatives: ['Mollets debout smith machine (calf raise)', 'Mollets assis haltère', 'Mollets debout poids de corps'],
+    instructions:
+      'À la presse à cuisses, placez uniquement les avant-pieds en bas du plateau, talons dans le vide. Jambes quasi-tendues (légère flexion des genoux pour sécuriser). Désengagez les butées si possible, puis poussez avec la pointe des pieds pour étendre le plateau. Descendez lentement en étirant bien les mollets, montez en serrant. Amplitude complète, tempo contrôlé. 3-4 séries de 15-20 répétitions.',
+    isRehab: false,
+    tags: ['legs', 'lower_body', 'calves', 'machine'],
+  },
+  {
     name: 'Mollets debout smith machine (calf raise)',
     category: 'isolation',
     primaryMuscles: ['gastrocnémiens'],
     secondaryMuscles: ['soléaire'],
     equipmentNeeded: ['smith_machine'],
     contraindications: ['ankle_left', 'ankle_right', 'foot_left', 'foot_right'],
-    alternatives: ['Mollets assis haltère'],
+    alternatives: ['Mollets assis haltère', 'Mollets sur leg press', 'Mollets debout poids de corps'],
     instructions:
       'À la Smith machine, barre sur les trapèzes, placez les avant-pieds sur une cale ou un step. Montez sur la pointe des pieds en serrant les mollets en haut. Descendez lentement en étirant bien les mollets en bas. Amplitude complète importante. La Smith machine guide le mouvement en toute sécurité.',
     isRehab: false,
@@ -485,7 +498,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['gastrocnémiens'],
     equipmentNeeded: ['bench', 'dumbbell'],
     contraindications: ['ankle_left', 'ankle_right', 'foot_left', 'foot_right'],
-    alternatives: ['Mollets debout smith machine (calf raise)'],
+    alternatives: ['Mollets debout smith machine (calf raise)', 'Mollets sur leg press'],
     instructions:
       'Assis sur un banc, placez un haltère sur chaque genou. Avant-pieds sur une cale ou un step, talons dans le vide. Montez sur la pointe des pieds puis descendez lentement en étirant bien. Le soléaire est davantage sollicité genou fléchi. Amplitude complète, tempo lent. 3-4 séries de 15-20 répétitions.',
     isRehab: false,

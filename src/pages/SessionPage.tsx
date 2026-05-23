@@ -378,21 +378,51 @@ function SessionRunner({
     }
   }, [userId, programId, programSession, sessionStartTime, exerciseStatuses, exerciseMap, clearSessionState])
 
-  // Swap: use curated alternatives field to propose exercises that do the same movement
+  // Swap: curated alternatives first (preserved order), then auto-matched
+  // candidates derived from primaryMuscles + category. The auto-match acts as
+  // a safety net so a freshly added exercise is reachable even if no curated
+  // alternatives field references it yet.
   const swapOptions: SwapOption[] = useMemo(() => {
     if (!currentCatalogExercise) return []
-    const altNames = currentCatalogExercise.alternatives ?? []
-    if (altNames.length === 0) return []
     const usedIds = new Set(programSession.exercises.map((e) => e.exerciseId))
+    const seen = new Set<number>()
+    const result: SwapOption[] = []
+
+    const canShow = (e: typeof allExercises[number]): boolean => {
+      if (e.id === undefined) return false
+      if (e.id === currentCatalogExercise.id) return false
+      if (e.isRehab) return false
+      if (usedIds.has(e.id)) return false
+      if (seen.has(e.id)) return false
+      return true
+    }
+
+    // 1. Curated alternatives, in the order declared on the exercise.
+    const altNames = currentCatalogExercise.alternatives ?? []
     const altNamesLower = altNames.map((n) => n.toLowerCase())
-    return allExercises
-      .filter((e) => {
-        if (e.id === undefined) return false
-        if (e.isRehab) return false
-        if (usedIds.has(e.id)) return false
-        return altNamesLower.includes(e.name.toLowerCase())
-      })
-      .map((e) => ({ exerciseId: e.id!, name: e.name }))
+    const byNameLower = new Map(
+      allExercises.filter((e) => e.id !== undefined).map((e) => [e.name.toLowerCase(), e]),
+    )
+    for (const lower of altNamesLower) {
+      const e = byNameLower.get(lower)
+      if (e && canShow(e)) {
+        seen.add(e.id!)
+        result.push({ exerciseId: e.id!, name: e.name })
+      }
+    }
+
+    // 2. Auto-match: same category + at least one shared primary muscle.
+    const currentMuscles = new Set(currentCatalogExercise.primaryMuscles.map((m) => m.toLowerCase()))
+    for (const e of allExercises) {
+      if (!canShow(e)) continue
+      if (e.category !== currentCatalogExercise.category) continue
+      const shares = e.primaryMuscles.some((m) => currentMuscles.has(m.toLowerCase()))
+      if (!shares) continue
+      seen.add(e.id!)
+      result.push({ exerciseId: e.id!, name: e.name })
+    }
+
+    return result
   }, [currentCatalogExercise, allExercises, programSession.exercises])
 
   const handleSwapExercise = useCallback(async (newExerciseId: number) => {
