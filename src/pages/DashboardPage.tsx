@@ -141,12 +141,10 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
   const xAt = (i: number) => PAD_X + (i / Math.max(recent.length - 1, 1)) * (W - PAD_X * 2)
   const yAt = (val: number) => PAD_Y + (1 - (val - minT) / range) * (H - PAD_Y * 2)
 
-  const linesByIntensity: Record<string, { x: number; y: number; sv: SessionVolume }[]> = {}
-  recent.forEach((sv, i) => {
-    const key = sv.intensity ?? 'moderate'
-    if (!linesByIntensity[key]) linesByIntensity[key] = []
-    linesByIntensity[key].push({ x: xAt(i), y: yAt(sv.tonnageKg), sv })
-  })
+  // Single chronologically-ordered series — intensity is no longer color-coded
+  // because the session filter does the slicing job and color was misleading
+  // (made the per-session line tiny + confused tooltips).
+  const dataPoints = recent.map((sv, i) => ({ x: xAt(i), y: yAt(sv.tonnageKg), sv }))
 
   // 3-session moving average — only when ≥3 points so the trend is meaningful.
   const trendPoints = recent.length >= 3
@@ -158,11 +156,9 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
       })
     : []
 
-  const activeKeys = Object.keys(linesByIntensity).filter(k => intensityStyle[k])
-  const selectedInfo = selected && linesByIntensity[selected.key]?.[selected.idx]
-  const selectedCfg = selected ? intensityStyle[selected.key] : null
+  const selectedInfo = selected ? dataPoints[selected.idx] : null
 
-  // Reset selection when filter changes — its (key, idx) is now stale.
+  // Reset selection when filter changes — its idx is now stale.
   useEffect(() => { setSelected(null) }, [sessionFilter])
 
   return (
@@ -218,11 +214,13 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
       ) : (
         <>
       {/* Selected point tooltip */}
-      {selectedInfo && selectedCfg && (
+      {selectedInfo && (
         <div className="flex items-center gap-2 mb-2 text-xs">
-          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: selectedCfg.stroke }} />
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500" />
           <span className="text-white font-bold">{selectedInfo.sv.tonnageKg.toLocaleString()}kg</span>
-          <span className="text-zinc-500">{selectedCfg.label} — {formatDate(selectedInfo.sv.date)}</span>
+          <span className="text-zinc-500">
+            {selectedInfo.sv.sessionName ?? 'Séance non identifiée'} — {formatDate(selectedInfo.sv.date)}
+          </span>
         </div>
       )}
 
@@ -259,37 +257,28 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
           />
         )}
 
-        {/* Lines + dots per intensity */}
-        {activeKeys.map(key => {
-          const points = linesByIntensity[key]
-          const cfg = intensityStyle[key]
-          const polyline = points.map(p => `${p.x},${p.y}`).join(' ')
-          return (
-            <g key={key}>
-              {points.length > 1 && (
-                <polyline
-                  points={polyline}
-                  fill="none"
-                  stroke={cfg.stroke}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              )}
-              {points.map((p, j) => (
-                <circle
-                  key={j}
-                  cx={p.x}
-                  cy={p.y}
-                  r={selected?.key === key && selected?.idx === j ? 5 : 3}
-                  fill={cfg.stroke}
-                  className="cursor-pointer"
-                  onClick={(e) => { e.stopPropagation(); setSelected({ key, idx: j }) }}
-                />
-              ))}
-            </g>
-          )
-        })}
+        {/* Data line + dots (single series in chronological order) */}
+        {dataPoints.length > 1 && (
+          <polyline
+            points={dataPoints.map(p => `${p.x},${p.y}`).join(' ')}
+            fill="none"
+            stroke="#10b981"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+        {dataPoints.map((p, j) => (
+          <circle
+            key={j}
+            cx={p.x}
+            cy={p.y}
+            r={selected?.idx === j ? 5 : 3}
+            fill="#10b981"
+            className="cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); setSelected({ key: 'data', idx: j }) }}
+          />
+        ))}
 
         {/* X-axis dates */}
         {recent.map((sv, i) => {
@@ -305,15 +294,10 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
 
       {/* Legend */}
       <div className="flex gap-4 mt-2 flex-wrap">
-        {activeKeys.map(key => {
-          const cfg = intensityStyle[key]
-          return (
-            <div key={key} className="flex items-center gap-1.5">
-              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cfg.stroke }} />
-              <span className="text-zinc-500 text-[10px] font-medium">{cfg.label}</span>
-            </div>
-          )
-        })}
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500" />
+          <span className="text-zinc-500 text-[10px] font-medium">Tonnage</span>
+        </div>
         {trendPoints.length >= 2 && (
           <div className="flex items-center gap-1.5">
             <svg width="14" height="3" className="overflow-visible">
