@@ -115,14 +115,28 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
     [sessionVolumes],
   )
 
-  // Unique session names with counts, sorted by frequency.
+  // Unique session names with counts. Sorted by the program's natural order
+  // (Lower 1 → Upper 1 → Lower 2 → Upper 2…) when known, falling back to
+  // count for names without a known order.
   const sessionNames = useMemo(() => {
     const counts = new Map<string, number>()
+    const orders = new Map<string, number>()
     for (const sv of identifiedVolumes) {
-      counts.set(sv.sessionName!, (counts.get(sv.sessionName!) ?? 0) + 1)
+      const n = sv.sessionName!
+      counts.set(n, (counts.get(n) ?? 0) + 1)
+      if (sv.sessionOrder !== undefined && !orders.has(n)) {
+        orders.set(n, sv.sessionOrder)
+      }
     }
     return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1])
+      .sort((a, b) => {
+        const oa = orders.get(a[0])
+        const ob = orders.get(b[0])
+        if (oa !== undefined && ob !== undefined) return oa - ob
+        if (oa !== undefined) return -1
+        if (ob !== undefined) return 1
+        return b[1] - a[1]
+      })
       .map(([name, count]) => ({ name, count }))
   }, [identifiedVolumes])
 

@@ -29,6 +29,13 @@ export interface SessionVolume {
    * neither source can resolve a name.
    */
   sessionName?: string
+  /**
+   * Position of the resolved session in the active program (its `order` field).
+   * Used by the UI to sort chips/filters in program sequence rather than by
+   * frequency. Undefined when the name was matched against a deactivated
+   * program or couldn't be resolved.
+   */
+  sessionOrder?: number
 }
 
 export interface DashboardData {
@@ -182,7 +189,13 @@ export function useDashboardData(userId: number | undefined): DashboardData {
           }
           if (bestScore >= 2) sessionName = bestName
         }
-        return { date: d.date, tonnageKg: Math.round(d.tonnage), exerciseCount: d.exerciseIds.size, intensity, sessionName }
+        // Resolve session order from the active program (used by UI sorting).
+        let sessionOrder: number | undefined
+        if (sessionName && activeProgram) {
+          const match = activeProgram.sessions.find(s => s.name === sessionName)
+          sessionOrder = match?.order
+        }
+        return { date: d.date, tonnageKg: Math.round(d.tonnage), exerciseCount: d.exerciseIds.size, intensity, sessionName, sessionOrder }
       })
       .sort((a, b) => b.date.getTime() - a.date.getTime())
 
