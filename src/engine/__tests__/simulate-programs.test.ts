@@ -349,7 +349,7 @@ describe('Fix verification: programme generator corrections', () => {
     expect(name).toContain('incliné')
   })
 
-  it('Fix 3 — Heavy sessions: compound rest is 120s (not 150s)', () => {
+  it('Fix 3 — Heavy sessions: compound rest is 150s (v4)', () => {
     const program = generateProgram(
       { userId: 1, conditions: [], equipment: fullEquipment, daysPerWeek: 4, minutesPerSession: 60 },
       catalog,
@@ -360,7 +360,7 @@ describe('Fix verification: programme generator corrections', () => {
     for (const session of heavySessions) {
       const compounds = session.exercises.filter(ex => categoryOf(ex.exerciseId) === 'compound')
       for (const ex of compounds) {
-        expect(ex.restSeconds).toBeLessThanOrEqual(120)
+        expect(ex.restSeconds).toBe(150)
       }
     }
   })

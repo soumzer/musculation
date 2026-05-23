@@ -26,8 +26,11 @@ import type {
  *        bug. Calf slots prefer the smith machine variant when available
  *        and fall back to the bodyweight version. preferredName accepts
  *        a string-array priority list.
+ *   v4 — Heavy/Force prescription tightening: compounds rest 120s → 150s;
+ *        isolations (except Calf and Core) drop from volume-style 3×15/90s
+ *        to 3×8/90s. Calf and Core in heavy sessions unchanged.
  */
-export const ENGINE_VERSION = 3
+export const ENGINE_VERSION = 4
 
 // ---------------------------------------------------------------------------
 // Timing constants
@@ -317,15 +320,19 @@ function buildStructuredSession(
 
     const isIsolationOrCore = picked.category === 'isolation' || picked.category === 'core'
     if (intensity === 'heavy' && !isIsolationOrCore) {
-      // Heavy compounds: fewer reps, 120s rest (standard non-powerlifting), +1 set
+      // Heavy compounds: low reps, 150s rest (compound strength), +1 set
       reps = Math.min(slot.reps, 6)
-      rest = 120
+      rest = 150
       sets = Math.max(slot.sets, 4)
+    } else if (intensity === 'heavy' && picked.category === 'isolation' && slot.label !== 'Calf') {
+      // Heavy isolations (excluding Calf which stays volume-style): 3×8, 90s rest
+      reps = 8
+      rest = 90
     } else if (intensity === 'moderate' && !isIsolationOrCore) {
       // Moderate compounds: keep slot reps, cap rest at 90s
       rest = Math.min(slot.rest, 90)
     } else if ((intensity === 'volume' || isIsolationOrCore)) {
-      // Volume (or isolation in any session): more reps, less rest
+      // Volume (or isolation/core in non-heavy sessions): more reps, less rest
       reps = Math.max(slot.reps, picked.category === 'compound' ? 12 : 15)
       rest = Math.min(slot.rest, 90)
     }
