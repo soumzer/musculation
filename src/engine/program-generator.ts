@@ -29,8 +29,11 @@ import type {
  *   v4 — Heavy/Force prescription tightening: compounds rest 120s → 150s;
  *        isolations (except Calf and Core) drop from volume-style 3×15/90s
  *        to 3×8/90s. Calf and Core in heavy sessions unchanged.
+ *   v5 — Upper 2 Volume slot order reshuffled: chest work first (incline,
+ *        écarté pecs), then pull (vertical, unilateral), then isolations,
+ *        then Core. Sets/reps/rest unchanged.
  */
-export const ENGINE_VERSION = 4
+export const ENGINE_VERSION = 5
 
 // ---------------------------------------------------------------------------
 // Timing constants
@@ -964,25 +967,9 @@ function buildUpperLowerSessions(
   // Upper 2: 3 compounds + 5 isolations + 1 core = 9 exercices (volume)
   const upper2Slots: ExerciseSlot[] = [
     {
-      label: 'Vertical pull',
-      candidates: () => verticalPull,
-      preferredName: 'lat pulldown',
-      sets: 4,
-      reps: 10,
-      rest: 150,
-    },
-    {
       label: 'Incline or chest compound',
       candidates: () => [...chestAccessories, ...horizontalPush],
       preferredName: 'développé incliné',
-      sets: 4,
-      reps: 10,
-      rest: 150,
-    },
-    {
-      label: 'Unilateral pull',
-      candidates: () => [...unilateralPull, ...horizontalPull],
-      preferredName: 'rowing unilatéral',
       sets: 4,
       reps: 10,
       rest: 150,
@@ -994,6 +981,22 @@ function buildUpperLowerSessions(
       sets: 3,
       reps: 15,
       rest: 60,
+    },
+    {
+      label: 'Vertical pull',
+      candidates: () => verticalPull,
+      preferredName: 'lat pulldown',
+      sets: 4,
+      reps: 10,
+      rest: 150,
+    },
+    {
+      label: 'Unilateral pull',
+      candidates: () => [...unilateralPull, ...horizontalPull],
+      preferredName: 'rowing unilatéral',
+      sets: 4,
+      reps: 10,
+      rest: 150,
     },
     {
       label: 'Élévations latérales',

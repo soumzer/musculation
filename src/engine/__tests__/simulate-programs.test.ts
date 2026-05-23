@@ -341,8 +341,8 @@ describe('Fix verification: programme generator corrections', () => {
     const upper2 = program.sessions.find(s => s.name.includes('Upper 2'))
     expect(upper2).toBeDefined()
 
-    // Find the push compound in Upper 2 (order 2 = incline/chest slot)
-    const inclineEx = upper2!.exercises.find(ex => ex.order === 2)
+    // Find the push compound in Upper 2 (order 1 = incline/chest slot, now first)
+    const inclineEx = upper2!.exercises.find(ex => ex.order === 1)
     expect(inclineEx).toBeDefined()
     const name = nameOf(inclineEx!.exerciseId).toLowerCase()
     // Should be développé incliné (a compound), NOT pec deck (isolation)
