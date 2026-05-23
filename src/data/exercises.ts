@@ -233,7 +233,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['biceps', 'rhomboïdes', 'avant-bras'],
     equipmentNeeded: ['pull_up_bar'],
     contraindications: ['shoulder_left', 'shoulder_right', 'elbow_left', 'elbow_right'],
-    alternatives: ['Tirage vertical (lat pulldown)'],
+    alternatives: ['Tirage vertical (lat pulldown)', 'Tirage vertical unilatéral câble'],
     instructions:
       'Prise pronation largeur épaules ou plus. Tirez-vous vers le haut en amenant le menton au-dessus de la barre. Descendez lentement bras tendus. Éviter si douleur au coude ou à l\'épaule.',
     isRehab: false,
@@ -246,7 +246,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['grand rond', 'rhomboïdes', 'avant-bras'],
     equipmentNeeded: ['pull_up_bar'],
     contraindications: ['shoulder_left', 'shoulder_right', 'elbow_left', 'elbow_right'],
-    alternatives: ['Traction (pull-up)', 'Tirage vertical (lat pulldown)'],
+    alternatives: ['Traction (pull-up)', 'Tirage vertical (lat pulldown)', 'Tirage vertical unilatéral câble'],
     instructions:
       'Prise supination (paumes vers soi), largeur épaules. Tirez-vous jusqu\'à amener le menton au-dessus de la barre. Sollicite davantage les biceps que la traction en pronation. Descendez bras tendus en contrôle.',
     isRehab: false,
@@ -259,7 +259,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['biceps', 'rhomboïdes'],
     equipmentNeeded: ['lat_pulldown'],
     contraindications: ['shoulder_left', 'shoulder_right'],
-    alternatives: ['Traction (pull-up)'],
+    alternatives: ['Traction (pull-up)', 'Tirage vertical unilatéral câble', 'Chin-up (traction supination)'],
     instructions:
       'Assis à la machine, prise large pronation. Tirez la barre vers le haut de la poitrine en serrant les omoplates vers le bas. Contrôlez la remontée. Ne tirez pas derrière la nuque.',
     isRehab: false,
@@ -328,7 +328,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['brachial', 'avant-bras'],
     equipmentNeeded: ['dumbbells'],
     contraindications: ['elbow_left', 'elbow_right'],
-    alternatives: ['Curl biceps câble', 'Curl marteau (hammer curl)'],
+    alternatives: ['Curl biceps câble', 'Curl marteau (hammer curl)', 'Curl marteau câble'],
     instructions:
       'Debout, haltères le long du corps, paumes vers l\'avant. Fléchissez les coudes en montant les haltères. Contrôlez la descente sur 2-3 secondes. Gardez les coudes fixes le long du corps.',
     isRehab: false,
@@ -341,9 +341,22 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['brachial', 'avant-bras'],
     equipmentNeeded: ['cable'],
     contraindications: ['elbow_left', 'elbow_right'],
-    alternatives: ['Curl biceps haltères', 'Curl marteau (hammer curl)'],
+    alternatives: ['Curl biceps haltères', 'Curl marteau (hammer curl)', 'Curl marteau câble'],
     instructions:
       'Debout face au câble bas, barre ou poignée en supination. Fléchissez les coudes en gardant les coudes fixes. Tension constante grâce au câble. Contrôlez la phase excentrique.',
+    isRehab: false,
+    tags: ['pull', 'upper_body', 'arms', 'biceps', 'cable'],
+  },
+  {
+    name: 'Curl marteau câble',
+    category: 'isolation',
+    primaryMuscles: ['brachial', 'brachioradial'],
+    secondaryMuscles: ['biceps', 'avant-bras'],
+    equipmentNeeded: ['cable', 'rope_attachment'],
+    contraindications: ['elbow_left', 'elbow_right'],
+    alternatives: ['Curl marteau (hammer curl)', 'Curl marteau haltères', 'Curl biceps câble'],
+    instructions:
+      'Debout face au câble bas, corde fixée à la poulie. Saisissez la corde en prise neutre (paumes face à face). Coudes collés au corps, fléchissez sans balancer le buste. Cible le brachial et le brachioradial avec une tension constante. Contrôlez la descente sur 2-3s.',
     isRehab: false,
     tags: ['pull', 'upper_body', 'arms', 'biceps', 'cable'],
   },
@@ -523,7 +536,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['biceps'],
     equipmentNeeded: ['dumbbells'],
     contraindications: ['elbow_left', 'elbow_right'],
-    alternatives: ['Curl biceps haltères'],
+    alternatives: ['Curl biceps haltères', 'Curl marteau câble', 'Curl marteau haltères'],
     instructions:
       'Debout, haltères le long du corps, paumes face à face (prise neutre). Fléchissez les coudes en gardant la prise neutre. Cible davantage le brachial et l\'avant-bras. Moins stressant pour le coude que le curl classique.',
     isRehab: false,
@@ -1800,7 +1813,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['avant-bras'],
     equipmentNeeded: ['dumbbells'],
     contraindications: ['elbow_left', 'elbow_right'],
-    alternatives: ['Curl biceps haltères', 'Curl concentré haltère'],
+    alternatives: ['Curl biceps haltères', 'Curl concentré haltère', 'Curl marteau câble', 'Curl marteau (hammer curl)'],
     instructions:
       'Debout, haltères le long du corps, paumes face à face (prise neutre). Fléchissez les coudes sans tourner les poignets. Le curl marteau cible le brachial et le brachio-radial en plus du biceps — bras plus épais vu de côté. 3-4 séries de 10-12 reps.',
     isRehab: false,
