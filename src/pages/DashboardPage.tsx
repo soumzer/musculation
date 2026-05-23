@@ -132,7 +132,17 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
       .sort((a, b) => {
         const oa = orders.get(a[0])
         const ob = orders.get(b[0])
-        if (oa !== undefined && ob !== undefined) return oa - ob
+        if (oa !== undefined && ob !== undefined) {
+          // Group sessions by pair (orders 1-2, 3-4…), and within each pair
+          // surface Upper before Lower per user preference.
+          const tierA = Math.floor((oa - 1) / 2)
+          const tierB = Math.floor((ob - 1) / 2)
+          if (tierA !== tierB) return tierA - tierB
+          const aIsUpper = /upper/i.test(a[0])
+          const bIsUpper = /upper/i.test(b[0])
+          if (aIsUpper !== bIsUpper) return aIsUpper ? -1 : 1
+          return oa - ob
+        }
         if (oa !== undefined) return -1
         if (ob !== undefined) return 1
         return b[1] - a[1]
