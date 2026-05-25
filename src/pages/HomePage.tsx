@@ -102,9 +102,6 @@ export default function HomePage() {
         <div className="flex-1">
           <p className="text-zinc-400 text-sm mb-1">Seance terminee</p>
           <p className="text-3xl font-black text-white mb-3">{info.lastSessionName}</p>
-          <p className="text-zinc-600 text-sm">
-            Repos recommande — prochaine dans {info.editingHoursRemaining ?? 0}h
-          </p>
         </div>
         <div className="flex-shrink-0 pb-6 flex flex-col gap-3">
           <button

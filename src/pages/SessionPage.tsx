@@ -90,12 +90,17 @@ function SessionContent({ programId, sessionIndex }: { programId: number; sessio
     )
   }
 
+  const nextSessionIndex = (sessionIndex + 1) % program.sessions.length
+  const nextSessionName = program.sessions[nextSessionIndex]?.name ?? 'Séance suivante'
+
   return (
     <SessionRunner
       programSession={programSession}
       userId={user.id!}
       programId={programId}
       sessionIndex={sessionIndex}
+      nextSessionIndex={nextSessionIndex}
+      nextSessionName={nextSessionName}
       allExercises={allExercises}
       activeZones={conditions.map(c => c.bodyZone)}
     />
@@ -111,6 +116,8 @@ function SessionRunner({
   userId,
   programId,
   sessionIndex,
+  nextSessionIndex,
+  nextSessionName,
   allExercises,
   activeZones,
 }: {
@@ -118,6 +125,8 @@ function SessionRunner({
   userId: number
   programId: number
   sessionIndex: number
+  nextSessionIndex: number
+  nextSessionName: string
   allExercises: Exercise[]
   activeZones: string[]
 }) {
@@ -664,7 +673,16 @@ function SessionRunner({
       exerciseStatuses={exerciseStatuses}
       sessionStartTime={sessionStartTime}
       userId={userId}
-      onBack={() => navigate('/')}
+      currentSessionName={programSession.name}
+      nextSessionName={nextSessionName}
+      onStartNext={() => navigate(`/session?programId=${programId}&sessionIndex=${nextSessionIndex}`)}
+      onModify={() => {
+        // Reset to the first exercise — useNotebook will pre-load the recently
+        // logged sets so the user can review/edit each entry as they go.
+        setCurrentExerciseIdx(0)
+        setExerciseStatuses(programSession.exercises.map(e => ({ exerciseId: e.exerciseId, status: 'pending' })))
+        setPhase('exercises')
+      }}
     />
   }
 
@@ -675,17 +693,27 @@ function SessionRunner({
 // Done screen
 // ---------------------------------------------------------------------------
 
-function DoneScreen({ exerciseStatuses, sessionStartTime, userId, onBack }: {
+function DoneScreen({
+  exerciseStatuses,
+  sessionStartTime,
+  userId,
+  currentSessionName,
+  nextSessionName,
+  onStartNext,
+  onModify,
+}: {
   exerciseStatuses: ExerciseStatus[]
   sessionStartTime: Date
   userId: number
-  onBack: () => void
+  currentSessionName: string
+  nextSessionName: string
+  onStartNext: () => void
+  onModify: () => void
 }) {
   const doneCount = exerciseStatuses.filter(s => s.status === 'done').length
-  const skippedCount = exerciseStatuses.filter(s => s.status === 'skipped').length
   const duration = Math.round((Date.now() - sessionStartTime.getTime()) / 60000)
 
-  const tonnage = useLiveQuery(async () => {
+  const stats = useLiveQuery(async () => {
     const cutoff = new Date(Date.now() - 12 * 60 * 60 * 1000)
     const exerciseIds = exerciseStatuses.map(s => s.exerciseId)
     const entries = await db.notebookEntries
@@ -695,54 +723,58 @@ function DoneScreen({ exerciseStatuses, sessionStartTime, userId, onBack }: {
         return d >= cutoff && !e.skipped && exerciseIds.includes(e.exerciseId)
       })
       .toArray()
-    let total = 0
+    let tonnage = 0
+    let setsCount = 0
     for (const entry of entries) {
-      for (const s of entry.sets) total += s.weightKg * s.reps
+      setsCount += entry.sets.length
+      for (const s of entry.sets) tonnage += s.weightKg * s.reps
     }
-    return Math.round(total)
+    return { tonnage: Math.round(tonnage), setsCount }
   }, [userId, exerciseStatuses])
 
   return (
-    <div className="flex flex-col items-center justify-center h-[var(--content-h)] px-6 text-center">
-      {/* Celebration icon */}
-      <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mb-5">
-        <svg className="w-10 h-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-      </div>
-
-      <p className="text-3xl font-black text-white mb-1">Bravo !</p>
-      <p className="text-zinc-400 mb-6">Seance enregistree</p>
-
-      {/* Stats card */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 w-full max-w-sm mb-8">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-zinc-600 text-xs uppercase tracking-wider mb-1">Exercices</p>
-            <p className="text-white text-lg font-bold">{doneCount}</p>
-          </div>
-          <div>
-            <p className="text-zinc-600 text-xs uppercase tracking-wider mb-1">Duree</p>
-            <p className="text-white text-lg font-bold">~{duration} min</p>
-          </div>
-          {tonnage !== undefined && tonnage > 0 && (
-            <div>
-              <p className="text-zinc-600 text-xs uppercase tracking-wider mb-1">Tonnage</p>
-              <p className="text-emerald-400 text-lg font-bold">{tonnage.toLocaleString()} kg</p>
-            </div>
-          )}
-          {skippedCount > 0 && (
-            <div>
-              <p className="text-zinc-600 text-xs uppercase tracking-wider mb-1">Skips</p>
-              <p className="text-amber-400 text-lg font-bold">{skippedCount}</p>
-            </div>
-          )}
+    <div className="flex flex-col h-[var(--content-h)] px-5 pt-8 pb-6 bg-zinc-950 overflow-y-auto">
+      {/* Celebration header */}
+      <div className="flex flex-col items-center mb-8">
+        <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center mb-5">
+          <svg className="w-12 h-12 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
         </div>
+        <h1 className="text-4xl font-black text-white mb-2 text-center">Belle séance 💪</h1>
+        <p className="text-xl text-zinc-400 text-center">{currentSessionName}</p>
       </div>
 
-      <button onClick={onBack} className={CTA}>
-        Retour
-      </button>
+      {/* Stats grid 2×2 */}
+      <div className="grid grid-cols-2 gap-3 mb-8">
+        <StatCard label="Durée" value={`${duration} min`} />
+        <StatCard label="Exercices" value={String(doneCount)} />
+        <StatCard
+          label="Tonnage"
+          value={stats ? (stats.tonnage > 0 ? `${stats.tonnage.toLocaleString()} kg` : '—') : '—'}
+          accent={!!stats && stats.tonnage > 0}
+        />
+        <StatCard label="Séries" value={stats ? String(stats.setsCount) : '—'} />
+      </div>
+
+      {/* CTAs */}
+      <div className="flex flex-col gap-3 mt-auto">
+        <button onClick={onStartNext} className={CTA}>
+          Commencer {nextSessionName}
+        </button>
+        <button onClick={onModify} className={CTA_SECONDARY}>
+          Modifier la séance
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+      <p className="text-zinc-600 text-[10px] uppercase tracking-wider font-bold mb-1.5">{label}</p>
+      <p className={`text-3xl font-black ${accent ? 'text-emerald-400' : 'text-white'}`}>{value}</p>
     </div>
   )
 }
