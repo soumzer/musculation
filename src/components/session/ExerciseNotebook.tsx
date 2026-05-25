@@ -364,10 +364,8 @@ export default function ExerciseNotebook({
                   <span className="text-white font-medium">{set.weightKg}kg</span>
                   <span className="text-zinc-500">x</span>
                   <span className="text-white font-medium">{set.reps}</span>
-                  {set.reps >= target.reps ? (
+                  {set.reps >= target.reps && (
                     <span className="text-emerald-400 text-xs ml-auto">OK</span>
-                  ) : (
-                    <span className="text-amber-400 text-xs ml-auto">-{target.reps - set.reps}</span>
                   )}
                 </>
               )}

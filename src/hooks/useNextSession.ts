@@ -3,6 +3,11 @@ import { db } from '../db'
 import type { ProgramSession, SessionIntensity, WorkoutProgram } from '../db/types'
 
 export interface NextSessionExercisePreview {
+  /**
+   * Stable identifier — survives renames via the catalog's `previousNames`
+   * migration. Use this to look up history rather than matching by name.
+   */
+  exerciseId: number
   name: string
   sets: number
   targetReps: number
@@ -185,6 +190,7 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
       sessionName: nextProgramSession.name,
       intensity: nextProgramSession.intensity,
       exercises: nextProgramSession.exercises.map((pe) => ({
+        exerciseId: pe.exerciseId,
         name: exerciseNameMap.get(pe.exerciseId) ?? `Exercice #${pe.exerciseId}`,
         sets: pe.sets,
         targetReps: pe.targetReps,

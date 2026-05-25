@@ -66,6 +66,7 @@ export function useNotebook(
         .toArray()
       return entries
         .filter(e => e.sessionIntensity === sessionIntensity)
+        .filter(e => e.sets.length > 0)
         .sort((a, b) => b.date.getTime() - a.date.getTime())
         .slice(0, MAX_HISTORY)
     },

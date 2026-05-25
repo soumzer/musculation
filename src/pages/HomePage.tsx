@@ -43,27 +43,31 @@ export default function HomePage() {
 
   // Last perf per exercise for the preview card — filtered by the upcoming
   // session's intensity so a Force preview shows last-Force perfs (not the
-  // last Volume perfs which would mislead set/rep expectations).
+  // last Volume perfs which would mislead set/rep expectations). Matching is
+  // done by exerciseId (stable across renames) — previously matched by name
+  // and lost history whenever an exercise got renamed (e.g. Développé couché
+  // machine → Chest press).
   const lastPerfs = useLiveQuery(async () => {
     if (!user?.id || !info?.preview) return null
-    const names = info.preview.exercises.map(e => e.name)
+    const ids = new Set(info.preview.exercises.map(e => e.exerciseId).filter(id => id > 0))
+    if (ids.size === 0) return new Map<number, NotebookEntry>()
     const previewIntensity = info.preview.intensity
     const entries = await db.notebookEntries
       .where('userId').equals(user.id)
       .filter(e =>
         !e.skipped
         && e.sets.length > 0
-        && names.includes(e.exerciseName)
+        && ids.has(e.exerciseId)
         && (previewIntensity === undefined || e.sessionIntensity === previewIntensity),
       )
       .toArray()
-    // Most recent per exercise name
-    const map = new Map<string, NotebookEntry>()
+    // Most recent per exercise id
+    const map = new Map<number, NotebookEntry>()
     for (const e of entries) {
-      const existing = map.get(e.exerciseName)
+      const existing = map.get(e.exerciseId)
       const d = e.date instanceof Date ? e.date : new Date(e.date)
       if (!existing || d > (existing.date instanceof Date ? existing.date : new Date(existing.date))) {
-        map.set(e.exerciseName, e)
+        map.set(e.exerciseId, e)
       }
     }
     return map
@@ -244,7 +248,7 @@ export default function HomePage() {
             <p className="text-zinc-600 text-xs uppercase tracking-wider mb-3">Au programme</p>
             <div className="space-y-3">
               {info.preview.exercises.map((ex, idx) => {
-                const perf = lastPerfs?.get(ex.name)
+                const perf = lastPerfs?.get(ex.exerciseId)
                 const bestSet = perf?.sets.reduce((best, s) => s.weightKg > best.weightKg ? s : best, perf.sets[0])
                 return (
                   <div key={idx} className="flex items-center justify-between">
