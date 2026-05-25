@@ -52,18 +52,24 @@ export function useNotebook(
   const [todayEntryId, setTodayEntryId] = useState<number | null>(null)
   const [loadedEntry, setLoadedEntry] = useState(false)
 
-  // Load last N entries for this exercise
+  // Load the recent entries for this exercise filtered to the current session's
+  // intensity (Force history when in a Force session, etc.). Wider Dexie window
+  // first so we don't miss a same-intensity entry just because more recent
+  // opposite-intensity entries got in the way.
   const history = useLiveQuery(
     async () => {
       const entries = await db.notebookEntries
         .where('[userId+exerciseId]')
         .equals([userId, exerciseId])
         .reverse()
-        .limit(MAX_HISTORY)
+        .limit(20)
         .toArray()
-      return entries.sort((a, b) => b.date.getTime() - a.date.getTime())
+      return entries
+        .filter(e => e.sessionIntensity === sessionIntensity)
+        .sort((a, b) => b.date.getTime() - a.date.getTime())
+        .slice(0, MAX_HISTORY)
     },
-    [userId, exerciseId],
+    [userId, exerciseId, sessionIntensity],
     [] as NotebookEntry[]
   )
 
@@ -89,12 +95,12 @@ export function useNotebook(
     setLoadedEntry(true)
   }, [history, loadedEntry])
 
-  // Last weight from history — filtered by SAME intensity (force → force, volume → volume)
+  // Last weight from history. history is already filtered to the current
+  // session's intensity (see the useLiveQuery above), so we just walk the most
+  // recent non-skipped entry with sets.
   const lastWeight = (() => {
-    const sameIntensity = history.find(
-      e => !e.skipped && e.sets.length > 0 && e.sessionIntensity === sessionIntensity
-    )
-    return sameIntensity ? sameIntensity.sets[0].weightKg : null
+    const recent = history.find(e => !e.skipped && e.sets.length > 0)
+    return recent ? recent.sets[0].weightKg : null
   })()
 
   // Notify parent of draft sets changes for session persistence

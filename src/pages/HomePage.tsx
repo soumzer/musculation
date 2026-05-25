@@ -41,13 +41,21 @@ export default function HomePage() {
     }))
   }, [activeSession])
 
-  // Last perf per exercise for the preview card
+  // Last perf per exercise for the preview card — filtered by the upcoming
+  // session's intensity so a Force preview shows last-Force perfs (not the
+  // last Volume perfs which would mislead set/rep expectations).
   const lastPerfs = useLiveQuery(async () => {
     if (!user?.id || !info?.preview) return null
     const names = info.preview.exercises.map(e => e.name)
+    const previewIntensity = info.preview.intensity
     const entries = await db.notebookEntries
       .where('userId').equals(user.id)
-      .filter(e => !e.skipped && e.sets.length > 0 && names.includes(e.exerciseName))
+      .filter(e =>
+        !e.skipped
+        && e.sets.length > 0
+        && names.includes(e.exerciseName)
+        && (previewIntensity === undefined || e.sessionIntensity === previewIntensity),
+      )
       .toArray()
     // Most recent per exercise name
     const map = new Map<string, NotebookEntry>()

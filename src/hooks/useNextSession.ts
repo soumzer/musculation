@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
-import type { ProgramSession, WorkoutProgram } from '../db/types'
+import type { ProgramSession, SessionIntensity, WorkoutProgram } from '../db/types'
 
 export interface NextSessionExercisePreview {
   name: string
@@ -12,6 +12,12 @@ export interface NextSessionExercisePreview {
 
 export interface NextSessionPreview {
   sessionName: string
+  /**
+   * Intensity tag of the upcoming session (heavy/volume/moderate). Used by
+   * HomePage to filter the "last performance" lookup by matching intensity
+   * — a Force session preview should show last Force perfs, not last Volume.
+   */
+  intensity?: SessionIntensity
   exercises: NextSessionExercisePreview[]
 }
 
@@ -177,6 +183,7 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
 
     const preview: NextSessionPreview = {
       sessionName: nextProgramSession.name,
+      intensity: nextProgramSession.intensity,
       exercises: nextProgramSession.exercises.map((pe) => ({
         name: exerciseNameMap.get(pe.exerciseId) ?? `Exercice #${pe.exerciseId}`,
         sets: pe.sets,
