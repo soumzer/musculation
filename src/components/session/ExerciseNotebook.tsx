@@ -50,6 +50,14 @@ export interface ExerciseNotebookProps {
   onNext: () => void
   onSkip: (zone: BodyZone) => void
   onSwap: (newExerciseId: number) => void
+  /**
+   * Optional prev/next navigation handlers — when present, the notebook
+   * renders a navigation bar with arrows allowing the user to step
+   * back/forward through the routine. Used by RehabPage; muscu sessions
+   * keep the flow linear and don't pass these.
+   */
+  onPrev?: () => void
+  onNextNav?: () => void
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +91,8 @@ export default function ExerciseNotebook({
   onNext,
   onSkip,
   onSwap,
+  onPrev,
+  onNextNav,
 }: ExerciseNotebookProps) {
   const notebook = useNotebook(
     userId,
@@ -180,10 +190,13 @@ export default function ExerciseNotebook({
     try { navigator.vibrate?.(10) } catch { /* ignore */ }
     // Keep weight, clear reps for next set
     setInputReps('')
-    // Start rest timer after logging a set
-    timer.reset()
-    timer.start()
-  }, [inputWeight, inputReps, notebook, timer])
+    // Start rest timer after logging a set (unless restSeconds is 0 — used
+    // for rehab massages / passive mobilization where pacing isn't relevant).
+    if (target.restSeconds > 0) {
+      timer.reset()
+      timer.start()
+    }
+  }, [inputWeight, inputReps, notebook, timer, target.restSeconds])
 
   // Timed exos: when the hold countdown reaches 0, auto-log a set with
   // {weightKg:0, reps:duration} and trigger the inter-set rest. A ref prevents
@@ -202,8 +215,8 @@ export default function ExerciseNotebook({
     holdValidatedRef.current = true
     notebook.addSet(0, target.reps)
     try { navigator.vibrate?.(10) } catch { /* ignore */ }
-    // Start rest unless that was the final set
-    if (notebook.currentSets.length + 1 < target.sets) {
+    // Start rest unless that was the final set OR restSeconds is 0 (massage etc.)
+    if (notebook.currentSets.length + 1 < target.sets && target.restSeconds > 0) {
       timer.reset()
       timer.start()
     }
@@ -240,7 +253,7 @@ export default function ExerciseNotebook({
         />
       )}
 
-      <div className="flex-1 overflow-auto px-4 pt-3 pb-20">
+      <div className={`flex-1 overflow-auto px-4 pt-3 ${onPrev || onNextNav ? 'pb-32' : 'pb-20'}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <button onClick={onNext} className="text-zinc-500 text-sm active:text-zinc-300 transition-colors">
@@ -517,6 +530,26 @@ export default function ExerciseNotebook({
           />
         </div>
       </div>
+
+      {/* Prev/Next nav strip — only when handlers provided (rehab routine) */}
+      {(onPrev || onNextNav) && (
+        <div className="fixed bottom-[calc(var(--nav-h)+60px)] left-0 right-0 bg-zinc-950 border-t border-zinc-900 px-4 py-2 flex gap-3">
+          <button
+            onClick={onPrev}
+            disabled={!onPrev}
+            className="flex-1 bg-zinc-800 text-zinc-300 rounded-xl py-2 text-sm font-medium active:scale-95 transition-all duration-200 disabled:opacity-30"
+          >
+            ‹ Précédent
+          </button>
+          <button
+            onClick={onNextNav}
+            disabled={!onNextNav}
+            className="flex-1 bg-zinc-800 text-zinc-300 rounded-xl py-2 text-sm font-medium active:scale-95 transition-all duration-200 disabled:opacity-30"
+          >
+            Suivant ›
+          </button>
+        </div>
+      )}
 
       {/* Bottom bar — fixed above BottomNav + safe area */}
       <div className="fixed bottom-[var(--nav-h)] left-0 right-0 bg-zinc-950 border-t border-zinc-800 px-4 py-3 flex gap-3">

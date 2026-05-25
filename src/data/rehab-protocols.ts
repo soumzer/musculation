@@ -43,6 +43,14 @@ export interface RehabExercise {
   intensity: 'very_light' | 'light' | 'moderate'
   notes: string
   placement: 'warmup' | 'active_wait' | 'cooldown' | 'rest_day'
+  /**
+   * Repos prescrit entre séries en secondes, dérivé du type d'exercice :
+   *   0  = massage / mobilisation passive / foam rolling (pas de timer)
+   *   15 = mobilité / étirement / cercles articulaires
+   *   45 = renforcement (standard ou excentrique)
+   *   75 = isométrique / tenues longues
+   */
+  restSeconds?: number
 }
 
 export const rehabProtocols: RehabProtocol[] = [
@@ -65,6 +73,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Utiliser une balle de tennis ou de lacrosse. Rouler sur les fléchisseurs de l\'avant-bras (côté paume) en insistant sur les points sensibles. Prépare les tissus avant les exercices excentriques de la routine et améliore la circulation locale. Faire en début de routine rehab.',
+        restSeconds: 0,
         placement: 'warmup',
       },
       {
@@ -74,6 +83,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Phase excentrique de 5 secondes, concentrique assistée par l\'autre main. Commencer avec 1-2 kg. Ne pas augmenter la charge tant que 3x15 n\'est pas indolore. Faire 2x/jour quand la routine rehab est faite seule.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -84,6 +94,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Étirement doux, ne jamais forcer en douleur. Faire en début et en fin de routine rehab et en début de routine rehab. Peut être fait plusieurs fois par jour.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -93,6 +104,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Placer un élastique autour des doigts et les écarter contre la résistance. Renforce les extenseurs des doigts et équilibre la force de préhension. Excellent exercice de récupération active entre les séries ou en fin de routine rehab. Peut être fait plusieurs fois par jour.',
+        restSeconds: 45,
         placement: 'cooldown',
       },
     ],
@@ -117,6 +129,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'moderate',
         notes:
           'Basé sur Rio et al. (2015) : les isométriques à 70% d\'effort réduisent la douleur tendineuse immédiatement et augmentent la force de 18.7%. Tenir 45 secondes à 70-90° de flexion, 2 minutes de repos entre les séries. Faire en début de routine rehab comme analgésique. Peut être fait 2-3x/jour les jours où la routine rehab est faite seule.',
+        restSeconds: 75,
         placement: 'warmup',
       },
       {
@@ -126,6 +139,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'moderate',
         notes:
           'Protocole Heavy Slow Resistance (HSR) : tempo 3-2-4 (3s concentrique, 2s isométrique, 4s excentrique). Commencer à 15RM et progresser vers 6RM sur 12 semaines. Éviter l\'amplitude complète si douloureux — travailler en amplitude moyenne. Pas de douleur > 4/10 pendant l\'exercice.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
     ],
@@ -149,6 +163,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Exercice fondamental pour les pieds plats (Hara et al., 2023). Tenir chaque contraction 5-8 secondes. Apprentissage difficile — pratiquer d\'abord assis pour bien comprendre l\'activation musculaire. 6 semaines minimum pour des résultats mesurables. Faire quotidiennement même les jours où la routine rehab est faite seule.',
+        restSeconds: 75,
         placement: 'warmup',
       },
       {
@@ -158,6 +173,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Complément au short foot pour renforcer les fléchisseurs des orteils. Peut être fait à la maison devant la télé. Progression : ajouter un petit poids sur la serviette pour augmenter la résistance.',
+        restSeconds: 45,
         placement: 'rest_day',
       },
       {
@@ -167,6 +183,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Maintient l\'amplitude articulaire malgré l\'arthrite. La dorsiflexion genou-au-mur est particulièrement importante pour le squat et la marche. Ne pas forcer en cas de douleur articulaire aiguë — adapter l\'amplitude.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -175,6 +192,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '10 par sens',
         intensity: 'very_light',
         notes: 'En position assise ou debout sur une jambe, tracer de grands cercles avec le pied. Faire les deux sens (horaire et anti-horaire) pour chaque cheville. Améliore la mobilité et la proprioception.',
+        restSeconds: 15,
         placement: 'rest_day',
       },
     ],
@@ -198,6 +216,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Exercice le plus important pour la tête avancée. Tenir 5 secondes par répétition. Peut être fait assis au bureau, en voiture, ou debout. Faire au minimum 3x par jour pour reprogrammer la posture. Ajouter une résistance avec la main quand l\'exercice devient facile.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -207,6 +226,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Excellent diagnostic de la mobilité thoracique — si incapable de garder le dos des mains contre le mur, la mobilité thoracique est insuffisante. À placer avant les exercices de poussée. Progression : augmenter l\'amplitude lentement.',
+        restSeconds: 75,
         placement: 'warmup',
       },
       {
@@ -216,6 +236,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Rotation externe en fin de mouvement est essentielle — ne pas simplement tirer vers le visage. Inclure systématiquement aux côtés des exercices de poussée dans la routine. Peut remplacer un exercice d\'isolation pour les épaules.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -225,6 +246,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Bon enchaînement dans la routine ou en active wait entre les autres exercices de la routine. Bande légère à moyenne. Serrer les omoplates 2 secondes à chaque répétition. Bonne alternative quand la poulie n\'est pas accessible.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -235,6 +257,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Étirement passif des pectoraux raccourcis par la posture antérieure. 3 positions : coudes bas (fibres inférieures), coudes à 90° (fibres moyennes), coudes hauts (fibres supérieures). Faire en cooldown et les jours où la routine rehab est faite seule.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
       {
@@ -243,6 +266,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '8-10 par côté',
         intensity: 'light',
         notes: 'En position 4 pattes ou assis. Placer une main derrière la tête et tourner le coude vers le plafond en ouvrant la poitrine. Mouvement contrôlé, ne pas forcer l\'amplitude. Excellent pour la mobilité du haut du dos.',
+        restSeconds: 15,
         placement: 'rest_day',
       },
     ],
@@ -266,6 +290,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Exercice #1 pour le core profond et la stabilisation lombaire (McGill). Le bas du dos doit rester PLAQUÉ au sol pendant tout le mouvement. Si le dos se cambre, réduire l\'amplitude des mouvements. Respirer normalement, ne pas retenir le souffle.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -275,6 +300,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'McGill Big 3 : exercice fondamental pour la stabilisation lombaire. Le bassin ne doit PAS tourner quand vous étendez la jambe. Placer un verre d\'eau sur le dos comme test de stabilité. Tenir 3 secondes en extension.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -284,6 +310,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'moderate',
         notes:
           'Anti-rotation : protège le dos contre les forces de torsion. Commencer avec un poids léger, se concentrer sur la rigidité du core. Peut être fait debout, à genoux, ou en fente. Excellent en active wait entre les séries d\'autres exercices de la routine.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -293,6 +320,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Active les fessiers inhibés par la position assise prolongée (« amnésie glutéale »). Fessiers forts = dos protégé. Serrer les fessiers 3 secondes en haut. Progression : unipodal → ajout de charge progressive.',
+        restSeconds: 45,
         placement: 'warmup',
       },
     ],
@@ -316,6 +344,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'ATTENTION : mouvement DOUX et LENT. Ne JAMAIS forcer. Arrêter immédiatement si douleur vive ou aggravation des symptômes. Le nerf glisse doucement dans sa gaine — pas d\'étirement brutal. Faire quotidiennement, idéalement le matin et le soir. Contre-indiqué en phase aiguë (douleur > 7/10).',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -326,6 +355,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Position figure-4 allongée sur le dos. Le piriforme tendu peut comprimer le nerf sciatique. Respirer profondément pendant l\'étirement. Ne pas forcer — aller à la sensation d\'étirement confortable. Faire en fin de routine rehab et les jours où la routine rehab est faite seule.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
       {
@@ -335,6 +365,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Mobilise doucement la colonne lombaire et soulage la compression nerveuse. Mouvements lents et contrôlés, synchronisés avec la respiration. Excellent le matin au réveil quand la raideur est maximale.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -344,6 +375,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Des fessiers forts aident à stabiliser le bassin et réduisent la compression du nerf sciatique. Complète le programme d\'étirement. Le renforcement est aussi important que l\'étirement pour la sciatique chronique.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -364,6 +396,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Jambe tendue sur support (banc, step). Garder le dos droit, basculer le bassin vers l\'avant. Ne pas arrondir le dos. Alterner les deux jambes. Étirement passif, ne pas forcer. Essentiel pour la chaîne postérieure, surtout chez les grands gabarits.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
       {
@@ -374,6 +407,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Position de fente au sol, genou arrière posé. Avancer les hanches vers l\'avant sans cambrer le dos. Contracter le fessier du côté étiré. La raideur des fléchisseurs aggrave la lordose et la compression sciatique. Faire des deux côtés.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
       {
@@ -384,6 +418,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Rouler lentement sur les ischio-jambiers puis les mollets. S\'attarder sur les points sensibles (10-15 sec). Aide à relâcher la tension de la chaîne postérieure et améliore la mobilité globale. Faire en début de routine rehab pour préparer les tissus.',
+        restSeconds: 0,
         placement: 'warmup',
       },
     ],
@@ -407,6 +442,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Side-lying external rotation. Basé sur Reinold et al. (2004) : protocole de renforcement de la coiffe des rotateurs. Phase excentrique de 3 secondes. Commencer avec 1-2 kg. Le coude reste collé au flanc pendant tout le mouvement. Faire en début de routine rehab impliquant les épaules.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -416,6 +452,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Câble réglé à hauteur du coude, serviette roulée entre le coude et le corps. Rotation externe contrôlée, 3 secondes en excentrique. Charge légère — la coiffe des rotateurs ne nécessite pas de charges lourdes. Excellent en active wait entre les exercices de la routine.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -425,6 +462,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Élévation dans le plan de la scapula (30° en avant du plan frontal), pouces vers le haut. Angle shoulder-safe selon Thigpen et al. (2010) : réduit le risque de conflit sous-acromial. Haltères très légers (1-3 kg). Ne pas dépasser la hauteur des épaules.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -435,6 +473,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Allongé sur le côté affecté, rotation interne passive douce. Adresse la raideur de la capsule postérieure, fréquente dans les tendinopathies de la coiffe. Ne JAMAIS forcer — aller à la sensation d\'étirement sans douleur. Faire en fin de routine rehab.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
     ],
@@ -458,6 +497,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Gold standard pour le tennis elbow — Stasinopoulos & Stasinopoulos (2017). Phase excentrique de 5 secondes, concentrique assistée par l\'autre main. Commencer avec 1-2 kg. Faire 2x/jour quand la routine rehab est faite seule. Ne pas augmenter la charge tant que 3x15 n\'est pas indolore.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -467,6 +507,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Utiliser un marteau léger ou un haltère lesté d\'un côté. Mouvements lents et contrôlés de supination et pronation. Renforce les rotateurs de l\'avant-bras qui stabilisent le coude. Commencer avec une charge très légère et augmenter progressivement.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -477,6 +518,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Étirement doux des extenseurs du poignet. Bras tendu, paume vers le bas, tirez les doigts vers le bas. Ne jamais forcer en douleur. Faire en début et en fin de routine rehab et en début de routine rehab impliquant la préhension.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
     ],
@@ -500,6 +542,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Rathleff et al. (2015) : l\'excentrique ciblé du VMO améliore le tracking rotulien. Descente lente sur 3-4 secondes, genou aligné sur le 2e orteil. Step de 15-20 cm. Ne laissez pas le genou partir en valgus (vers l\'intérieur).',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -509,6 +552,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Powers (2010) : le renforcement du moyen fessier améliore le contrôle du genou et réduit la douleur fémoro-patellaire de 43% en 6 semaines. Bande élastique autour des genoux. Ne laissez pas le bassin rouler vers l\'arrière.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -518,6 +562,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Bande derrière le genou, extension des derniers 30° du genou. Cible spécifiquement le VMO dans les amplitudes les plus fonctionnelles. Tenez 2 secondes en extension complète. Excellent en active wait.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -528,6 +573,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Auto-libération myofasciale des quadriceps et de la bandelette ilio-tibiale. Roulez lentement, insistez sur les points sensibles. Réduit les tensions qui contribuent au mauvais tracking rotulien. Ne roulez jamais directement sur le genou.',
+        restSeconds: 0,
         placement: 'warmup',
       },
     ],
@@ -551,6 +597,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Méthode McKenzie : gold standard pour les hernies/protrusions discales. L\'extension répétée centralise la douleur (signe de bon pronostic). Faire plusieurs fois par jour (toutes les 2-3 heures). STOP immédiatement si la douleur se déplace vers la jambe (périphéralisation). Commencer par la version sphinx (coudes au sol) si la version bras tendus est douloureuse.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -560,6 +607,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'McGill Big 3 : stabilisation lombaire sans flexion du rachis. Le bassin ne doit PAS tourner. Tenir 3 secondes en extension. Excellent complément au McKenzie pour renforcer les stabilisateurs du tronc sans charger le disque.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -569,6 +617,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Décompression par le mouvement cyclique du bassin. La marche favorise la nutrition du disque intervertébral par imbibition. Faire quotidiennement, idéalement le matin. Augmenter progressivement la durée vers 20-30 minutes.',
+        restSeconds: 15,
         placement: 'rest_day',
       },
     ],
@@ -593,6 +642,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Variante assise : figure 4 sur la chaise puis inclinaison du buste vers l\'avant. Peut être fait au bureau ou à la salle entre les exercices. Respirez profondément pendant l\'étirement. Ne forcez jamais au-delà de la sensation d\'étirement confortable.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
       {
@@ -602,6 +652,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Renforce le moyen fessier pour stabiliser la hanche et réduire la surcharge du piriforme. Bande élastique autour des genoux. Ne laissez pas le bassin rouler vers l\'arrière. Peut être fait en échauffement et les jours où la routine rehab est faite seule.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -612,6 +663,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Assis sur le foam roller, croisez la cheville sur le genou opposé. Roulez sur le fessier en insistant sur les points sensibles. Pour plus de pression, utilisez une balle de lacrosse. Libère les tensions du piriforme et des rotateurs profonds.',
+        restSeconds: 0,
         placement: 'warmup',
       },
       {
@@ -621,6 +673,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Renforce spécifiquement le fessier de la hanche affectée. Corrige les déséquilibres bilatéraux. Serrez le fessier 3 secondes en haut. Excellent en active wait entre les autres exercices de la routine.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
     ],
@@ -645,6 +698,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Protocole Freeman et al. : l\'entraînement proprioceptif réduit le risque de récidive d\'entorse de 50%. Progresser : sol dur yeux ouverts → yeux fermés → coussin yeux ouverts → coussin yeux fermés. Faire quotidiennement.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -654,6 +708,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Bande autour de l\'avant-pied. Éversion : tournez le pied vers l\'extérieur contre la bande. Inversion : tournez vers l\'intérieur. Les péroniers (éversion) sont particulièrement importants pour prévenir l\'inversion excessive. Mouvements lents et contrôlés.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -663,6 +718,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Montée sur deux pieds, descente excentrique sur une jambe sur 3-4 secondes. Renforce les mollets pour stabiliser la cheville. Travaillez l\'amplitude complète (talon sous le step).',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -672,6 +728,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Cercles de cheville et dorsiflexion genou-au-mur. Maintient l\'amplitude articulaire essentielle après entorse. La dorsiflexion est souvent limitée après une entorse et doit être restaurée pour prévenir les récidives.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
     ],
@@ -695,6 +752,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Gold standard — protocole Alfredson (1998). Genou TENDU, descente excentrique lente sur 3-5 secondes. Montée sur 2 pieds, descente sur 1 pied. Faire 2x/jour (matin et soir). La douleur légère pendant l\'exercice est acceptable et attendue au début. 12 semaines minimum.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -704,6 +762,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Même protocole mais genou fléchi à 20-30° pour cibler le soléaire. Le soléaire constitue la majorité de la masse du tendon d\'Achille. Les deux variantes (genou tendu + genou fléchi) doivent être faites — c\'est le protocole Alfredson complet. Faire 2x/jour.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -714,6 +773,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Étirement du gastrocnémien (genou tendu) puis du soléaire (genou légèrement fléchi). Maintenir la souplesse du complexe mollet-Achille est essentiel pendant le protocole excentrique. Ne jamais rebondir pendant l\'étirement.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
     ],
@@ -737,6 +797,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Protocole Rozmaryn et al. (1998) : les glissements du nerf médian réduisent la pression intracarpienne. 6 positions progressives, 5-7 secondes chacune. Mouvement DOUX — arrêtez immédiatement si picotements ou engourdissement augmentent. Faire 2-3x par jour.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -747,6 +808,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Bras tendu, paume vers le haut, tirez doucement les doigts vers le bas. Étire les fléchisseurs qui passent dans le canal carpien. Ne forcez pas en cas de douleur ou de picotements.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
       {
@@ -757,6 +819,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Bras tendu, paume vers le bas, tirez les doigts vers le bas. Équilibre les tensions musculaires autour du poignet. Complément essentiel à l\'étirement des fléchisseurs.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
       {
@@ -766,6 +829,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Balle souple ou serviette roulée. Serrer et maintenir 5 secondes. Ne PAS faire en phase aiguë (picotements constants). À introduire uniquement quand les symptômes sont bien contrôlés. Faire les jours où la routine rehab est faite seule.',
+        restSeconds: 45,
         placement: 'rest_day',
       },
     ],
@@ -790,6 +854,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Utiliser une balle à picots (spiky ball) ou balle de tennis. Rouler sous la voûte plantaire en insistant sur les points sensibles. Prépare les tissus et améliore la circulation locale. Faire debout ou assis selon la tolérance.',
+        restSeconds: 0,
         placement: 'warmup',
       },
       {
@@ -800,6 +865,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Utiliser un pistolet de massage (ou foam roller). Relâche les tensions du mollet qui affectent le pied via le nerf tibial et les tendons. Insister sur les points sensibles du gastrocnémien et du soléaire.',
+        restSeconds: 0,
         placement: 'warmup',
       },
       {
@@ -809,6 +875,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Aide à réduire les sensations de décharge électrique dans le talon. Assis, jambe tendue, pointer puis fléchir le pied tout en inclinant la tête. Mouvement DOUX et contrôlé — ne jamais forcer. Arrêter si aggravation des symptômes.',
+        restSeconds: 15,
         placement: 'active_wait',
       },
       {
@@ -819,6 +886,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Pour la douleur sur le dessus du pied. Assis, pointer le pied et appuyer doucement sur le dessus des orteils. Étire les tendons extenseurs. Ne pas forcer en cas de douleur aiguë.',
+        restSeconds: 15,
         placement: 'active_wait',
       },
       {
@@ -829,6 +897,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Pour la douleur sur le bord externe du pied. Assis, tourner le pied en inversion (plante vers l\'intérieur) et maintenir. Étire les muscles péroniers sur le côté externe de la jambe.',
+        restSeconds: 15,
         placement: 'active_wait',
       },
       {
@@ -838,6 +907,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Cercles de cheville dans les deux sens. Améliore la fonction globale du pied et réduit la raideur matinale. Peut être fait assis ou debout. Excellent le matin au réveil.',
+        restSeconds: 15,
         placement: 'active_wait',
       },
       {
@@ -847,6 +917,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Serviette posée au sol, ramener vers soi en agrippant avec les orteils. Renforce les muscles intrinsèques du pied et améliore la stabilité de la voûte plantaire. Progression : ajouter un poids léger sur la serviette.',
+        restSeconds: 45,
         placement: 'cooldown',
       },
     ],
@@ -871,6 +942,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Penchez-vous en avant, bras pendant, laissez le bras faire des cercles par gravité. Cercles horaires, antihoraires, puis avant-arrière. NE PAS forcer activement — le mouvement vient du corps, pas de l\'épaule. Excellent pour maintenir la mobilité sans stress sur la capsule. Faire 3-4x par jour.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -881,6 +953,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Assis devant une table, faites glisser la main vers l\'avant en laissant le bras monter passivement. Le bras sain peut aider à pousser. Aller jusqu\'à la sensation d\'étirement, pas de douleur. Progression : augmenter la distance parcourue.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -890,6 +963,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Face au mur, montez les doigts sur le mur en marchant vers le haut. Maintenez la position haute 5 secondes. Ne laissez pas l\'épaule se hausser vers l\'oreille. Marquez votre progression sur le mur pour suivre l\'amélioration de l\'amplitude.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -900,6 +974,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Allongé sur le dos, coude à 90°, utilisez le bras sain ou un bâton pour pousser doucement l\'avant-bras vers l\'extérieur. TRÈS progressif — la capsule postérieure est souvent très raide. Ne jamais forcer contre la douleur.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
       {
@@ -910,6 +985,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Serviette dans le dos, main affectée en bas. Le bras sain tire doucement vers le haut pour augmenter la rotation interne. Étirement progressif, maintenir sans rebondir. Important pour les gestes du quotidien (attacher le soutien-gorge, se gratter le dos).',
+        restSeconds: 15,
         placement: 'cooldown',
       },
     ],
@@ -933,6 +1009,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Serrez les omoplates ensemble et vers le bas, maintenez 5 secondes. Améliore le positionnement scapulaire et ouvre l\'espace sous-acromial. Peut être fait assis, debout, ou allongé sur le ventre. Exercice fondamental — faire plusieurs fois par jour.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -942,6 +1019,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Coude à 90°, dos de la main contre le mur, poussez comme pour tourner vers l\'extérieur. Renforce la coiffe sans mouvement, idéal en phase aiguë. Intensité légère (30-50% effort max). Pas de douleur pendant l\'exercice.',
+        restSeconds: 75,
         placement: 'warmup',
       },
       {
@@ -951,6 +1029,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Coude collé au corps, rotation externe contrôlée contre la résistance de la bande. Serviette roulée entre le coude et le flanc. Tempo lent (3 sec excentrique). À introduire quand les isométriques sont indolores.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -960,6 +1039,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Allongé sur le ventre ou penché en avant. Former les lettres Y, T, et W avec les bras en soulevant contre la gravité. Renforce les stabilisateurs scapulaires (trapèze moyen/inférieur, rhomboïdes). Poids très légers ou poids du corps uniquement.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -969,6 +1049,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Élévation dans le plan de la scapula (30° en avant), pouces vers le haut. Angle shoulder-safe qui minimise le risque de conflit. NE PAS dépasser la hauteur des épaules en phase de récupération. Poids très légers (1-2 kg max).',
+        restSeconds: 45,
         placement: 'active_wait',
       },
     ],
@@ -992,6 +1073,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Couché sur le côté sain, haltère léger. Rotation externe lente et contrôlée, coude collé au corps. Renforce l\'infraspinatus et le teres minor, stabilisateurs clés contre l\'instabilité antérieure. Ne JAMAIS utiliser de charges lourdes.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -1001,6 +1083,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Position de planche ou push-up, pousser les omoplates vers l\'extérieur en fin de mouvement (protraction). Renforce le serratus anterior, essentiel pour la stabilité scapulaire. Peut être fait sur les genoux si trop difficile.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -1011,6 +1094,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Bras tendu devant, partenaire ou bande applique des perturbations légères dans différentes directions. L\'épaule doit résister et maintenir la position. Entraîne les réflexes stabilisateurs. Progresser : yeux fermés, positions variées.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1020,6 +1104,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Câble ou bande à hauteur du visage. Tirer vers le visage puis rotation externe en fin de mouvement. Renforce les rotateurs externes et les stabilisateurs scapulaires. Ratio recommandé : 2 séries pour 1 série d\'exercice de poussée à intégrer dans la routine.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1029,6 +1114,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Allongé sur le ventre, bras pendants. Former les lettres Y, T, W, L en soulevant les bras. Renforce l\'ensemble de la coiffe et les stabilisateurs scapulaires. Maintenir chaque position 3 secondes. Poids du corps uniquement au début.',
+        restSeconds: 45,
         placement: 'warmup',
       },
     ],
@@ -1053,6 +1139,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Rouler sur le côté externe de la cuisse du genou à la hanche. NE PAS rouler directement sur le grand trochanter (bosse osseuse). Pression modérée — l\'IT band est naturellement tendu. Aide à relâcher les tensions qui irritent la bourse.',
+        restSeconds: 0,
         placement: 'warmup',
       },
       {
@@ -1063,6 +1150,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Debout, jambe affectée croisée derrière, inclinez le bassin vers le côté sain. Vous devez sentir l\'étirement sur le côté externe de la hanche/cuisse. Maintenir sans rebondir. Faire plusieurs fois par jour.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
       {
@@ -1072,6 +1160,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Couché sur le côté, genoux fléchis, ouvrir le genou supérieur comme une coquille. Bande élastique autour des genoux pour plus de résistance. Le bassin ne doit PAS rouler vers l\'arrière. Renforce le moyen fessier faible, souvent la cause sous-jacente.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -1081,6 +1170,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Couché sur le côté sain, lever la jambe affectée vers le plafond, pied en légère rotation interne (orteils vers le bas). Éviter de monter trop haut (30-45° suffisent). Renforce les abducteurs de hanche.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1090,6 +1180,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Bande autour des genoux, pont fessier classique en poussant légèrement contre la bande. Active le moyen fessier en plus du grand fessier. Serrer les fessiers 3 secondes en haut du mouvement.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1100,6 +1191,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Position figure-4 allongé ou assis. Étire les rotateurs profonds de la hanche qui peuvent contribuer à l\'irritation de la bourse. Respirer profondément pendant l\'étirement.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
     ],
@@ -1124,6 +1216,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Position de fente au sol, genou arrière posé. Avancer les hanches sans cambrer le dos, contracter le fessier du côté étiré. Les fléchisseurs raides aggravent le FAI en tirant la tête fémorale vers l\'avant. Faire quotidiennement.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1133,6 +1226,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'À quatre pattes, faire des cercles avec le genou (comme un chien qui lève la patte). Mouvement LENT et contrôlé. Éviter les amplitudes qui reproduisent la douleur (généralement flexion + rotation interne). Maintient la mobilité articulaire.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1142,6 +1236,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Le bas du dos doit rester PLAQUÉ au sol. Excellent pour renforcer le core sans charger la hanche en flexion profonde. Si le dos se cambre, réduire l\'amplitude. Bon travail du core sans charge axiale.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -1151,6 +1246,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Renforce les fessiers sans flexion de hanche. Serrer les fessiers 3 secondes en haut. Évite de compenser avec les lombaires. Progression : unipodal quand 3x15 est facile.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1160,6 +1256,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Renforce les rotateurs externes et abducteurs sans stress sur le labrum. Position de départ avec hanches à 45° (pas 90°). Bande élastique pour plus de résistance quand l\'exercice devient facile.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1169,6 +1266,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Squat jusqu\'à un banc haut (flexion 60-70° max). Garder le torse droit, genoux tracking sur les orteils. Permet de travailler le pattern squat sans atteindre les amplitudes de conflit. NE PAS descendre plus bas tant que la douleur n\'est pas contrôlée.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
     ],
@@ -1192,6 +1290,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Ne pas monter trop haut pour éviter l\'hyperextension de hanche. Focus sur la contraction fessière, pas sur l\'amplitude. Maintenir 2-3 sec en haut. Progression : ajouter bande autour des genoux.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -1201,6 +1300,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Hanches à 45° (pas plus). Ouvrir le genou en gardant les pieds joints. Renforce le moyen fessier et les rotateurs externes sans stresser le labrum. Ajouter bande quand facile.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -1210,6 +1310,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Dos plaqué au sol. Étendre une jambe + bras opposé sans que le dos se cambre. Stabilisation du core essentielle pour protéger la hanche. Alternative sûre au travail abdominal classique.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1219,6 +1320,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Allongé sur le côté, lever la jambe tendue vers le plafond. Garder le bassin stable (ne pas rouler vers l\'arrière). Renforce le moyen fessier, stabilisateur clé de la hanche.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1229,6 +1331,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Position de fente au sol, genou arrière posé. Avancer les hanches sans cambrer le dos. Contractez le fessier côté étiré. Les fléchisseurs raides tirent la tête fémorale vers l\'avant. Faire quotidiennement.',
+        restSeconds: 15,
         placement: 'rest_day',
       },
     ],
@@ -1253,6 +1356,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Allongé au bord du lit, une jambe pendante, l\'autre genou contre la poitrine. Laisser la jambe descendre passivement. NE PAS forcer en phase aiguë. Progression : augmenter la durée puis l\'amplitude.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1262,6 +1366,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Assis, pousser doucement le genou vers le haut contre la résistance de la main (30-50% effort max). Renforce les fléchisseurs sans les raccourcir. Pas de douleur pendant l\'exercice. Introduire en phase 2 uniquement.',
+        restSeconds: 75,
         placement: 'warmup',
       },
       {
@@ -1271,6 +1376,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Marche sur place en levant lentement les genoux à 90°. Contrôle le mouvement, pas de momentum. Renforce les fléchisseurs de manière fonctionnelle. Introduire en phase 3 quand les isométriques sont indolores.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1280,6 +1386,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Renforce les fessiers et étire passivement les fléchisseurs en fin de mouvement. Serrer les fessiers 3 secondes en haut. Peut être fait dès la phase 1 si indolore.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1289,6 +1396,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Version simplifiée : ne bouger que les bras au début, puis ajouter les jambes. Renforce le core et les fléchisseurs de manière contrôlée. Le bas du dos reste plaqué au sol.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -1299,6 +1407,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Rouler sur le devant de la cuisse et la zone du pli de l\'aine (attention : pas directement sur l\'os). Aide à relâcher les tensions des fléchisseurs. Pression légère en phase aiguë.',
+        restSeconds: 0,
         placement: 'cooldown',
       },
     ],
@@ -1323,6 +1432,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Rouler sur le côté externe de la cuisse du genou à la hanche. S\'arrêter sur les points sensibles 15-20 secondes. NE PAS rouler directement sur l\'os du genou. La bandelette elle-même ne s\'étire pas vraiment — on travaille les tissus environnants.',
+        restSeconds: 0,
         placement: 'warmup',
       },
       {
@@ -1333,6 +1443,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Couché sur le dos, croiser la jambe affectée par-dessus et laisser tomber vers le côté opposé. Garder les épaules au sol. L\'étirement se ressent sur le côté externe de la cuisse et de la hanche.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
       {
@@ -1342,6 +1453,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Exercice fondamental pour le syndrome ITB. Renforce le moyen fessier souvent faible chez les coureurs avec ITB. Le bassin ne doit pas rouler. Faire quotidiennement même les jours de course.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -1351,6 +1463,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Couché sur le côté, lever la jambe vers le plafond, pied en légère rotation interne. Renforce les abducteurs. Alternative au clam shell pour varier les exercices. Ne pas monter trop haut (45° max).',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1360,6 +1473,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'moderate',
         notes:
           'Squat sur une jambe, descente partielle (30-45°). Le genou ne doit PAS partir en valgus (vers l\'intérieur). Corrige le pattern de mouvement qui contribue au syndrome ITB. Utiliser un support si nécessaire.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1369,6 +1483,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Renforce le grand fessier de chaque côté indépendamment. Corrige les déséquilibres bilatéraux fréquents chez les coureurs avec ITB. Serrer le fessier 3 secondes en haut.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
     ],
@@ -1392,6 +1507,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Jambe tendue, contracter le quadriceps pour écraser l\'arrière du genou contre le sol. Maintenir 10 secondes. Exercice de base pour maintenir la force du quadriceps sans stress articulaire. Peut être fait plusieurs fois par jour.',
+        restSeconds: 75,
         placement: 'warmup',
       },
       {
@@ -1401,6 +1517,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Allongé sur le dos, contracter le quad, lever la jambe tendue à 30-45°. Renforce le quadriceps sans flexion du genou. Progression : ajouter une leste à la cheville.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -1410,6 +1527,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Allongé sur le dos, faire glisser le talon vers les fesses puis l\'éloigner. Maintient l\'amplitude de mouvement du genou. Mouvement doux et contrôlé, ne pas forcer si gonflement.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1419,6 +1537,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Step bas (15-20 cm). Monter en poussant avec la jambe affectée, descendre contrôlé. Renforce le quadriceps de manière fonctionnelle. Augmenter la hauteur progressivement quand indolore.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1428,6 +1547,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Dos contre le mur, descendre en squat partiel (30-45° de flexion). Renforce les quadriceps dans une amplitude limitée. Maintenir 5 secondes en bas. Éviter la flexion profonde tant que la bursite n\'est pas résolue.',
+        restSeconds: 75,
         placement: 'active_wait',
       },
       {
@@ -1438,6 +1558,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Debout, attraper la cheville et tirer le talon vers les fesses. Garder les genoux alignés, contracter légèrement les abdominaux. Maintient la souplesse du quadriceps. Ne pas forcer si gonflement important.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
     ],
@@ -1461,6 +1582,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Bande élastique autour de la cheville, ancrée derrière. En fente, avancer le genou vers l\'avant pendant que la bande tire le talus vers l\'arrière. Améliore la mécanique articulaire et libère l\'espace antérieur. Faire quotidiennement.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1471,6 +1593,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Gastrocnémien (genou tendu) puis soléaire (genou fléchi). La raideur du mollet limite la dorsiflexion et aggrave le conflit antérieur. Maintenir sans rebondir. Faire plusieurs fois par jour.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1480,6 +1603,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Face au mur, pied à quelques centimètres, avancer le genou pour toucher le mur sans lever le talon. Mesurer la distance pour suivre les progrès. Test et exercice de mobilité en dorsiflexion. Objectif : 10-12 cm du mur.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1489,6 +1613,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Assis, bande autour de l\'avant-pied ancrée devant. Tirer le pied vers le tibia contre la résistance (dorsiflexion). Renforce le tibial antérieur et les extenseurs. Mouvement lent et contrôlé, 3 secondes en excentrique.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1499,6 +1624,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Rouler sur le gastrocnémien et le soléaire. S\'arrêter sur les points sensibles. Aide à relâcher les tensions qui limitent la dorsiflexion. Faire avant les mobilisations articulaires.',
+        restSeconds: 0,
         placement: 'warmup',
       },
       {
@@ -1508,6 +1634,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Cercles lents et contrôlés dans les deux sens. Maintient la mobilité globale de la cheville. Peut être fait assis ou debout. Excellent le matin pour réduire la raideur.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
     ],
@@ -1532,6 +1659,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Pouce dans la paume, enrouler les doigts autour. Incliner doucement le poignet vers le petit doigt (déviation ulnaire). Version douce du test de Finkelstein. NE PAS forcer en phase aiguë — aller à la sensation d\'étirement sans douleur.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1542,6 +1670,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Version contrôlée et progressive. Pouce dans la paume, déviation ulnaire très légère. Augmenter l\'amplitude progressivement sur plusieurs semaines. Arrêter immédiatement si douleur vive. Faire plusieurs fois par jour.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1552,6 +1681,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Masser le bord externe de l\'avant-bras (côté pouce) avec les doigts ou une balle. Relâche les tensions des muscles long abducteur et court extenseur du pouce. Faire avant les étirements pour préparer les tissus.',
+        restSeconds: 0,
         placement: 'warmup',
       },
       {
@@ -1561,6 +1691,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Pouce contre la table ou contre la main opposée, pousser vers l\'extérieur sans mouvement. Renforce les tendons affectés de manière sécuritaire. Intensité légère (30-50% effort max). Pas de douleur pendant l\'exercice.',
+        restSeconds: 75,
         placement: 'active_wait',
       },
       {
@@ -1570,6 +1701,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Bande élastique autour du pouce, résister à l\'adduction (mouvement vers la paume) en contrôlant la descente sur 3-4 secondes. Introduire uniquement quand les isométriques sont indolores. Renforce les tendons de manière excentrique.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1579,6 +1711,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Mouvements lents de flexion et extension du poignet. Maintient la mobilité articulaire. Éviter les mouvements qui reproduisent la douleur. Peut être fait plusieurs fois par jour.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
     ],
@@ -1603,6 +1736,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Bras tendu, paume vers le haut, tirer doucement les doigts vers le bas avec l\'autre main. Étire les fléchisseurs du poignet. Maintenir sans rebondir. Faire plusieurs fois par jour.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1613,6 +1747,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Bras tendu, paume vers le bas, tirer doucement les doigts vers le bas. Étire les extenseurs du poignet. Complément essentiel à l\'étirement des fléchisseurs. Maintenir sans rebondir.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1622,6 +1757,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Avant-bras sur la table, paume vers le haut. Pousser contre la résistance de l\'autre main sans mouvement. Renforce les fléchisseurs de manière sécuritaire. Intensité légère (30-50% effort max).',
+        restSeconds: 75,
         placement: 'warmup',
       },
       {
@@ -1631,6 +1767,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Avant-bras sur la table, paume vers le bas. Pousser vers le haut contre la résistance de l\'autre main. Renforce les extenseurs. Faire après les fléchisseurs pour équilibrer.',
+        restSeconds: 75,
         placement: 'warmup',
       },
       {
@@ -1640,6 +1777,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Avant-bras sur la table, haltère léger (1-2 kg). Descente excentrique lente sur 4-5 secondes, montée assistée par l\'autre main. Introduire en phase 2 quand les isométriques sont indolores. Progresser vers le concentrique complet.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1649,6 +1787,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Balle souple, grip trainer, ou serviette roulée. Serrer et maintenir 5 secondes. Commencer très léger et augmenter progressivement la résistance. Faire uniquement si indolore.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
     ],
@@ -1672,6 +1811,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Poignet en position neutre, pousser doucement dans chaque direction (flexion, extension, radial, ÉVITER ulnaire) contre la résistance de l\'autre main. Renforce sans stress sur le TFCC. Pas de douleur pendant l\'exercice.',
+        restSeconds: 75,
         placement: 'warmup',
       },
       {
@@ -1681,6 +1821,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Coude fléchi à 90°, rotation lente de l\'avant-bras (paume vers le haut, puis vers le bas). Sans charge au début, puis avec un bâton léger ou un marteau. Mouvement lent et contrôlé, arrêter si douleur.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -1690,6 +1831,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Marteau ou haltère lesté d\'un côté. Résister à la pronation en contrôlant la descente sur 3-4 secondes. Introduire uniquement quand les mouvements sans charge sont indolores. Renforce les rotateurs de l\'avant-bras.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1699,6 +1841,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Serrer une balle souple ou une serviette roulée, poignet en position NEUTRE. Éviter la déviation ulnaire pendant la préhension. Maintenir 5 secondes. Commencer très léger.',
+        restSeconds: 75,
         placement: 'active_wait',
       },
       {
@@ -1708,6 +1851,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Progresser vers des résistances plus fortes (grip trainer) quand les isométriques sont indolores. Toujours maintenir le poignet en position neutre. Serrer et maintenir 3-5 secondes.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1717,6 +1861,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Mouvements de flexion, extension, et déviation RADIALE uniquement. ÉVITER la déviation ulnaire qui stresse le TFCC. Maintient la mobilité dans les amplitudes sécuritaires.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
     ],
@@ -1740,6 +1885,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Exercice fondamental pour la cervicalgie. Rentrer le menton vers l\'arrière (double menton), tenir 5 secondes. Peut être fait assis ou debout. Faire 3-5x par jour pour reprogrammer la posture. Ajouter une résistance avec la main quand l\'exercice devient facile.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1750,6 +1896,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Incliner la tête vers l\'épaule, main sur la tête pour appui léger. Abaisser l\'épaule opposée. Étire le trapèze supérieur souvent hypertendu. Maintenir sans rebondir, respirer profondément.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1760,6 +1907,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Regarder vers l\'aisselle, incliner la tête, main sur la tête pour appui léger. L\'élévateur de la scapula est souvent la source des douleurs cervicales latérales. Faire des deux côtés même si asymptomatique.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1769,6 +1917,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Tourner lentement la tête d\'un côté puis de l\'autre. Ne pas forcer l\'amplitude — aller jusqu\'à la sensation d\'étirement sans douleur. Aide à maintenir la mobilité cervicale. Faire plusieurs fois par jour.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1778,6 +1927,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Baisser le menton vers la poitrine puis regarder vers le plafond. Mouvements lents et contrôlés. Éviter les amplitudes extrêmes en phase aiguë. Maintient la mobilité en flexion/extension.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1787,6 +1937,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Chin tuck + rétraction scapulaire combinés. Rentrer le menton, serrer les omoplates, tenir 5-10 secondes. Reprogramme la posture neutre. Faire toutes les heures si travail sur écran.',
+        restSeconds: 15,
         placement: 'active_wait',
       },
     ],
@@ -1810,6 +1961,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Glissements doux du nerf affecté. Mouvement TRÈS LENT et contrôlé. ARRÊTER IMMÉDIATEMENT si les symptômes augmentent (douleur, engourdissement, fourmillements). Le nerf doit glisser, pas être étiré. Faire 2-3x par jour si bien toléré.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1819,6 +1971,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Exercice fondamental. Ouvre l\'espace des foramen intervertébraux et réduit la compression nerveuse. Rentrer le menton, tenir 5-8 secondes. Faire plusieurs fois par jour. Peut soulager immédiatement les symptômes.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1829,6 +1982,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Version très douce. Incliner la tête vers l\'épaule SANS forcer. Si les symptômes radiants apparaissent, réduire l\'amplitude ou arrêter. Relâche les tensions musculaires qui peuvent contribuer à la compression.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1838,6 +1992,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Serrer les omoplates ensemble et vers le bas, maintenir 5 secondes. Améliore la posture et réduit la tension sur la région cervicale. Peut être fait assis au bureau. Faire plusieurs fois par jour.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -1847,6 +2002,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Dos contre le mur, chin tuck, faire glisser les bras vers le haut (amplitude limitée selon tolérance). Améliore la posture thoracique et cervicale. Arrêter si symptômes radiants.',
+        restSeconds: 75,
         placement: 'active_wait',
       },
       {
@@ -1857,6 +2013,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Avec les doigts ou une balle, masser doucement la base du crâne. Relâche les tensions des muscles sous-occipitaux qui peuvent contribuer aux symptômes. Pression légère, ne jamais forcer.',
+        restSeconds: 0,
         placement: 'cooldown',
       },
     ],
@@ -1881,6 +2038,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Utiliser les doigts ou une balle pour masser le trapèze supérieur (entre le cou et l\'épaule). Insister sur les points de tension (trigger points). Pression modérée, respirer profondément. Faire dès l\'apparition des symptômes.',
+        restSeconds: 0,
         placement: 'warmup',
       },
       {
@@ -1891,6 +2049,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Couché sur le dos, placer deux balles de tennis (ou une balle double type peanut) sous la base du crâne. Laisser le poids de la tête créer la pression. Relâche les muscles sous-occipitaux, source fréquente des céphalées de tension.',
+        restSeconds: 0,
         placement: 'warmup',
       },
       {
@@ -1900,6 +2059,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Rentrer le menton vers l\'arrière, tenir 5-8 secondes. Corrige la posture de tête avancée qui contribue aux céphalées de tension. Faire plusieurs fois par jour, surtout si travail sur écran.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1910,6 +2070,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Incliner la tête vers l\'épaule, main sur la tête pour appui léger. Abaisser l\'épaule opposée. Étire le trapèze supérieur et les scalènes. Respirer profondément pendant l\'étirement.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1920,6 +2081,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Mains derrière la tête, baisser doucement le menton vers la poitrine. Étire les muscles postérieurs du cou (semi-épineux, splénius). Ne pas forcer, laisser le poids des bras créer l\'étirement.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1929,6 +2091,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Tourner lentement la tête d\'un côté puis de l\'autre. Maintenir quelques secondes en fin de mouvement. Relâche les tensions et maintient la mobilité cervicale.',
+        restSeconds: 15,
         placement: 'active_wait',
       },
     ],
@@ -1952,6 +2115,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Foam roller perpendiculaire sous le milieu du dos, mains derrière la tête. Faire des extensions en arrière, segment par segment. Améliore l\'extension thoracique souvent limitée par la position assise prolongée. Faire quotidiennement.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1961,6 +2125,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'À quatre pattes, alterner entre flexion (dos rond, tête vers le bas) et extension (dos creux, tête vers le haut). Mouvements lents, synchronisés avec la respiration. Excellent pour la mobilité globale du rachis.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1970,6 +2135,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'À quatre pattes, passer un bras sous le corps en tournant le thorax, puis ouvrir vers le plafond. Mouvements lents et contrôlés. Améliore la rotation thoracique. Excellent échauffement avant les exercices overhead.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1979,6 +2145,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Couché sur le côté, genoux fléchis à 90°. Ouvrir le bras supérieur vers le côté opposé en tournant le thorax. Les genoux restent ensemble pour isoler la rotation thoracique. Maintenir la position ouverte 3-5 secondes.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -1988,6 +2155,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Dos contre le mur, chin tuck, faire glisser les bras vers le haut en gardant le contact avec le mur. Diagnostic et exercice de mobilité thoracique. Si impossible de garder le contact, la mobilité thoracique est insuffisante.',
+        restSeconds: 75,
         placement: 'active_wait',
       },
       {
@@ -1998,6 +2166,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Dans un cadre de porte, avant-bras sur les montants, avancer le corps. 3 positions : coudes bas, à 90°, hauts pour les différentes fibres pectorales. Les pectoraux raccourcis contribuent à la cyphose et à la rigidité thoracique.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
     ],
@@ -2021,6 +2190,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Serrer les omoplates ensemble et vers le bas, maintenir 5 secondes. Exercice fondamental pour la posture. Renforce les rhomboïdes et le trapèze moyen/inférieur. Faire plusieurs fois par jour, surtout si travail sur écran.',
+        restSeconds: 45,
         placement: 'warmup',
       },
       {
@@ -2030,6 +2200,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Tirer vers le visage puis rotation externe en fin de mouvement. Renforce les rotateurs externes et les rétracteurs scapulaires. À placer systématiquement aux côtés des exercices de poussée dans la routine.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
       {
@@ -2039,6 +2210,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Dos contre le mur, chin tuck, faire glisser les bras vers le haut en gardant le contact. Corrige la posture antérieure des épaules et la tête avancée simultanément. À placer en début de routine rehab.',
+        restSeconds: 75,
         placement: 'warmup',
       },
       {
@@ -2048,6 +2220,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Rentrer le menton vers l\'arrière, tenir 5-8 secondes. Corrige la tête avancée qui accompagne souvent les épaules en avant. Faire au minimum 3x par jour. Ajouter une résistance avec la main quand facile.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -2058,6 +2231,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Les pectoraux raccourcis tirent les épaules vers l\'avant. Étirer dans le cadre d\'une porte à 3 angles différents. Faire en fin de routine rehab et les jours où la routine rehab est faite seule.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
       {
@@ -2067,6 +2241,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Bande devant, bras tendus, écarter en serrant les omoplates. Excellent en enchaînement dans la routine, en alternance avec les exercices de poussée. Bande légère à moyenne. Serrer les omoplates 2 secondes à chaque répétition.',
+        restSeconds: 45,
         placement: 'active_wait',
       },
     ],
@@ -2088,6 +2263,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '10-15',
         intensity: 'very_light',
         notes: 'Rentrer le menton en créant un "double menton", comme pour éloigner la tête du téléphone. Tenir 5 secondes. Renforce les muscles profonds du cou et corrige la posture "tête en avant".',
+        restSeconds: 15,
         placement: 'rest_day',
       },
       {
@@ -2096,6 +2272,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '10-12',
         intensity: 'light',
         notes: 'Dos, tête et fesses contre le mur. Bras en position de "stick-up" (90°), glisser les bras vers le haut en gardant le contact avec le mur. Excellent pour la mobilité des épaules et la posture thoracique.',
+        restSeconds: 75,
         placement: 'rest_day',
       },
       {
@@ -2104,6 +2281,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '15-20',
         intensity: 'light',
         notes: 'Bras tendus devant, tirer la bande élastique en écartant les bras sur les côtés. Serrer les omoplates à la fin du mouvement. Renforce les muscles du haut du dos essentiels à une bonne posture.',
+        restSeconds: 45,
         placement: 'rest_day',
       },
       {
@@ -2112,6 +2290,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '10-12',
         intensity: 'light',
         notes: 'Sur un foam roller au niveau du haut du dos, mains derrière la tête. Étendre le dos sur le rouleau en ouvrant la poitrine. Mouvement contrôlé, ne pas hyper-étendre le bas du dos.',
+        restSeconds: 45,
         placement: 'rest_day',
       },
       {
@@ -2121,6 +2300,7 @@ export const rehabProtocols: RehabProtocol[] = [
         durationSeconds: 45,
         intensity: 'light',
         notes: 'Avant-bras contre le cadre d\'une porte, coude à 90°. Avancer doucement pour étirer le pectoral. Faire les deux côtés. Contrebalance la posture "épaules en avant" causée par la position assise.',
+        restSeconds: 15,
         placement: 'rest_day',
       },
     ],
@@ -2144,6 +2324,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Allongé sur le dos, genoux pliés. Main sur le ventre, inspirer par le nez en gonflant le ventre (pas la poitrine). Expirer lentement par la bouche. Mobilise les côtes inférieures et le diaphragme. Essentiel pour la dysfonction costale.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -2154,6 +2335,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Debout ou assis, lever un bras au-dessus de la tête et s\'incliner du côté opposé. Respirer profondément dans l\'étirement pour ouvrir les espaces intercostaux. Ne pas forcer — la douleur doit rester légère.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -2163,6 +2345,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'En position 4 pattes ou assis. Placer une main derrière la tête et tourner le coude vers le plafond. Mouvement lent et contrôlé. Mobilise les articulations costo-vertébrales.',
+        restSeconds: 15,
         placement: 'rest_day',
       },
       {
@@ -2172,6 +2355,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'À quatre pattes, alterner entre dos rond (chat) et dos creux (vache). Synchroniser avec la respiration : inspirer en vache, expirer en chat. Mobilise toute la cage thoracique et les côtes.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -2181,6 +2365,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Allongé sur le côté, genoux pliés à 90°. Ouvrir le bras du dessus en tournant le torse, comme un livre qui s\'ouvre. Respirer profondément dans l\'ouverture. Excellent pour les restrictions costales.',
+        restSeconds: 15,
         placement: 'rest_day',
       },
     ],
@@ -2204,6 +2389,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'Allongé sur le ventre, se soulever sur les coudes puis sur les mains en gardant le bassin au sol. ESSENTIEL pour la SA — maintient l\'extension spinale et prévient la cyphose. Faire plusieurs fois par jour.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -2213,6 +2399,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Debout, mains derrière la tête ou jointes dans le dos. Inspirer profondément en ouvrant la poitrine au maximum. Mesurer régulièrement l\'expansion thoracique (différence inspiration/expiration). Objectif : maintenir > 5 cm.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -2222,6 +2409,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Tourner lentement la tête de gauche à droite, menton parallèle au sol. Ne pas forcer. La SA affecte souvent le rachis cervical — maintenir la mobilité est crucial pour la conduite et les activités quotidiennes.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -2231,6 +2419,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'À quatre pattes, alterner dos rond et dos creux. Mouvement doux et fluide. Maintient la mobilité segmentaire de la colonne. Faire lentement, respirer avec le mouvement.',
+        restSeconds: 15,
         placement: 'warmup',
       },
       {
@@ -2241,6 +2430,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'En fente, genou arrière au sol. Avancer le bassin en gardant le torse droit. Le psoas raccourci tire sur la colonne lombaire. Étirement essentiel pour maintenir la posture droite.',
+        restSeconds: 15,
         placement: 'cooldown',
       },
       {
@@ -2250,6 +2440,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'very_light',
         notes:
           'Debout dos au mur, talons-fesses-omoplates-tête contre le mur. Tenir la position. Exercice de conscience posturale — aide à maintenir une posture droite et à détecter toute progression de la cyphose.',
+        restSeconds: 75,
         placement: 'rest_day',
       },
       {
@@ -2259,6 +2450,7 @@ export const rehabProtocols: RehabProtocol[] = [
         intensity: 'light',
         notes:
           'La natation (surtout dos crawlé et brasse) est l\'exercice #1 recommandé pour la SA. L\'eau soutient les articulations tout en permettant un travail d\'amplitude complet. Alternative : marche aquatique.',
+        restSeconds: 15,
         placement: 'rest_day',
       },
     ],

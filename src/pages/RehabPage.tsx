@@ -5,6 +5,11 @@ import type { BodyZone, Exercise } from '../db/types'
 import { generateRestDayRoutine, type RestDayExercise, type RestDayRoutine } from '../engine/rest-day'
 import { recordRehabExercisesDone } from '../utils/rehab-rotation'
 import ExerciseNotebook from '../components/session/ExerciseNotebook'
+import { bodyZones } from '../constants/body-zones'
+
+const ZONE_LABEL: Record<string, string> = Object.fromEntries(
+  bodyZones.map(z => [z.zone, z.label]),
+)
 
 const REHAB_SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000 // 12 hours
 
@@ -358,7 +363,7 @@ export default function RehabPage() {
     const target = {
       sets: cur.sets,
       reps: timed ? (cur.durationSeconds ?? 30) : parseRepsValue(cur.reps),
-      restSeconds: 60,
+      restSeconds: cur.restSeconds ?? 60,
       intensity: 'rehab' as const,
       isTimeBased: timed,
     }
@@ -376,36 +381,33 @@ export default function RehabPage() {
         onNext={advance}
         onSkip={handleSkip}
         onSwap={() => {}}
+        onPrev={currentIndex > 0 ? () => setCurrentIndex(currentIndex - 1) : undefined}
+        onNextNav={currentIndex < sequence.length - 1 ? () => setCurrentIndex(currentIndex + 1) : undefined}
       />
     )
   }
 
-  // Phase 'intro' — start screen.
+  // Phase 'intro' — start screen with full exo list.
   return (
     <div className="flex flex-col h-[var(--content-h)]">
-      <div className="flex-1 overflow-y-auto px-5 pt-8 pb-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-5 pt-8 pb-4">
         <h1 className="text-2xl font-black text-white mb-1">Rehab</h1>
-        <p className="text-zinc-400 text-sm mb-2">Routine du jour</p>
+        <p className="text-zinc-400 text-sm mb-4">Routine du jour — {sequence.length} exo{sequence.length > 1 ? 's' : ''} • ~{routine.totalMinutes} min</p>
 
-        <VideoCheckbox video={video} checked={videoDone} onToggle={() => setVideoDone(v => !v)} />
+        <div className="mb-3">
+          <VideoCheckbox video={video} checked={videoDone} onToggle={() => setVideoDone(v => !v)} />
+        </div>
 
         {sequence.length > 0 && (
-          <div className={`${CARD} p-4`}>
-            <p className="text-zinc-600 text-xs uppercase tracking-wider mb-2">Programme rehab</p>
-            <p className="text-3xl font-black text-white mb-1">
-              {sequence.length} exercice{sequence.length > 1 ? 's' : ''}
-            </p>
-            <p className="text-zinc-500 text-sm">~{routine.totalMinutes} min</p>
-            {routine.saRoutine && routine.saRoutine.length > 0 && (
-              <p className="text-amber-400 text-xs mt-3">
-                Inclut {routine.saRoutine.length} exo{routine.saRoutine.length > 1 ? 's' : ''} de la routine Spondylarthrite.
-              </p>
-            )}
+          <div className="space-y-2">
+            {sequence.map((ex, idx) => (
+              <ExoIntroRow key={`${ex.name}-${idx}`} exercise={ex} index={idx} />
+            ))}
           </div>
         )}
       </div>
 
-      <div className="flex-shrink-0 px-5 pb-6">
+      <div className="flex-shrink-0 px-5 pb-6 pt-3 bg-zinc-950">
         <button
           onClick={() => { void handleStart() }}
           disabled={sequence.length === 0}
@@ -414,6 +416,28 @@ export default function RehabPage() {
           Commencer la routine
         </button>
       </div>
+    </div>
+  )
+}
+
+function ExoIntroRow({ exercise, index }: { exercise: RestDayExercise; index: number }) {
+  const timed = exercise.durationSeconds != null && exercise.durationSeconds > 0
+  const repsLabel = timed
+    ? `${exercise.durationSeconds}s`
+    : (typeof exercise.reps === 'string' ? exercise.reps : `${exercise.reps} reps`)
+  const zoneLabel = exercise.targetZone ? ZONE_LABEL[exercise.targetZone] ?? exercise.targetZone : null
+  return (
+    <div className={`${CARD} p-4 flex items-center gap-3`}>
+      <span className="text-zinc-600 text-xs font-bold tabular-nums w-6">{index + 1}.</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-white text-sm font-semibold truncate">{exercise.name}</p>
+        <p className="text-zinc-500 text-xs mt-0.5">{exercise.sets} × {repsLabel}</p>
+      </div>
+      {zoneLabel && (
+        <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-400 flex-shrink-0">
+          {zoneLabel}
+        </span>
+      )}
     </div>
   )
 }

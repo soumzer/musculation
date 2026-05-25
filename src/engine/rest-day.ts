@@ -13,6 +13,8 @@ export interface RestDayExercise {
   isExternal: boolean // true = "programme externe" (user's own stretching videos)
   targetZone?: BodyZone // zone ciblée par cet exercice
   conditionName?: string // nom de la condition/protocole ciblé
+  /** Repos prescrit entre séries en secondes (0 = pas de timer pour les massages). */
+  restSeconds?: number
 }
 
 export interface RestDayRoutine {
@@ -130,6 +132,7 @@ export function generateRestDayRoutine(
         isExternal: false,
         targetZone: saProtocol.targetZone,
         conditionName: saProtocol.conditionName,
+        restSeconds: ex.restSeconds,
       }))
     }
   }
@@ -204,6 +207,7 @@ export function generateRestDayRoutine(
         isExternal: false,
         targetZone,
         conditionName: protocolName,
+        restSeconds: ex.restSeconds,
       })
     }
   }

@@ -48,6 +48,7 @@ export interface RestDayRehabExercise {
   isExternal: boolean
   targetZone?: BodyZone
   conditionName?: string
+  restSeconds?: number
 }
 
 // User profile from onboarding
