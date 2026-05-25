@@ -56,7 +56,10 @@ const CORE_MUSCLES = [
 
 /**
  * Suggests filler exercises from the exercise catalog (mobility/cooldown).
- * Simpler API for the new notebook session flow.
+ * Simpler API for the new notebook session flow. Candidates are shuffled
+ * before slicing so successive calls (across "Occupée" clicks in a session)
+ * surface different suggestions; the caller tracks already-shown names via
+ * `completedFillers` to avoid repeats.
  */
 export function suggestFillerFromCatalog(input: {
   sessionMuscles: string[]
@@ -72,7 +75,17 @@ export function suggestFillerFromCatalog(input: {
     !hasMuscleConflictFromPrimary(ex.primaryMuscles, sessionMuscles)
   )
 
-  return candidates.slice(0, count).map(toMobilityFillerSuggestion)
+  return shuffle(candidates).slice(0, count).map(toMobilityFillerSuggestion)
+}
+
+/** Fisher-Yates shuffle — returns a new array. */
+function shuffle<T>(arr: T[]): T[] {
+  const out = [...arr]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
 }
 
 // ---------------------------------------------------------------------------

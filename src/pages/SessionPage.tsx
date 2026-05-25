@@ -5,7 +5,6 @@ import { db } from '../db'
 import ExerciseNotebook from '../components/session/ExerciseNotebook'
 import { fixedWarmupRoutine } from '../data/warmup-routine'
 import { selectCooldownExercises } from '../engine/cooldown'
-import { suggestFillerFromCatalog } from '../engine/filler'
 import { useSessionPersistence } from '../hooks/useSessionPersistence'
 import type { BodyZone, Exercise, ProgramSession, SessionPhase, ExerciseStatus, NotebookSet } from '../db/types'
 import type { SwapOption } from '../components/session/ExerciseNotebook'
@@ -288,17 +287,6 @@ function SessionRunner({
   const currentCatalogExercise = currentProgramExercise
     ? exerciseMap.get(currentProgramExercise.exerciseId)
     : undefined
-
-  // Filler suggestions for machine occupied
-  const fillerSuggestions = useMemo(() => {
-    if (!currentCatalogExercise) return []
-    const sessionMuscles = currentCatalogExercise.primaryMuscles
-    return suggestFillerFromCatalog({
-      sessionMuscles,
-      completedFillers: [],
-      exerciseCatalog: allExercises,
-    })
-  }, [currentCatalogExercise, allExercises])
 
   const handleNextExercise = useCallback(() => {
     setExerciseStatuses(prev => prev.map((s, i) =>
@@ -624,7 +612,7 @@ function SessionRunner({
         exerciseIndex={currentExerciseIdx}
         totalExercises={programSession.exercises.length}
         userId={userId}
-        fillerSuggestions={fillerSuggestions}
+        exerciseCatalog={allExercises}
         swapOptions={swapOptions}
         initialDraftSets={drafts}
         initialRestTimerEndTime={restTimerEndTimeRef.current}

@@ -371,7 +371,7 @@ export default function RehabPage() {
         totalExercises={sequence.length}
         userId={user.id!}
         activeZones={activeZones}
-        fillerSuggestions={[]}
+        exerciseCatalog={[]}
         swapOptions={[]}
         onNext={advance}
         onSkip={handleSkip}

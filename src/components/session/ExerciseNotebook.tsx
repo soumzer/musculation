@@ -6,7 +6,8 @@ import { generateWarmupSets } from '../../engine/warmup'
 import SymptomQuestionnaire from '../onboarding/SymptomQuestionnaire'
 import type { QuestionnaireResult } from '../onboarding/SymptomQuestionnaire'
 import type { BodyZone, NotebookSet } from '../../db/types'
-import type { FillerSuggestion } from '../../engine/filler'
+import { suggestFillerFromCatalog, type FillerSuggestion } from '../../engine/filler'
+import type { Exercise } from '../../db/types'
 
 export interface SwapOption {
   exerciseId: number
@@ -35,7 +36,12 @@ export interface ExerciseNotebookProps {
   exerciseIndex: number
   totalExercises: number
   userId: number
-  fillerSuggestions: FillerSuggestion[]
+  /**
+   * Full exercise catalog — used to compute "machine occupée" filler suggestions
+   * on demand. Shuffled per click; previously shown ones are tracked in local
+   * state and excluded from subsequent picks within the same exercise screen.
+   */
+  exerciseCatalog: Exercise[]
   swapOptions: SwapOption[]
   initialDraftSets?: NotebookSet[]
   initialRestTimerEndTime?: number | null
@@ -68,7 +74,7 @@ export default function ExerciseNotebook({
   totalExercises,
   userId,
   activeZones,
-  fillerSuggestions,
+  exerciseCatalog,
   swapOptions,
   initialDraftSets,
   initialRestTimerEndTime,
@@ -109,6 +115,29 @@ export default function ExerciseNotebook({
   const [showSwap, setShowSwap] = useState(false)
   const [workingWeight, setWorkingWeight] = useState<string>('')
   const [prFlash, setPrFlash] = useState<{ weightKg: number } | null>(null)
+
+  // Filler state — tracks the names already proposed during this exercise
+  // screen so successive "Occupée" clicks surface different suggestions.
+  // Resets when the exercise changes (component remounts on key change).
+  const [shownFillerNames, setShownFillerNames] = useState<Set<string>>(new Set())
+  const [displayedFillers, setDisplayedFillers] = useState<FillerSuggestion[]>([])
+
+  const openOccupied = useCallback(() => {
+    const fresh = suggestFillerFromCatalog({
+      sessionMuscles: exercise.primaryMuscles,
+      completedFillers: [...shownFillerNames],
+      exerciseCatalog,
+    })
+    setDisplayedFillers(fresh)
+    if (fresh.length > 0) {
+      setShownFillerNames(prev => {
+        const next = new Set(prev)
+        for (const f of fresh) next.add(f.name)
+        return next
+      })
+    }
+    setShowOccupied(true)
+  }, [exercise.primaryMuscles, exerciseCatalog, shownFillerNames])
 
   // Check if exercise touches a painful zone
   const hasContraindication = activeZones.length > 0 &&
@@ -206,7 +235,7 @@ export default function ExerciseNotebook({
       {/* Occupied overlay */}
       {showOccupied && (
         <OccupiedOverlay
-          suggestions={fillerSuggestions}
+          suggestions={displayedFillers}
           onClose={() => setShowOccupied(false)}
         />
       )}
@@ -498,7 +527,7 @@ export default function ExerciseNotebook({
           / Skip
         </button>
         <button
-          onClick={() => setShowOccupied(true)}
+          onClick={openOccupied}
           className="bg-zinc-800 text-zinc-300 rounded-xl py-3 px-4 text-sm flex-shrink-0 active:scale-95 transition-all duration-200"
         >
           Occupee
