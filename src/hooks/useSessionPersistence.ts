@@ -27,6 +27,9 @@ export function useSessionPersistence() {
     const row = await db.activeSession.get(1)
     if (!row) return null
 
+    // Skip a rehab session — RehabPage owns those.
+    if (row.isRehab) return null
+
     // Check same session
     if (row.programId !== programId || row.sessionIndex !== sessionIndex) return null
 

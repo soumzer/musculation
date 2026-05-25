@@ -20,6 +20,34 @@ export interface ActiveSessionState {
   draftSets: { exerciseId: number; sets: NotebookSet[] }[]
   restTimerEndTime: number | null  // Date.now() timestamp when timer expires, null if not running
   updatedAt: Date
+  /**
+   * True when this active session is a rehab routine, not a muscu workout.
+   * Mutually exclusive with the standard muscu fields (programId/sessionIndex
+   * are unused when isRehab=true). The muscu SessionPage filters these out so
+   * a stale rehab session doesn't surface as a muscu resume.
+   */
+  isRehab?: boolean
+  /** Frozen routine — captured when the rehab session starts. */
+  rehabSequence?: RestDayRehabExercise[]
+  /** Names of exercises the user has already completed in this rehab session. */
+  rehabCompletedNames?: string[]
+}
+
+/**
+ * Minimal mirror of engine/rest-day.ts's RestDayExercise — duplicated here to
+ * avoid importing engine code into the db schema. Kept in sync manually.
+ */
+export interface RestDayRehabExercise {
+  name: string
+  sets: number
+  reps: string
+  duration: string
+  durationSeconds?: number
+  intensity: string
+  notes: string
+  isExternal: boolean
+  targetZone?: BodyZone
+  conditionName?: string
 }
 
 // User profile from onboarding

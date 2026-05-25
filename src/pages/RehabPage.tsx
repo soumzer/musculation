@@ -6,6 +6,71 @@ import { generateRestDayRoutine, type RestDayExercise, type RestDayRoutine } fro
 import { recordRehabExercisesDone } from '../utils/rehab-rotation'
 import ExerciseNotebook from '../components/session/ExerciseNotebook'
 
+const REHAB_SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000 // 12 hours
+
+interface RehabResumeData {
+  sequence: RestDayExercise[]
+  currentIndex: number
+  completed: Set<string>
+}
+
+/**
+ * Look up a previously persisted rehab session in activeSession (singleton id=1)
+ * and return its restorable state if it qualifies — i.e. flagged isRehab,
+ * younger than 12h AND saved on the current calendar day. Stale rows are
+ * cleared on the way out so they don't accumulate.
+ */
+async function tryRestoreRehabSession(): Promise<RehabResumeData | null> {
+  const row = await db.activeSession.get(1)
+  if (!row || !row.isRehab) return null
+  const updatedAt = row.updatedAt instanceof Date ? row.updatedAt : new Date(row.updatedAt)
+  const now = new Date()
+  const tooOld = now.getTime() - updatedAt.getTime() > REHAB_SESSION_MAX_AGE_MS
+  const differentDay =
+    updatedAt.getFullYear() !== now.getFullYear() ||
+    updatedAt.getMonth() !== now.getMonth() ||
+    updatedAt.getDate() !== now.getDate()
+  if (tooOld || differentDay) {
+    await db.activeSession.delete(1)
+    return null
+  }
+  if (!row.rehabSequence || row.rehabSequence.length === 0) return null
+  return {
+    // RestDayRehabExercise mirrors RestDayExercise structurally — safe cast.
+    sequence: row.rehabSequence as unknown as RestDayExercise[],
+    currentIndex: row.currentExerciseIdx,
+    completed: new Set(row.rehabCompletedNames ?? []),
+  }
+}
+
+async function persistRehabProgress(
+  sequence: RestDayExercise[],
+  currentIndex: number,
+  completed: Set<string>,
+): Promise<void> {
+  await db.activeSession.put({
+    id: 1,
+    programId: 0,
+    sessionIndex: 0,
+    phase: 'exercises',
+    currentExerciseIdx: currentIndex,
+    exerciseStatuses: [],
+    sessionStartTime: new Date(),
+    warmupChecked: [],
+    draftSets: [],
+    restTimerEndTime: null,
+    updatedAt: new Date(),
+    isRehab: true,
+    rehabSequence: sequence,
+    rehabCompletedNames: [...completed],
+  })
+}
+
+async function clearRehabSession(): Promise<void> {
+  const row = await db.activeSession.get(1)
+  if (row?.isRehab) await db.activeSession.delete(1)
+}
+
 // ---------------------------------------------------------------------------
 // Design tokens
 // ---------------------------------------------------------------------------
@@ -104,6 +169,43 @@ export default function RehabPage() {
   // so the sync `[]` from a still-loading user query doesn't freeze us empty.
   const [routine, setRoutine] = useState<RestDayRoutine | null>(null)
   const routineGenerated = useRef(false)
+  const restoreAttempted = useRef(false)
+
+  // Phase state machine
+  const [phase, setPhase] = useState<'intro' | 'exo' | 'finished'>('intro')
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  const [videoIdx] = useState(() => getNextVideoIndex())
+  const [videoDone, setVideoDone] = useState(false)
+  const video = EXTERNAL_VIDEOS[videoIdx]
+
+  const completedRef = useRef<Set<string>>(new Set())
+
+  // 1️⃣ Try to restore a persisted rehab session from activeSession. Runs once
+  // at mount, BEFORE the routine generation effect — if a valid same-day
+  // session is found, we use its frozen sequence (skipping regeneration) and
+  // jump straight into the 'exo' phase at the saved index.
+  useEffect(() => {
+    if (restoreAttempted.current) return
+    restoreAttempted.current = true
+    void (async () => {
+      const resume = await tryRestoreRehabSession()
+      if (!resume) return
+      // Build a synthetic routine that holds the saved sequence in `exercises`.
+      // saRoutine is intentionally null because the saved sequence already
+      // includes SA exos in order (the original flatten).
+      setRoutine({
+        exercises: resume.sequence,
+        saRoutine: null,
+        totalMinutes: 0,
+        variant: 'all',
+      })
+      completedRef.current = resume.completed
+      setCurrentIndex(resume.currentIndex)
+      setPhase('exo')
+      routineGenerated.current = true // prevent regeneration in the next effect
+    })()
+  }, [])
 
   useEffect(() => {
     if (routineGenerated.current) return
@@ -122,16 +224,6 @@ export default function RehabPage() {
     [routine],
   )
 
-  // Phase state machine
-  const [phase, setPhase] = useState<'intro' | 'exo' | 'finished'>('intro')
-  const [currentIndex, setCurrentIndex] = useState(0)
-
-  const [videoIdx] = useState(() => getNextVideoIndex())
-  const [videoDone, setVideoDone] = useState(false)
-  const video = EXTERNAL_VIDEOS[videoIdx]
-
-  const completedRef = useRef<Set<string>>(new Set())
-
   const finalizeSession = useCallback(async () => {
     if (!user?.id) return
     const names = [...completedRef.current]
@@ -146,18 +238,32 @@ export default function RehabPage() {
       })
     }
     if (videoDone) localStorage.setItem('rehab_video_idx', String(videoIdx))
+    // Clear the persisted in-progress state — session is done.
+    await clearRehabSession()
   }, [user?.id, videoDone, videoIdx])
 
   const advance = useCallback(async () => {
     const cur = sequence[currentIndex]
     if (cur) completedRef.current.add(cur.name)
-    if (currentIndex + 1 < sequence.length) {
-      setCurrentIndex(currentIndex + 1)
+    const nextIndex = currentIndex + 1
+    if (nextIndex < sequence.length) {
+      setCurrentIndex(nextIndex)
+      // Persist progress so a refresh / app close mid-routine resumes here.
+      await persistRehabProgress(sequence, nextIndex, completedRef.current)
     } else {
       await finalizeSession()
       setPhase('finished')
     }
   }, [sequence, currentIndex, finalizeSession])
+
+  const handleStart = useCallback(async () => {
+    setCurrentIndex(0)
+    completedRef.current = new Set()
+    setPhase('exo')
+    // Persist the frozen sequence at session start so refresh from index 0
+    // restores the same routine the user just saw.
+    await persistRehabProgress(sequence, 0, new Set())
+  }, [sequence])
 
   const handleSkip = useCallback(async (_zone: BodyZone) => {
     // The skip side-effects (pain report, optional new condition) were
@@ -301,7 +407,7 @@ export default function RehabPage() {
 
       <div className="flex-shrink-0 px-5 pb-6">
         <button
-          onClick={() => { setCurrentIndex(0); setPhase('exo') }}
+          onClick={() => { void handleStart() }}
           disabled={sequence.length === 0}
           className={sequence.length > 0 ? CTA : CTA_DISABLED}
         >
