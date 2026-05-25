@@ -409,11 +409,18 @@ export default function RehabPage() {
   useEffect(() => {
     if (routineGenerated.current) return
     if (conditions === undefined || rehabHistoryMap === undefined) return
-    routineGenerated.current = true
+    // While `user` is still loading, the conditions useLiveQuery returns a
+    // synchronous `[]`. If we locked the routineGenerated ref here, the real
+    // conditions array (resolved later) would never be picked up — the page
+    // would freeze on a phantom empty state. So we only lock AFTER we've seen
+    // non-empty conditions and actually generated the routine. Users with
+    // genuinely zero conditions just hit setRoutine(null) on every dep change
+    // (React dedups identical state — no render thrash).
     if (conditions.length === 0) {
       setRoutine(null)
       return
     }
+    routineGenerated.current = true
     setRoutine(generateRestDayRoutine(conditions, 'all', accentZones, rehabHistoryMap))
   }, [conditions, accentZones, rehabHistoryMap])
 
