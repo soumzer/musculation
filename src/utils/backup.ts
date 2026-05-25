@@ -96,8 +96,12 @@ function sanitizePainReport(r: Record<string, unknown>, userId: number): Omit<Pa
   }
 }
 
-function sanitizeExercise(e: Record<string, unknown>): Omit<Exercise, 'id'> {
+function sanitizeExercise(e: Record<string, unknown>): Exercise {
+  // Preserve the original id so notebook entries (which reference exerciseId)
+  // remain consistent after an import. Without this, Dexie's autoincrement
+  // would assign fresh ids and orphan all historical entries.
   return {
+    id: e.id !== undefined && Number(e.id) > 0 ? Number(e.id) : undefined,
     name: String(e.name ?? ''),
     category: String(e.category ?? 'compound') as Exercise['category'],
     primaryMuscles: Array.isArray(e.primaryMuscles) ? e.primaryMuscles.map(String) : [],
@@ -247,14 +251,20 @@ export async function importData(json: string): Promise<number> {
           (data.equipment as Record<string, unknown>[]).map(e => sanitizeEquipment(e, userId))
         )
       }
-      // Build exerciseId map: backup_id → new_db_id (so all references stay consistent)
+      // Preserve original exerciseIds via bulkPut. The backup carries the id
+      // on each exercise (sanitizeExercise keeps it now); bulkPut will insert
+      // at that id when absent, or update in place when already present. This
+      // keeps notebookEntries pointing to the correct exo across imports.
+      // The id-remap below is a no-op for exos whose id survives the import
+      // (which is now all of them), but kept as a defensive fallback for
+      // older backups missing ids.
       const exerciseIdMap = new Map<number, number>()
       if (data.exercises?.length) {
         const rawExercises = data.exercises as Record<string, unknown>[]
         const backupIds = rawExercises.map(e => Number(e.id ?? 0))
         const sanitized = rawExercises.map(e => sanitizeExercise(e))
-        const newIds = await db.exercises.bulkAdd(sanitized, { allKeys: true }) as number[]
-        backupIds.forEach((bid, i) => { if (bid > 0) exerciseIdMap.set(bid, newIds[i]) })
+        const storedKeys = await db.exercises.bulkPut(sanitized, { allKeys: true }) as number[]
+        backupIds.forEach((bid, i) => { if (bid > 0) exerciseIdMap.set(bid, storedKeys[i]) })
       }
       const remapEx = (id: number) => exerciseIdMap.get(id) ?? id
 

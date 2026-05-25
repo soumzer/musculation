@@ -45,8 +45,13 @@ import type {
  *        legs slot (7 → 6). Legs B Volume reordered (Leg curl first, then
  *        Hip thrust, then RDL at 3×12/90, Quad compound, Leg extension,
  *        Calf).
+ *   v9 — Defensive refresh after a catalog re-id event: notebookEntries
+ *        are migrated separately on boot (utils/notebook-migration), and
+ *        bumping forces a fresh program generation so any stale exerciseId
+ *        still living in WorkoutProgram.sessions is rewritten using the
+ *        current catalog. No engine logic change.
  */
-export const ENGINE_VERSION = 8
+export const ENGINE_VERSION = 9
 
 // ---------------------------------------------------------------------------
 // Timing constants
