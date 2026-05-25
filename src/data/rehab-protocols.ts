@@ -64,7 +64,7 @@ export const rehabProtocols: RehabProtocol[] = [
         durationSeconds: 60,
         intensity: 'very_light',
         notes:
-          'Utiliser une balle de tennis ou de lacrosse. Rouler sur les fléchisseurs de l\'avant-bras (côté paume) en insistant sur les points sensibles. Prépare les tissus avant les exercices excentriques et améliore la circulation locale. Faire avant chaque séance.',
+          'Utiliser une balle de tennis ou de lacrosse. Rouler sur les fléchisseurs de l\'avant-bras (côté paume) en insistant sur les points sensibles. Prépare les tissus avant les exercices excentriques de la routine et améliore la circulation locale. Faire en début de routine rehab.',
         placement: 'warmup',
       },
       {
@@ -73,7 +73,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: 15,
         intensity: 'very_light',
         notes:
-          'Phase excentrique de 5 secondes, concentrique assistée par l\'autre main. Commencer avec 1-2 kg. Ne pas augmenter la charge tant que 3x15 n\'est pas indolore. Faire 2x/jour les jours sans entraînement.',
+          'Phase excentrique de 5 secondes, concentrique assistée par l\'autre main. Commencer avec 1-2 kg. Ne pas augmenter la charge tant que 3x15 n\'est pas indolore. Faire 2x/jour quand la routine rehab est faite seule.',
         placement: 'warmup',
       },
       {
@@ -83,7 +83,7 @@ export const rehabProtocols: RehabProtocol[] = [
         durationSeconds: 30,
         intensity: 'very_light',
         notes:
-          'Étirement doux, ne jamais forcer en douleur. Faire avant et après les exercices excentriques et avant toute séance impliquant les bras. Peut être fait plusieurs fois par jour.',
+          'Étirement doux, ne jamais forcer en douleur. Faire en début et en fin de routine rehab et en début de routine rehab. Peut être fait plusieurs fois par jour.',
         placement: 'warmup',
       },
       {
@@ -92,7 +92,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '15-20',
         intensity: 'very_light',
         notes:
-          'Placer un élastique autour des doigts et les écarter contre la résistance. Renforce les extenseurs des doigts et équilibre la force de préhension. Excellent exercice de récupération active entre les séries ou en fin de séance. Peut être fait plusieurs fois par jour.',
+          'Placer un élastique autour des doigts et les écarter contre la résistance. Renforce les extenseurs des doigts et équilibre la force de préhension. Excellent exercice de récupération active entre les séries ou en fin de routine rehab. Peut être fait plusieurs fois par jour.',
         placement: 'cooldown',
       },
     ],
@@ -107,7 +107,7 @@ export const rehabProtocols: RehabProtocol[] = [
     frequency: 'every_session',
     priority: 2,
     progressionCriteria:
-      'Phase 1 (isométrique) : quand la douleur est < 3/10 au Spanish squat pendant 2 semaines. Phase 2 (isotonique) : progresser du leg extension tempo lent vers le Spanish squat isotonique (3x10 reps). Phase 3 : réintroduire progressivement les squats classiques avec charges légères.',
+      'Phase 1 (isométrique) : quand la douleur est < 3/10 au Spanish squat pendant 2 semaines. Phase 2 (isotonique) : progresser des exercices isotoniques tempo lent (type leg extension léger) vers le Spanish squat isotonique (3x10 reps). Phase 3 : réintroduire progressivement les squats avec charges légères, en dehors de la routine rehab.',
     exercises: [
       {
         exerciseName: 'Spanish squat isométrique (tendinite rotulienne)',
@@ -116,7 +116,7 @@ export const rehabProtocols: RehabProtocol[] = [
         durationSeconds: 45,
         intensity: 'moderate',
         notes:
-          'Basé sur Rio et al. (2015) : les isométriques à 70% d\'effort réduisent la douleur tendineuse immédiatement et augmentent la force de 18.7%. Tenir 45 secondes à 70-90° de flexion, 2 minutes de repos entre les séries. Faire avant la séance comme analgésique. Peut être fait 2-3x/jour les jours de repos.',
+          'Basé sur Rio et al. (2015) : les isométriques à 70% d\'effort réduisent la douleur tendineuse immédiatement et augmentent la force de 18.7%. Tenir 45 secondes à 70-90° de flexion, 2 minutes de repos entre les séries. Faire en début de routine rehab comme analgésique. Peut être fait 2-3x/jour les jours où la routine rehab est faite seule.',
         placement: 'warmup',
       },
       {
@@ -148,7 +148,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '10-15',
         intensity: 'light',
         notes:
-          'Exercice fondamental pour les pieds plats (Hara et al., 2023). Tenir chaque contraction 5-8 secondes. Apprentissage difficile — pratiquer d\'abord assis pour bien comprendre l\'activation musculaire. 6 semaines minimum pour des résultats mesurables. Faire quotidiennement même les jours de repos.',
+          'Exercice fondamental pour les pieds plats (Hara et al., 2023). Tenir chaque contraction 5-8 secondes. Apprentissage difficile — pratiquer d\'abord assis pour bien comprendre l\'activation musculaire. 6 semaines minimum pour des résultats mesurables. Faire quotidiennement même les jours où la routine rehab est faite seule.',
         placement: 'warmup',
       },
       {
@@ -206,7 +206,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '10-12',
         intensity: 'light',
         notes:
-          'Excellent diagnostic de la mobilité thoracique — si incapable de garder le dos des mains contre le mur, la mobilité thoracique est insuffisante. Faire avant les exercices de poussée (développé couché, militaire). Progression : augmenter l\'amplitude lentement.',
+          'Excellent diagnostic de la mobilité thoracique — si incapable de garder le dos des mains contre le mur, la mobilité thoracique est insuffisante. À placer avant les exercices de poussée. Progression : augmenter l\'amplitude lentement.',
         placement: 'warmup',
       },
       {
@@ -215,7 +215,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '15-20',
         intensity: 'light',
         notes:
-          'Rotation externe en fin de mouvement est essentielle — ne pas simplement tirer vers le visage. Ratio recommandé : 1 série de face pull pour chaque série de développé couché. Peut remplacer un exercice d\'isolation pour les épaules.',
+          'Rotation externe en fin de mouvement est essentielle — ne pas simplement tirer vers le visage. Inclure systématiquement aux côtés des exercices de poussée dans la routine. Peut remplacer un exercice d\'isolation pour les épaules.',
         placement: 'active_wait',
       },
       {
@@ -224,7 +224,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '15-20',
         intensity: 'light',
         notes:
-          'Parfait en super-set avec le développé couché ou entre les séries d\'exercices de poussée (active wait). Bande légère à moyenne. Serrer les omoplates 2 secondes à chaque répétition. Alternative au face pull quand la poulie est occupée.',
+          'Bon enchaînement dans la routine ou en active wait entre les autres exercices de la routine. Bande légère à moyenne. Serrer les omoplates 2 secondes à chaque répétition. Bonne alternative quand la poulie n\'est pas accessible.',
         placement: 'active_wait',
       },
       {
@@ -234,7 +234,7 @@ export const rehabProtocols: RehabProtocol[] = [
         durationSeconds: 45,
         intensity: 'very_light',
         notes:
-          'Étirement passif des pectoraux raccourcis par la posture antérieure. 3 positions : coudes bas (fibres inférieures), coudes à 90° (fibres moyennes), coudes hauts (fibres supérieures). Faire en cooldown et les jours de repos.',
+          'Étirement passif des pectoraux raccourcis par la posture antérieure. 3 positions : coudes bas (fibres inférieures), coudes à 90° (fibres moyennes), coudes hauts (fibres supérieures). Faire en cooldown et les jours où la routine rehab est faite seule.',
         placement: 'cooldown',
       },
       {
@@ -283,7 +283,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '10-12',
         intensity: 'moderate',
         notes:
-          'Anti-rotation : protège le dos contre les forces de torsion. Commencer avec un poids léger, se concentrer sur la rigidité du core. Peut être fait debout, à genoux, ou en fente. Excellent en active wait entre les séries de squat.',
+          'Anti-rotation : protège le dos contre les forces de torsion. Commencer avec un poids léger, se concentrer sur la rigidité du core. Peut être fait debout, à genoux, ou en fente. Excellent en active wait entre les séries d\'autres exercices de la routine.',
         placement: 'active_wait',
       },
       {
@@ -292,7 +292,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '12-15',
         intensity: 'light',
         notes:
-          'Active les fessiers inhibés par la position assise prolongée (« amnésie glutéale »). Fessiers forts = dos protégé. Serrer les fessiers 3 secondes en haut. Progression : unipodal → avec barre → hip thrust.',
+          'Active les fessiers inhibés par la position assise prolongée (« amnésie glutéale »). Fessiers forts = dos protégé. Serrer les fessiers 3 secondes en haut. Progression : unipodal → ajout de charge progressive.',
         placement: 'warmup',
       },
     ],
@@ -307,7 +307,7 @@ export const rehabProtocols: RehabProtocol[] = [
     frequency: 'daily',
     priority: 2,
     progressionCriteria:
-      'Nerve flossing : augmenter de 5 à 10-15 répétitions quand bien toléré. Étirement piriforme : augmenter la durée de 30 à 60 secondes. Si la douleur sciatique diminue significativement (< 2/10), réduire à un programme d\'entretien (3x/semaine). Ajouter progressivement le renforcement des fessiers (ponts, hip thrust). Pour les étirements chaîne postérieure : augmenter la durée de 30 à 45 sec quand l\'étirement est confortable. Objectif : toucher les orteils jambes tendues sans douleur.',
+      'Nerve flossing : augmenter de 5 à 10-15 répétitions quand bien toléré. Étirement piriforme : augmenter la durée de 30 à 60 secondes. Si la douleur sciatique diminue significativement (< 2/10), réduire à un programme d\'entretien (3x/semaine). Ajouter progressivement le renforcement des fessiers (ponts, élévations bassin chargées). Pour les étirements chaîne postérieure : augmenter la durée de 30 à 45 sec quand l\'étirement est confortable. Objectif : toucher les orteils jambes tendues sans douleur.',
     exercises: [
       {
         exerciseName: 'Nerve flossing sciatique',
@@ -325,7 +325,7 @@ export const rehabProtocols: RehabProtocol[] = [
         durationSeconds: 45,
         intensity: 'very_light',
         notes:
-          'Position figure-4 allongée sur le dos. Le piriforme tendu peut comprimer le nerf sciatique. Respirer profondément pendant l\'étirement. Ne pas forcer — aller à la sensation d\'étirement confortable. Faire après chaque séance et les jours de repos.',
+          'Position figure-4 allongée sur le dos. Le piriforme tendu peut comprimer le nerf sciatique. Respirer profondément pendant l\'étirement. Ne pas forcer — aller à la sensation d\'étirement confortable. Faire en fin de routine rehab et les jours où la routine rehab est faite seule.',
         placement: 'cooldown',
       },
       {
@@ -353,7 +353,7 @@ export const rehabProtocols: RehabProtocol[] = [
         durationSeconds: 60,
         intensity: 'very_light',
         notes:
-          'Position de repos qui ouvre doucement l\'espace intervertébral. Idéal en fin de séance. Si les genoux sont douloureux, placer un coussin entre les fesses et les talons.',
+          'Position de repos qui ouvre doucement l\'espace intervertébral. Idéal en fin de routine rehab. Si les genoux sont douloureux, placer un coussin entre les fesses et les talons.',
         placement: 'cooldown',
       },
       {
@@ -383,7 +383,7 @@ export const rehabProtocols: RehabProtocol[] = [
         durationSeconds: 60,
         intensity: 'very_light',
         notes:
-          'Rouler lentement sur les ischio-jambiers puis les mollets. S\'attarder sur les points sensibles (10-15 sec). Aide à relâcher la tension de la chaîne postérieure et améliore la mobilité pour le squat et le deadlift. Faire avant la séance pour préparer les tissus.',
+          'Rouler lentement sur les ischio-jambiers puis les mollets. S\'attarder sur les points sensibles (10-15 sec). Aide à relâcher la tension de la chaîne postérieure et améliore la mobilité globale. Faire en début de routine rehab pour préparer les tissus.',
         placement: 'warmup',
       },
     ],
@@ -406,7 +406,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: 15,
         intensity: 'light',
         notes:
-          'Side-lying external rotation. Basé sur Reinold et al. (2004) : protocole de renforcement de la coiffe des rotateurs. Phase excentrique de 3 secondes. Commencer avec 1-2 kg. Le coude reste collé au flanc pendant tout le mouvement. Faire avant toute séance impliquant les épaules.',
+          'Side-lying external rotation. Basé sur Reinold et al. (2004) : protocole de renforcement de la coiffe des rotateurs. Phase excentrique de 3 secondes. Commencer avec 1-2 kg. Le coude reste collé au flanc pendant tout le mouvement. Faire en début de routine rehab impliquant les épaules.',
         placement: 'warmup',
       },
       {
@@ -415,7 +415,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '12-15',
         intensity: 'light',
         notes:
-          'Câble réglé à hauteur du coude, serviette roulée entre le coude et le corps. Rotation externe contrôlée, 3 secondes en excentrique. Charge légère — la coiffe des rotateurs ne nécessite pas de charges lourdes. Excellent en active wait entre les séries de développé couché.',
+          'Câble réglé à hauteur du coude, serviette roulée entre le coude et le corps. Rotation externe contrôlée, 3 secondes en excentrique. Charge légère — la coiffe des rotateurs ne nécessite pas de charges lourdes. Excellent en active wait entre les exercices de la routine.',
         placement: 'active_wait',
       },
       {
@@ -434,7 +434,7 @@ export const rehabProtocols: RehabProtocol[] = [
         durationSeconds: 30,
         intensity: 'very_light',
         notes:
-          'Allongé sur le côté affecté, rotation interne passive douce. Adresse la raideur de la capsule postérieure, fréquente dans les tendinopathies de la coiffe. Ne JAMAIS forcer — aller à la sensation d\'étirement sans douleur. Faire après chaque séance.',
+          'Allongé sur le côté affecté, rotation interne passive douce. Adresse la raideur de la capsule postérieure, fréquente dans les tendinopathies de la coiffe. Ne JAMAIS forcer — aller à la sensation d\'étirement sans douleur. Faire en fin de routine rehab.',
         placement: 'cooldown',
       },
     ],
@@ -457,7 +457,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: 15,
         intensity: 'light',
         notes:
-          'Gold standard pour le tennis elbow — Stasinopoulos & Stasinopoulos (2017). Phase excentrique de 5 secondes, concentrique assistée par l\'autre main. Commencer avec 1-2 kg. Faire 2x/jour les jours sans entraînement. Ne pas augmenter la charge tant que 3x15 n\'est pas indolore.',
+          'Gold standard pour le tennis elbow — Stasinopoulos & Stasinopoulos (2017). Phase excentrique de 5 secondes, concentrique assistée par l\'autre main. Commencer avec 1-2 kg. Faire 2x/jour quand la routine rehab est faite seule. Ne pas augmenter la charge tant que 3x15 n\'est pas indolore.',
         placement: 'warmup',
       },
       {
@@ -476,7 +476,7 @@ export const rehabProtocols: RehabProtocol[] = [
         durationSeconds: 30,
         intensity: 'very_light',
         notes:
-          'Étirement doux des extenseurs du poignet. Bras tendu, paume vers le bas, tirez les doigts vers le bas. Ne jamais forcer en douleur. Faire avant et après les exercices excentriques et avant toute séance impliquant la préhension.',
+          'Étirement doux des extenseurs du poignet. Bras tendu, paume vers le bas, tirez les doigts vers le bas. Ne jamais forcer en douleur. Faire en début et en fin de routine rehab et en début de routine rehab impliquant la préhension.',
         placement: 'cooldown',
       },
     ],
@@ -601,7 +601,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: 15,
         intensity: 'light',
         notes:
-          'Renforce le moyen fessier pour stabiliser la hanche et réduire la surcharge du piriforme. Bande élastique autour des genoux. Ne laissez pas le bassin rouler vers l\'arrière. Peut être fait en échauffement et les jours de repos.',
+          'Renforce le moyen fessier pour stabiliser la hanche et réduire la surcharge du piriforme. Bande élastique autour des genoux. Ne laissez pas le bassin rouler vers l\'arrière. Peut être fait en échauffement et les jours où la routine rehab est faite seule.',
         placement: 'warmup',
       },
       {
@@ -620,7 +620,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '10/jambe',
         intensity: 'light',
         notes:
-          'Renforce spécifiquement le fessier de la hanche affectée. Corrige les déséquilibres bilatéraux. Serrez le fessier 3 secondes en haut. Excellent en active wait entre les séries d\'exercices pour le bas du corps.',
+          'Renforce spécifiquement le fessier de la hanche affectée. Corrige les déséquilibres bilatéraux. Serrez le fessier 3 secondes en haut. Excellent en active wait entre les autres exercices de la routine.',
         placement: 'active_wait',
       },
     ],
@@ -765,7 +765,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '10-15',
         intensity: 'very_light',
         notes:
-          'Balle souple ou serviette roulée. Serrer et maintenir 5 secondes. Ne PAS faire en phase aiguë (picotements constants). À introduire uniquement quand les symptômes sont bien contrôlés. Faire les jours de repos.',
+          'Balle souple ou serviette roulée. Serrer et maintenir 5 secondes. Ne PAS faire en phase aiguë (picotements constants). À introduire uniquement quand les symptômes sont bien contrôlés. Faire les jours où la routine rehab est faite seule.',
         placement: 'rest_day',
       },
     ],
@@ -1019,7 +1019,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '12-15',
         intensity: 'light',
         notes:
-          'Câble ou bande à hauteur du visage. Tirer vers le visage puis rotation externe en fin de mouvement. Renforce les rotateurs externes et les stabilisateurs scapulaires. Ratio recommandé : 2 séries de tirage pour 1 série de poussée.',
+          'Câble ou bande à hauteur du visage. Tirer vers le visage puis rotation externe en fin de mouvement. Renforce les rotateurs externes et les stabilisateurs scapulaires. Ratio recommandé : 2 séries pour 1 série d\'exercice de poussée à intégrer dans la routine.',
         placement: 'active_wait',
       },
       {
@@ -1141,7 +1141,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '8-10/côté',
         intensity: 'light',
         notes:
-          'Le bas du dos doit rester PLAQUÉ au sol. Excellent pour renforcer le core sans charger la hanche en flexion profonde. Si le dos se cambre, réduire l\'amplitude. Alternative au squat pour le travail du core.',
+          'Le bas du dos doit rester PLAQUÉ au sol. Excellent pour renforcer le core sans charger la hanche en flexion profonde. Si le dos se cambre, réduire l\'amplitude. Bon travail du core sans charge axiale.',
         placement: 'warmup',
       },
       {
@@ -2029,7 +2029,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '15-20',
         intensity: 'light',
         notes:
-          'Tirer vers le visage puis rotation externe en fin de mouvement. Renforce les rotateurs externes et les rétracteurs scapulaires. Ratio recommandé : 1 série pour chaque série de poussée. Excellent en super-set avec le développé couché.',
+          'Tirer vers le visage puis rotation externe en fin de mouvement. Renforce les rotateurs externes et les rétracteurs scapulaires. À placer systématiquement aux côtés des exercices de poussée dans la routine.',
         placement: 'active_wait',
       },
       {
@@ -2038,7 +2038,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '10-12',
         intensity: 'light',
         notes:
-          'Dos contre le mur, chin tuck, faire glisser les bras vers le haut en gardant le contact. Corrige la posture antérieure des épaules et la tête avancée simultanément. Faire avant les exercices de poussée.',
+          'Dos contre le mur, chin tuck, faire glisser les bras vers le haut en gardant le contact. Corrige la posture antérieure des épaules et la tête avancée simultanément. À placer en début de routine rehab.',
         placement: 'warmup',
       },
       {
@@ -2057,7 +2057,7 @@ export const rehabProtocols: RehabProtocol[] = [
         durationSeconds: 45,
         intensity: 'very_light',
         notes:
-          'Les pectoraux raccourcis tirent les épaules vers l\'avant. Étirer dans le cadre d\'une porte à 3 angles différents. Faire après chaque séance et les jours de repos.',
+          'Les pectoraux raccourcis tirent les épaules vers l\'avant. Étirer dans le cadre d\'une porte à 3 angles différents. Faire en fin de routine rehab et les jours où la routine rehab est faite seule.',
         placement: 'cooldown',
       },
       {
@@ -2066,7 +2066,7 @@ export const rehabProtocols: RehabProtocol[] = [
         reps: '15-20',
         intensity: 'light',
         notes:
-          'Bande devant, bras tendus, écarter en serrant les omoplates. Excellent en super-set avec les exercices de poussée. Bande légère à moyenne. Serrer les omoplates 2 secondes à chaque répétition.',
+          'Bande devant, bras tendus, écarter en serrant les omoplates. Excellent en enchaînement dans la routine, en alternance avec les exercices de poussée. Bande légère à moyenne. Serrer les omoplates 2 secondes à chaque répétition.',
         placement: 'active_wait',
       },
     ],

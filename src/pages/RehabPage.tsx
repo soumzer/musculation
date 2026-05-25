@@ -1,10 +1,12 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
 import type { NotebookEntry, NotebookSet } from '../db/types'
-import { generateRestDayRoutine, type RestDayExercise } from '../engine/rest-day'
+import { generateRestDayRoutine, type RestDayExercise, type RestDayRoutine } from '../engine/rest-day'
 import { recordRehabExercisesDone } from '../utils/rehab-rotation'
 import { useRestTimer } from '../hooks/useRestTimer'
+
+const REST_BETWEEN_SETS_SECONDS = 60
 
 // ---------------------------------------------------------------------------
 // Design tokens
@@ -84,12 +86,46 @@ function RehabExerciseCard({
   const timedComplete = timeBased && log.timedDone >= exercise.sets
   const hasData = timeBased ? timedComplete : log.sets.length > 0
   const ist = INTENSITY_LABELS[exercise.intensity]
-  const timer = useRestTimer(exercise.durationSeconds ?? 0)
+  const workTimer = useRestTimer(exercise.durationSeconds ?? 0)
+  const restTimer = useRestTimer(REST_BETWEEN_SETS_SECONDS)
+  const [pendingRestStart, setPendingRestStart] = useState(false)
 
-  // Chaque fin de décompte valide une série.
+  // Work timer ends → validate the set + queue rest (if more sets remain).
   useEffect(() => {
-    if (timeBased && timer.remaining === 0 && log.timedDone < exercise.sets) onIncTimed()
-  }, [timer.remaining]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (!timeBased) return
+    if (workTimer.remaining !== 0) return
+    if (log.timedDone >= exercise.sets) return
+    onIncTimed()
+    // The increment is async via parent state — log.timedDone here is still the
+    // pre-increment value, so the comparison is `+1 < sets` to know if another
+    // set follows.
+    if (log.timedDone + 1 < exercise.sets) {
+      restTimer.reset()
+      setPendingRestStart(true)
+    }
+  }, [workTimer.remaining]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // After restTimer.reset() applied (remaining is back to REST seconds), start it.
+  // Two-phase pattern is required because useRestTimer.start() captures `remaining`
+  // in its closure — calling it right after reset() would still use the stale value.
+  useEffect(() => {
+    if (!pendingRestStart) return
+    if (restTimer.isRunning) return
+    if (restTimer.remaining !== REST_BETWEEN_SETS_SECONDS) return
+    restTimer.start()
+    setPendingRestStart(false)
+  }, [pendingRestStart, restTimer.remaining, restTimer.isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Rest timer finishes → reset work timer so it's ready for the next set.
+  useEffect(() => {
+    if (!timeBased) return
+    if (restTimer.isRunning) return
+    if (restTimer.remaining !== 0) return
+    if (log.timedDone === 0 || log.timedDone >= exercise.sets) return
+    workTimer.reset()
+  }, [restTimer.remaining, restTimer.isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const resting = restTimer.isRunning
 
   return (
     <div className={`${CARD} ${accentBorder ? 'border-l-2 border-l-amber-500' : ''}`}>
@@ -153,35 +189,65 @@ function RehabExerciseCard({
 
           {timeBased ? (
             <div className="space-y-2.5">
-              {/* Minuteur de tenue */}
-              <div className="bg-zinc-800/50 rounded-xl p-3 flex items-center gap-3">
-                <span className={`text-2xl font-mono font-bold tabular-nums ${
-                  timer.remaining === 0 ? 'text-emerald-400' : 'text-white'
-                }`}>
-                  {timer.formatTime()}
-                </span>
-                <div className="flex gap-2 ml-auto">
-                  {timer.isRunning ? (
-                    <button
-                      onClick={timer.pause}
-                      className="bg-zinc-800 text-white rounded-lg px-3 py-1.5 text-sm active:scale-95 transition-all duration-200"
-                    >
-                      Pause
-                    </button>
-                  ) : (
-                    <button
-                      onClick={timer.start}
-                      className="bg-emerald-500 text-white font-semibold rounded-lg px-3 py-1.5 text-sm active:scale-95 transition-all duration-200"
-                    >
-                      Demarrer
-                    </button>
+              {/* Minuteur — bascule automatiquement entre tenue (work) et repos. */}
+              <div className={`rounded-xl p-3 flex items-center gap-3 ${
+                resting ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-zinc-800/50'
+              }`}>
+                <div className="flex flex-col">
+                  {resting && (
+                    <span className="text-amber-400 text-[10px] uppercase tracking-wider font-bold">
+                      Repos
+                    </span>
                   )}
-                  <button
-                    onClick={timer.reset}
-                    className="bg-zinc-800 text-zinc-400 rounded-lg px-3 py-1.5 text-sm active:scale-95 transition-all duration-200"
-                  >
-                    Reset
-                  </button>
+                  <span className={`text-2xl font-mono font-bold tabular-nums ${
+                    resting
+                      ? 'text-amber-300'
+                      : workTimer.remaining === 0 ? 'text-emerald-400' : 'text-white'
+                  }`}>
+                    {resting ? restTimer.formatTime() : workTimer.formatTime()}
+                  </span>
+                </div>
+                <div className="flex gap-2 ml-auto">
+                  {resting ? (
+                    <>
+                      <button
+                        onClick={restTimer.pause}
+                        className="bg-zinc-800 text-white rounded-lg px-3 py-1.5 text-sm active:scale-95 transition-all duration-200"
+                      >
+                        Pause
+                      </button>
+                      <button
+                        onClick={() => { restTimer.reset(); workTimer.reset() }}
+                        className="bg-zinc-800 text-zinc-400 rounded-lg px-3 py-1.5 text-sm active:scale-95 transition-all duration-200"
+                      >
+                        Passer
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {workTimer.isRunning ? (
+                        <button
+                          onClick={workTimer.pause}
+                          className="bg-zinc-800 text-white rounded-lg px-3 py-1.5 text-sm active:scale-95 transition-all duration-200"
+                        >
+                          Pause
+                        </button>
+                      ) : (
+                        <button
+                          onClick={workTimer.start}
+                          className="bg-emerald-500 text-white font-semibold rounded-lg px-3 py-1.5 text-sm active:scale-95 transition-all duration-200"
+                        >
+                          Demarrer
+                        </button>
+                      )}
+                      <button
+                        onClick={workTimer.reset}
+                        className="bg-zinc-800 text-zinc-400 rounded-lg px-3 py-1.5 text-sm active:scale-95 transition-all duration-200"
+                      >
+                        Reset
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -333,15 +399,23 @@ export default function RehabPage() {
     return map
   }, [])
 
-  const [refreshKey, setRefreshKey] = useState(0)
+  // Routine is generated ONCE per mount of this page. The rotation (which exos
+  // surface vs sink based on rehabHistory) only re-evaluates the next time the
+  // user navigates back to Rehab — staying on the page and saving doesn't
+  // shuffle the list mid-session.
+  const [routine, setRoutine] = useState<RestDayRoutine | null>(null)
+  const routineGenerated = useRef(false)
 
-  const routine = useMemo(
-    () => conditions && conditions.length > 0 && rehabHistoryMap
-      ? generateRestDayRoutine(conditions, 'all', accentZones, rehabHistoryMap)
-      : null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [conditions, accentZones, rehabHistoryMap, refreshKey]
-  )
+  useEffect(() => {
+    if (routineGenerated.current) return
+    if (conditions === undefined || rehabHistoryMap === undefined) return
+    routineGenerated.current = true
+    if (conditions.length === 0) {
+      setRoutine(null)
+      return
+    }
+    setRoutine(generateRestDayRoutine(conditions, 'all', accentZones, rehabHistoryMap))
+  }, [conditions, accentZones, rehabHistoryMap])
 
   const [videoIdx] = useState(() => getNextVideoIndex())
   const [videoDone, setVideoDone] = useState(false)
@@ -470,11 +544,12 @@ export default function RehabPage() {
   }, [user, routine, isSaving, getLog, getSaLog, videoIdx])
 
   const handleContinue = useCallback(() => {
+    // Reset only the input state — the routine itself stays frozen until the
+    // user leaves and comes back to this page (then rotation kicks in).
     setExerciseLogs({})
     setSaLogs({})
     setVideoDone(false)
     setSaved(false)
-    setRefreshKey(k => k + 1)
   }, [])
 
   // ===== RENDER =====
