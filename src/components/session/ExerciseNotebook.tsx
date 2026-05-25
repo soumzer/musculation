@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useNotebook } from '../../hooks/useNotebook'
 import { useRestTimer } from '../../hooks/useRestTimer'
 import { useExerciseNote } from '../../hooks/useExerciseNote'
@@ -29,7 +29,7 @@ export interface ExerciseNotebookProps {
     sets: number
     reps: number
     restSeconds: number
-    intensity: 'heavy' | 'volume' | 'moderate'
+    intensity: 'heavy' | 'volume' | 'moderate' | 'rehab'
     isTimeBased?: boolean
   }
   exerciseIndex: number
@@ -91,6 +91,12 @@ export default function ExerciseNotebook({
 
   const timer = useRestTimer(target.restSeconds, initialRestTimerEndTime)
 
+  // Hold timer for isTimeBased exos (planks, etc.) — countdown of target.reps
+  // seconds. Auto-validates a set when it reaches 0. Idle (0s) for non-timed
+  // exos; harmless because the timed-mode effects gate on target.isTimeBased.
+  const holdTimer = useRestTimer(target.isTimeBased ? target.reps : 0)
+  const holdValidatedRef = useRef(false)
+
   // Notify parent when rest timer state changes
   useEffect(() => {
     onRestTimerChange?.(timer.endTime)
@@ -149,6 +155,41 @@ export default function ExerciseNotebook({
     timer.reset()
     timer.start()
   }, [inputWeight, inputReps, notebook, timer])
+
+  // Timed exos: when the hold countdown reaches 0, auto-log a set with
+  // {weightKg:0, reps:duration} and trigger the inter-set rest. A ref prevents
+  // double-firing on the same cycle (the effect would otherwise re-run on
+  // subsequent renders where remaining stays at 0).
+  useEffect(() => {
+    if (!target.isTimeBased) return
+    if (holdTimer.isRunning) {
+      // New cycle started — clear the validated flag so the next hit at 0 fires.
+      holdValidatedRef.current = false
+      return
+    }
+    if (holdTimer.remaining !== 0) return
+    if (holdValidatedRef.current) return
+    if (notebook.currentSets.length >= target.sets) return
+    holdValidatedRef.current = true
+    notebook.addSet(0, target.reps)
+    try { navigator.vibrate?.(10) } catch { /* ignore */ }
+    // Start rest unless that was the final set
+    if (notebook.currentSets.length + 1 < target.sets) {
+      timer.reset()
+      timer.start()
+    }
+  }, [holdTimer.remaining, holdTimer.isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Timed exos: after the inter-set rest finishes, reset the hold timer so
+  // the next set starts from the full duration.
+  useEffect(() => {
+    if (!target.isTimeBased) return
+    if (timer.isRunning) return
+    if (timer.remaining !== 0) return
+    if (notebook.currentSets.length === 0) return
+    if (notebook.currentSets.length >= target.sets) return
+    holdTimer.reset()
+  }, [timer.remaining, timer.isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const intensityInfo = INTENSITY_COLORS[target.intensity]
 
@@ -316,46 +357,89 @@ export default function ExerciseNotebook({
           {notebook.currentSets.map((set, i) => (
             <div key={i} className="flex items-center gap-2 mb-2 text-sm">
               <span className="text-emerald-400 w-6 tabular-nums">S{i + 1}</span>
-              <span className="text-white font-medium">{set.weightKg}kg</span>
-              <span className="text-zinc-500">x</span>
-              <span className="text-white font-medium">{set.reps}</span>
-              {set.reps >= target.reps ? (
-                <span className="text-emerald-400 text-xs ml-auto">OK</span>
+              {target.isTimeBased ? (
+                <span className="text-white font-medium">Tenu {set.reps}s</span>
               ) : (
-                <span className="text-amber-400 text-xs ml-auto">-{target.reps - set.reps}</span>
+                <>
+                  <span className="text-white font-medium">{set.weightKg}kg</span>
+                  <span className="text-zinc-500">x</span>
+                  <span className="text-white font-medium">{set.reps}</span>
+                  {set.reps >= target.reps ? (
+                    <span className="text-emerald-400 text-xs ml-auto">OK</span>
+                  ) : (
+                    <span className="text-amber-400 text-xs ml-auto">-{target.reps - set.reps}</span>
+                  )}
+                </>
               )}
             </div>
           ))}
 
           {/* Input row for next set */}
           {notebook.currentSets.length < target.sets && (
-            <div className="flex items-center gap-2 mt-3">
-              <span className="text-zinc-500 w-6 text-sm tabular-nums">S{notebook.currentSets.length + 1}</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                value={inputWeight}
-                onChange={e => setInputWeight(e.target.value)}
-                placeholder="kg"
-                className="w-20 bg-zinc-800 text-white text-center rounded-xl px-2 py-2 text-sm outline-none placeholder-zinc-600"
-              />
-              <span className="text-zinc-500 text-sm">x</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                value={inputReps}
-                onChange={e => setInputReps(e.target.value)}
-                placeholder="reps"
-                className="w-16 bg-zinc-800 text-white text-center rounded-xl px-2 py-2 text-sm outline-none placeholder-zinc-600"
-              />
-              <button
-                onClick={handleAddSet}
-                disabled={!inputWeight || !inputReps}
-                className="ml-auto bg-emerald-500 text-white rounded-xl px-3.5 py-2 text-lg font-bold active:scale-95 transition-all duration-200 disabled:opacity-30"
-              >
-                +
-              </button>
-            </div>
+            target.isTimeBased ? (
+              // Hold timer block: countdown of target.reps seconds, auto-logs a set at 0.
+              <div className="flex items-center gap-2 mt-3">
+                <span className="text-zinc-500 w-6 text-sm tabular-nums">S{notebook.currentSets.length + 1}</span>
+                <div className="bg-zinc-800/50 rounded-xl px-3 py-2 flex items-center gap-3 flex-1">
+                  <span className={`text-xl font-mono font-bold tabular-nums ${
+                    holdTimer.remaining === 0 ? 'text-emerald-400' : 'text-white'
+                  }`}>
+                    {holdTimer.formatTime()}
+                  </span>
+                  <div className="flex gap-2 ml-auto">
+                    {holdTimer.isRunning ? (
+                      <button
+                        onClick={holdTimer.pause}
+                        className="bg-zinc-800 text-white rounded-lg px-3 py-1.5 text-sm active:scale-95 transition-all duration-200"
+                      >
+                        Pause
+                      </button>
+                    ) : (
+                      <button
+                        onClick={holdTimer.start}
+                        className="bg-emerald-500 text-white font-semibold rounded-lg px-3 py-1.5 text-sm active:scale-95 transition-all duration-200"
+                      >
+                        Demarrer
+                      </button>
+                    )}
+                    <button
+                      onClick={holdTimer.reset}
+                      className="bg-zinc-800 text-zinc-400 rounded-lg px-3 py-1.5 text-sm active:scale-95 transition-all duration-200"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mt-3">
+                <span className="text-zinc-500 w-6 text-sm tabular-nums">S{notebook.currentSets.length + 1}</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={inputWeight}
+                  onChange={e => setInputWeight(e.target.value)}
+                  placeholder="kg"
+                  className="w-20 bg-zinc-800 text-white text-center rounded-xl px-2 py-2 text-sm outline-none placeholder-zinc-600"
+                />
+                <span className="text-zinc-500 text-sm">x</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={inputReps}
+                  onChange={e => setInputReps(e.target.value)}
+                  placeholder="reps"
+                  className="w-16 bg-zinc-800 text-white text-center rounded-xl px-2 py-2 text-sm outline-none placeholder-zinc-600"
+                />
+                <button
+                  onClick={handleAddSet}
+                  disabled={!inputWeight || !inputReps}
+                  className="ml-auto bg-emerald-500 text-white rounded-xl px-3.5 py-2 text-lg font-bold active:scale-95 transition-all duration-200 disabled:opacity-30"
+                >
+                  +
+                </button>
+              </div>
+            )
           )}
 
           {/* Remove last set */}
