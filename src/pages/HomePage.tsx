@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../db'
-import { useNextSession, type WeekSessionStatus } from '../hooks/useNextSession'
+import { useNextSession } from '../hooks/useNextSession'
 import { useActiveSession } from '../hooks/useActiveSession'
 import type { NotebookEntry } from '../db/types'
 
@@ -216,7 +216,11 @@ export default function HomePage() {
                 const sessionIntensity = s.intensity
                 const dotStyle = sessionIntensity ? INTENSITY_STYLE[sessionIntensity] : null
                 return (
-                  <div key={idx} className="flex flex-col items-center gap-1.5">
+                  <button
+                    key={idx}
+                    onClick={() => navigate(`/edit-order?programId=${info.programId}&sessionIndex=${idx}`)}
+                    className="flex flex-col items-center gap-1.5 active:scale-90 transition-all duration-150"
+                  >
                     <div className={`w-4 h-4 rounded-full transition-all ${
                       isDone ? 'bg-emerald-500' :
                       isCurrent ? 'border-2 border-emerald-500 bg-transparent' :
@@ -232,7 +236,7 @@ export default function HomePage() {
                         {dotStyle.label[0]}
                       </span>
                     )}
-                  </div>
+                  </button>
                 )
               })}
             </div>
@@ -280,13 +284,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* This week — chips with done/today/upcoming status */}
-        {info.weekSessions && info.weekSessions.length > 0 && info.programId !== undefined && (
-          <WeekSessionsBlock
-            sessions={info.weekSessions}
-            programId={info.programId}
-          />
-        )}
       </div>
 
       {/* CTA — always visible */}
@@ -416,56 +413,3 @@ function RehabDayCard({ activeZones, nextSessionName, userId }: {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Week sessions block
-// ---------------------------------------------------------------------------
-
-function WeekSessionsBlock({
-  sessions,
-  programId,
-}: {
-  sessions: WeekSessionStatus[]
-  programId: number
-}) {
-  const navigate = useNavigate()
-  return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mt-3">
-      <p className="text-zinc-600 text-xs uppercase tracking-wider mb-3">Cette semaine</p>
-      <div className="grid grid-cols-2 gap-2.5">
-        {sessions.map((s) => (
-          <button
-            key={s.sessionIndex}
-            onClick={() => navigate(`/edit-order?programId=${programId}&sessionIndex=${s.sessionIndex}`)}
-            className={`flex items-center gap-2.5 rounded-xl p-2.5 border text-left active:scale-[0.98] transition-all ${
-              s.status === 'today'
-                ? 'border-emerald-500/60 bg-emerald-500/5'
-                : 'border-zinc-800 bg-zinc-800/30'
-            }`}
-          >
-            <StatusDot status={s.status} />
-            <span className={`text-xs font-semibold flex-1 truncate ${
-              s.status === 'done' ? 'text-emerald-300' :
-              s.status === 'today' ? 'text-white' :
-              'text-zinc-500'
-            }`}>
-              {s.name}
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function StatusDot({ status }: { status: 'done' | 'today' | 'upcoming' }) {
-  if (status === 'done') {
-    // filled emerald
-    return <span className="w-3 h-3 rounded-full bg-emerald-500 flex-shrink-0" />
-  }
-  if (status === 'today') {
-    // empty emerald ring
-    return <span className="w-3 h-3 rounded-full border-2 border-emerald-500 flex-shrink-0" />
-  }
-  // upcoming: grey filled
-  return <span className="w-3 h-3 rounded-full bg-zinc-700 flex-shrink-0" />
-}
