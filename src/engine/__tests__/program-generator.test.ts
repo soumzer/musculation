@@ -488,9 +488,9 @@ describe('Upper/Lower structured sessions', () => {
       equipmentNeeded: ['smith_machine', 'bench'],
     }),
 
-    // === ISOLATION LOWER: Pull-through ===
+    // === COMPOUND LOWER: Pull-through (hip-hinge multi-joint) ===
     makeExercise({
-      id: 114, name: 'Pull-through câble (tirage entre les jambes)', category: 'isolation',
+      id: 114, name: 'Pull-through câble (tirage entre les jambes)', category: 'compound',
       primaryMuscles: ['fessiers', 'ischio-jambiers'],
       tags: ['lower_body', 'glutes', 'posterior_chain', 'cable'],
       equipmentNeeded: ['cable', 'rope_attachment'],
@@ -1100,9 +1100,9 @@ describe('Push/Pull/Legs structured sessions', () => {
       equipmentNeeded: ['smith_machine', 'bench'],
     }),
 
-    // === ISOLATION LOWER: Pull-through ===
+    // === COMPOUND LOWER: Pull-through (hip-hinge multi-joint) ===
     makeExercise({
-      id: 114, name: 'Pull-through câble (tirage entre les jambes)', category: 'isolation',
+      id: 114, name: 'Pull-through câble (tirage entre les jambes)', category: 'compound',
       primaryMuscles: ['fessiers', 'ischio-jambiers'],
       tags: ['lower_body', 'glutes', 'posterior_chain', 'cable'],
       equipmentNeeded: ['cable', 'rope_attachment'],

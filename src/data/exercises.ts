@@ -1360,7 +1360,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
   },
   {
     name: 'Pull-through câble (tirage entre les jambes)',
-    category: 'isolation',
+    category: 'compound',
     primaryMuscles: ['fessiers', 'ischio-jambiers'],
     secondaryMuscles: ['érecteurs du rachis', 'core'],
     equipmentNeeded: ['cable', 'rope_attachment'],
