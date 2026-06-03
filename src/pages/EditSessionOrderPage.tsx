@@ -37,12 +37,14 @@ export default function EditSessionOrderPage() {
     if (!program) return null
     const exercises = await db.exercises.toArray()
     const exoById = new Map(exercises.map(e => [e.id!, e]))
-    return { program, exoById }
+    return { program, exoById, allExercises: exercises }
   }, [programId])
 
   // Local ordered list — initialised from the program once it loads.
   const [order, setOrder] = useState<ProgramExercise[] | null>(null)
   const [saving, setSaving] = useState(false)
+  /** Row currently open in the swap sheet (its id from `items`), or null. */
+  const [swapOpenId, setSwapOpenId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!data || order !== null) return
@@ -73,6 +75,12 @@ export default function EditSessionOrderPage() {
     if (oldIdx < 0 || newIdx < 0) return
     setOrder(arrayMove(order, oldIdx, newIdx))
   }, [items, order])
+
+  const handleSwap = useCallback((rowIdx: number, newExerciseId: number) => {
+    if (!order) return
+    setOrder(order.map((e, i) => i === rowIdx ? { ...e, exerciseId: newExerciseId } : e))
+    setSwapOpenId(null)
+  }, [order])
 
   const handleSave = useCallback(async () => {
     if (!order || !data || saving) return
@@ -144,6 +152,7 @@ export default function EditSessionOrderPage() {
                       sets={item.pe.sets}
                       reps={item.pe.targetReps}
                       isTimeBased={item.pe.isTimeBased}
+                      onTapSwap={() => setSwapOpenId(item.id)}
                     />
                   )
                 })}
@@ -152,6 +161,24 @@ export default function EditSessionOrderPage() {
           </DndContext>
         )}
       </div>
+
+      {/* Swap sheet */}
+      {swapOpenId && (() => {
+        const rowIdx = items.findIndex(i => i.id === swapOpenId)
+        if (rowIdx < 0 || !order) return null
+        const currentExo = data.exoById.get(order[rowIdx].exerciseId)
+        if (!currentExo) return null
+        const usedIds = new Set(order.map(e => e.exerciseId))
+        const candidates = computeSwapCandidates(currentExo, data.allExercises, usedIds)
+        return (
+          <SwapSheet
+            currentName={currentExo.name}
+            candidates={candidates}
+            onClose={() => setSwapOpenId(null)}
+            onSelect={(id) => handleSwap(rowIdx, id)}
+          />
+        )
+      })()}
 
       {/* Save */}
       <div className="flex-shrink-0 px-5 pb-6 pt-3 bg-zinc-950">
@@ -174,6 +201,7 @@ function SortableRow({
   sets,
   reps,
   isTimeBased,
+  onTapSwap,
 }: {
   id: string
   index: number
@@ -181,6 +209,7 @@ function SortableRow({
   sets: number
   reps: number
   isTimeBased?: boolean
+  onTapSwap: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
   const style = {
@@ -193,22 +222,134 @@ function SortableRow({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
-      className={`bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex items-center gap-3 touch-none ${
+      className={`bg-zinc-900 border border-zinc-800 rounded-2xl flex items-center gap-2 ${
         isDragging ? 'border-emerald-500/40' : ''
       }`}
     >
-      <span className="text-zinc-600 text-xs font-bold tabular-nums w-5 flex-shrink-0">{index + 1}.</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-semibold truncate">{name}</p>
-        <p className="text-zinc-500 text-xs mt-0.5">
-          {sets} × {isTimeBased ? `${reps}s` : `${reps} reps`}
-        </p>
+      {/* Tap area for swap — covers the left + center of the card */}
+      <button
+        type="button"
+        onClick={onTapSwap}
+        className="flex items-center gap-3 px-4 py-4 flex-1 min-w-0 text-left active:bg-zinc-800/50 rounded-l-2xl transition-colors"
+      >
+        <span className="text-zinc-600 text-xs font-bold tabular-nums w-5 flex-shrink-0">{index + 1}.</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-white text-sm font-semibold truncate">{name}</p>
+          <p className="text-zinc-500 text-xs mt-0.5">
+            {sets} × {isTimeBased ? `${reps}s` : `${reps} reps`}
+          </p>
+        </div>
+      </button>
+      {/* Drag handle — only this area starts a drag */}
+      <div
+        {...listeners}
+        className="px-4 py-4 touch-none flex-shrink-0 cursor-grab active:cursor-grabbing"
+        aria-label="Glisser pour réordonner"
+      >
+        <svg className="w-5 h-5 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
       </div>
-      {/* Drag handle indicator */}
-      <svg className="w-5 h-5 text-zinc-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Swap candidates — mirrors SessionPage's swap logic: curated alternatives
+// first, then auto-matched (same category + ≥1 shared primary muscle).
+// ---------------------------------------------------------------------------
+
+interface SwapCandidate { exerciseId: number; name: string }
+
+function computeSwapCandidates(
+  current: { id?: number; name: string; alternatives?: string[]; primaryMuscles: string[]; category: string },
+  allExercises: { id?: number; name: string; isRehab: boolean; primaryMuscles: string[]; category: string }[],
+  usedIds: Set<number>,
+): SwapCandidate[] {
+  const result: SwapCandidate[] = []
+  const seen = new Set<number>()
+  const canShow = (e: typeof allExercises[number]) => {
+    if (e.id === undefined) return false
+    if (e.id === current.id) return false
+    if (e.isRehab) return false
+    if (usedIds.has(e.id)) return false
+    if (seen.has(e.id)) return false
+    return true
+  }
+  // 1. Curated alternatives by name
+  const byNameLower = new Map(
+    allExercises.filter(e => e.id !== undefined).map(e => [e.name.toLowerCase(), e]),
+  )
+  for (const altName of current.alternatives ?? []) {
+    const e = byNameLower.get(altName.toLowerCase())
+    if (e && canShow(e)) {
+      seen.add(e.id!)
+      result.push({ exerciseId: e.id!, name: e.name })
+    }
+  }
+  // 2. Auto-match — same category + shared primary muscle
+  const currentMuscles = new Set(current.primaryMuscles.map(m => m.toLowerCase()))
+  for (const e of allExercises) {
+    if (!canShow(e)) continue
+    if (e.category !== current.category) continue
+    const shares = e.primaryMuscles.some(m => currentMuscles.has(m.toLowerCase()))
+    if (!shares) continue
+    seen.add(e.id!)
+    result.push({ exerciseId: e.id!, name: e.name })
+  }
+  return result
+}
+
+// ---------------------------------------------------------------------------
+// Swap bottom sheet
+// ---------------------------------------------------------------------------
+
+function SwapSheet({
+  currentName,
+  candidates,
+  onClose,
+  onSelect,
+}: {
+  currentName: string
+  candidates: SwapCandidate[]
+  onClose: () => void
+  onSelect: (newExerciseId: number) => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-end" onClick={onClose}>
+      <div
+        className="w-full bg-zinc-900 border-t border-zinc-800 rounded-t-3xl p-5 pb-8 max-h-[80vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-center mb-3">
+          <div className="w-10 h-1 bg-zinc-700 rounded-full" />
+        </div>
+        <p className="text-white font-black text-lg mb-1">Remplacer l’exercice</p>
+        <p className="text-zinc-400 text-sm mb-4 truncate">{currentName}</p>
+        {candidates.length === 0 ? (
+          <p className="text-zinc-500 text-sm py-4 text-center">
+            Aucune alternative disponible.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {candidates.map(c => (
+              <button
+                key={c.exerciseId}
+                onClick={() => onSelect(c.exerciseId)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-3.5 text-left text-sm text-white font-medium active:scale-[0.98] transition-all"
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
+        <button
+          onClick={onClose}
+          className="w-full mt-4 py-3 text-zinc-500 text-sm font-medium"
+        >
+          Annuler
+        </button>
+      </div>
     </div>
   )
 }
