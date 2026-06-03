@@ -39,6 +39,47 @@ function applyUserSwaps(
 }
 
 /**
+ * Re-apply the user's custom exercise order from the previous program. The
+ * order is detected by comparing each session's slotLabel sequence against
+ * the natural engine order; if the user reordered slots in the old program,
+ * we sort the new program's exercises to mirror that sequence.
+ *
+ * Slots in the new program that are absent from the old order (newly added
+ * by the engine) keep their relative position at the END. Slots present in
+ * the old order but absent in the new (removed) silently drop out. The `order`
+ * field on each ProgramExercise is renumbered to match the final position.
+ */
+function applyUserOrder(
+  newSessions: ProgramSession[],
+  oldProgram: WorkoutProgram | undefined,
+): ProgramSession[] {
+  if (!oldProgram) return newSessions
+  return newSessions.map((newSession) => {
+    const oldSession = oldProgram.sessions.find((s) => s.name === newSession.name)
+    if (!oldSession) return newSession
+    // Build the desired slot order from the old session.
+    const oldSlotOrder = oldSession.exercises
+      .map((e) => e.slotLabel)
+      .filter((l): l is string => typeof l === 'string')
+    if (oldSlotOrder.length === 0) return newSession
+    const oldIndex = new Map<string, number>()
+    oldSlotOrder.forEach((label, i) => { if (!oldIndex.has(label)) oldIndex.set(label, i) })
+    // Sort new exercises by old slot index; unknown slots go to the end
+    // in their original engine order.
+    const known: typeof newSession.exercises = []
+    const unknown: typeof newSession.exercises = []
+    for (const ex of newSession.exercises) {
+      if (ex.slotLabel && oldIndex.has(ex.slotLabel)) known.push(ex)
+      else unknown.push(ex)
+    }
+    known.sort((a, b) => (oldIndex.get(a.slotLabel!) ?? 0) - (oldIndex.get(b.slotLabel!) ?? 0))
+    const sorted = [...known, ...unknown]
+    // Renumber the order field to match the final position.
+    return { ...newSession, exercises: sorted.map((e, idx) => ({ ...e, order: idx + 1 })) }
+  })
+}
+
+/**
  * Hook that returns a function to regenerate the workout program.
  *
  * Used when health conditions change — reads current user profile, conditions,
@@ -90,7 +131,9 @@ export function useRegenerateProgram() {
         .filter(p => p.isActive)
         .first()
 
-      const patchedSessions = applyUserSwaps(generatedProgram.sessions, previousProgram)
+      // Two-step patch: swaps first (exerciseId), then user-defined order.
+      const swapped = applyUserSwaps(generatedProgram.sessions, previousProgram)
+      const patchedSessions = applyUserOrder(swapped, previousProgram)
 
       // 6b. Deactivate old + save new in a single transaction
       // Note: ProgramExercise is pure prescription (sets/reps/rest).

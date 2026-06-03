@@ -242,7 +242,18 @@ export default function HomePage() {
         {/* Exercise preview with last perfs */}
         {info.preview && info.preview.exercises.length > 0 && (
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
-            <p className="text-zinc-600 text-xs uppercase tracking-wider mb-3">Au programme</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-zinc-600 text-xs uppercase tracking-wider">Au programme</p>
+              <button
+                onClick={() => navigate(`/edit-order?programId=${info.programId}&sessionIndex=${info.nextSessionIndex}`)}
+                className="text-zinc-500 text-xs active:text-emerald-400 transition-colors flex items-center gap-1"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                Réorganiser
+              </button>
+            </div>
             <div className="space-y-3">
               {info.preview.exercises.map((ex, idx) => {
                 const perf = lastPerfs?.get(ex.exerciseId)

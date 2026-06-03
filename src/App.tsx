@@ -11,6 +11,7 @@ import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
 import RehabPage from './pages/RehabPage'
 import CalendarPage from './pages/CalendarPage'
+import EditSessionOrderPage from './pages/EditSessionOrderPage'
 import { useEngineVersionCheck } from './hooks/useEngineVersionCheck'
 import { repairOrphanedNotebookEntries } from './utils/notebook-migration'
 
@@ -54,6 +55,7 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/rehab" element={<RehabPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/edit-order" element={<EditSessionOrderPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <BottomNav />
