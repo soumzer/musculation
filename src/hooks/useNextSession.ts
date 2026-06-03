@@ -26,6 +26,17 @@ export interface NextSessionPreview {
   exercises: NextSessionExercisePreview[]
 }
 
+export interface WeekSessionStatus {
+  sessionIndex: number
+  name: string
+  /**
+   * 'done'     = session at index < nextSessionIndex (already done in this cycle)
+   * 'today'    = session at index === nextSessionIndex (next up to do)
+   * 'upcoming' = session at index > nextSessionIndex (later in this cycle)
+   */
+  status: 'done' | 'today' | 'upcoming'
+}
+
 export interface NextSessionInfo {
   status: 'ready' | 'editing_window' | 'no_program' | 'rehab_day'
   nextSessionName?: string
@@ -47,6 +58,8 @@ export interface NextSessionInfo {
   editingHoursRemaining?: number
   /** Active health condition zones — populated when status is 'rehab_day' */
   activeZones?: string[]
+  /** Sessions of the program with their status relative to the current cycle. */
+  weekSessions?: WeekSessionStatus[]
 }
 
 export function useNextSession(userId: number | undefined): NextSessionInfo | undefined {
@@ -151,6 +164,13 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
     const nextProgramSession = activeProgram.sessions[nextSessionIndex]
     const exerciseCount = nextProgramSession.exercises.length
 
+    // Per-session status for the "Cette semaine" block on HomePage.
+    const weekSessions: WeekSessionStatus[] = activeProgram.sessions.map((s, idx) => ({
+      sessionIndex: idx,
+      name: s.name,
+      status: idx < nextSessionIndex ? 'done' : idx === nextSessionIndex ? 'today' : 'upcoming',
+    }))
+
     // Deload reminder: count how many times this specific session has been completed
     const DELOAD_THRESHOLD = 5
     const sessionCompletionCount = completedSessions.filter(
@@ -228,6 +248,7 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
           editingHoursRemaining: remainingHours,
           nextSessionName: nextProgramSession.name,
           nextSessionIndex,
+          weekSessions,
         }
       }
     }
@@ -264,6 +285,7 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
           preview,
           deloadReminder: null,
           activeZones: zones,
+          weekSessions,
         }
       }
     }
@@ -286,6 +308,7 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
       program: activeProgram,
       preview,
       deloadReminder,
+      weekSessions,
     }
   }, [userId])
 }

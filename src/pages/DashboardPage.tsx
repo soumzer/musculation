@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
 import { useDashboardData, type ExerciseHistory, type SessionVolume } from '../hooks/useDashboardData'
+import { useNextSession } from '../hooks/useNextSession'
 
 // ---------------------------------------------------------------------------
 // Design tokens
@@ -351,6 +352,24 @@ export default function DashboardPage() {
   const user = useLiveQuery(() => db.userProfiles.toCollection().first())
   const userId = user?.id
   const data = useDashboardData(userId)
+  const nextSession = useNextSession(userId)
+
+  // Reorder exercises: those that appear in the upcoming session float to the
+  // top, the rest stay in their existing recency order.
+  const orderedExercises = useMemo(() => {
+    if (!data.exercises.length) return data.exercises
+    const upcomingIds = new Set(
+      nextSession?.nextSession?.exercises.map(e => e.exerciseId) ?? [],
+    )
+    if (upcomingIds.size === 0) return data.exercises
+    const priority: ExerciseHistory[] = []
+    const rest: ExerciseHistory[] = []
+    for (const ex of data.exercises) {
+      if (upcomingIds.has(ex.exerciseId)) priority.push(ex)
+      else rest.push(ex)
+    }
+    return [...priority, ...rest]
+  }, [data.exercises, nextSession?.nextSession])
 
   return (
     <div className="flex flex-col h-[var(--content-h)] overflow-hidden">
@@ -378,7 +397,7 @@ export default function DashboardPage() {
             )}
 
             <div className="space-y-2">
-              {data.exercises.map(ex => (
+              {orderedExercises.map(ex => (
                 <ExerciseRow key={ex.exerciseId} exercise={ex} />
               ))}
             </div>

@@ -98,6 +98,8 @@ export default function CalendarPage() {
     return { year: now.getFullYear(), month: now.getMonth() }
   })
   const [selected, setSelected] = useState<number | null>(null)
+  const [showMarkModal, setShowMarkModal] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const shiftMonth = (delta: number) => {
     setSelected(null)
@@ -105,6 +107,39 @@ export default function CalendarPage() {
       const d = new Date(v.year, v.month + delta, 1)
       return { year: d.getFullYear(), month: d.getMonth() }
     })
+  }
+
+  const handleMarkSession = async (kind: 'rehab' | 'muscu', sessionName: string | null) => {
+    if (!userId || selected === null || saving) return
+    setSaving(true)
+    try {
+      const targetDate = new Date(view.year, view.month, selected, 12, 0, 0)
+      if (kind === 'rehab') {
+        await db.notebookEntries.add({
+          userId,
+          exerciseId: 0,
+          exerciseName: 'Routine rehab manuelle',
+          date: targetDate,
+          sessionIntensity: 'rehab',
+          sets: [{ weightKg: 0, reps: 1 }],
+          skipped: false,
+        })
+      } else if (sessionName && activeProgram?.id) {
+        await db.workoutSessions.add({
+          userId,
+          programId: activeProgram.id,
+          sessionName,
+          startedAt: targetDate,
+          completedAt: targetDate,
+          exercises: [],
+          endPainChecks: [],
+          notes: 'Marqueur manuel — séance faite mais non loguée',
+        })
+      }
+      setShowMarkModal(false)
+    } finally {
+      setSaving(false)
+    }
   }
 
   // Build day -> data map for the visible month
@@ -266,8 +301,70 @@ export default function CalendarPage() {
           <DaySummary data={selectedData!} label={`${selected} ${MONTHS_SHORT[view.month]}`} />
         </div>
       )}
+
+      {/* "Mark as done" — empty past day */}
+      {selected !== null && !showSummary && isPastDay(view.year, view.month, selected, today) && (
+        <div className="flex-shrink-0 px-5 pt-3 pb-6">
+          <button
+            onClick={() => setShowMarkModal(true)}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-left active:bg-zinc-800/50 transition-colors"
+          >
+            <p className="text-white text-sm font-semibold mb-0.5">+ Marquer une séance faite</p>
+            <p className="text-zinc-500 text-xs">
+              Pour combler un trou d'agenda — {selected} {MONTHS_SHORT[view.month]}
+            </p>
+          </button>
+        </div>
+      )}
+
+      {/* Mark-as-done modal (bottom sheet) */}
+      {showMarkModal && selected !== null && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-end" onClick={() => setShowMarkModal(false)}>
+          <div
+            className="w-full bg-zinc-900 border-t border-zinc-800 rounded-t-3xl p-5 pb-8 max-h-[80vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-center mb-3">
+              <div className="w-10 h-1 bg-zinc-700 rounded-full" />
+            </div>
+            <p className="text-white font-black text-lg mb-1">Marquer une séance</p>
+            <p className="text-zinc-400 text-sm mb-4">{selected} {MONTHS_SHORT[view.month]} {view.year}</p>
+            <div className="space-y-2">
+              <button
+                onClick={() => handleMarkSession('rehab', null)}
+                disabled={saving}
+                className="w-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 rounded-xl p-4 text-left text-sm font-semibold active:scale-[0.98] transition-all disabled:opacity-50"
+              >
+                Rehab
+              </button>
+              {activeProgram?.sessions.map((s, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleMarkSession('muscu', s.name)}
+                  disabled={saving}
+                  className="w-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded-xl p-4 text-left text-sm font-semibold active:scale-[0.98] transition-all disabled:opacity-50"
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowMarkModal(false)}
+              className="w-full mt-4 py-3 text-zinc-500 text-sm font-medium"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+function isPastDay(year: number, month: number, day: number, today: Date): boolean {
+  const cellDate = new Date(year, month, day)
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  return cellDate < todayDate
 }
 
 // ---------------------------------------------------------------------------
