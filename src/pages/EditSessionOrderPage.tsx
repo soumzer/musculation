@@ -45,12 +45,20 @@ export default function EditSessionOrderPage() {
   const [saving, setSaving] = useState(false)
   /** Row currently open in the swap sheet (its id from `items`), or null. */
   const [swapOpenId, setSwapOpenId] = useState<string | null>(null)
+  /**
+   * Engine slotLabels the user has deleted from this session. Persisted on save
+   * and re-applied across engine regen so the same slot doesn't reappear.
+   * User-added exos (custom slotLabel) are not tracked here — removing them just
+   * drops them from `order`.
+   */
+  const [deletedSlotLabels, setDeletedSlotLabels] = useState<string[]>([])
 
   useEffect(() => {
     if (!data || order !== null) return
     const session = data.program.sessions[sessionIndex]
     if (!session) return
     setOrder(session.exercises)
+    setDeletedSlotLabels(session.deletedSlotLabels ?? [])
   }, [data, sessionIndex, order])
 
   const sensors = useSensors(
@@ -84,6 +92,13 @@ export default function EditSessionOrderPage() {
 
   const handleDelete = useCallback((rowIdx: number) => {
     if (!order) return
+    const ex = order[rowIdx]
+    // If this is an engine slot (slotLabel set, not a custom add), remember the
+    // deletion so it survives a future engine regen. Custom adds are tracked by
+    // their presence in the exercise list itself — just dropping them is enough.
+    if (ex.slotLabel && !ex.slotLabel.startsWith('__custom__')) {
+      setDeletedSlotLabels(prev => prev.includes(ex.slotLabel!) ? prev : [...prev, ex.slotLabel!])
+    }
     setOrder(order.filter((_, i) => i !== rowIdx))
   }, [order])
 
@@ -93,6 +108,10 @@ export default function EditSessionOrderPage() {
     if (!catalogEx) return
     // Sensible defaults — the user can edit later. Picked to match a typical
     // accessory: 3 sets × 10 reps, 90s rest. order field gets renumbered on save.
+    // Synthetic slotLabel `__custom__…` marks this as a user-added exo so the
+    // regen pipeline can re-append it AND so applyUserOrder can sort it relative
+    // to engine slots based on its position.
+    const customLabel = `__custom__${newExerciseId}_${Date.now()}`
     const newPE: ProgramExercise = {
       exerciseId: newExerciseId,
       order: order.length + 1,
@@ -100,7 +119,7 @@ export default function EditSessionOrderPage() {
       targetReps: 10,
       restSeconds: 90,
       isRehab: false,
-      slotLabel: undefined,
+      slotLabel: customLabel,
       defaultExerciseId: newExerciseId, // not a swap — it's a fresh add
     }
     setOrder([...order, newPE])
@@ -115,7 +134,11 @@ export default function EditSessionOrderPage() {
     try {
       const updatedSessions = data.program.sessions.map((s, i) =>
         i === sessionIndex
-          ? { ...s, exercises: order.map((e, idx) => ({ ...e, order: idx + 1 })) }
+          ? {
+              ...s,
+              exercises: order.map((e, idx) => ({ ...e, order: idx + 1 })),
+              deletedSlotLabels: deletedSlotLabels.length > 0 ? deletedSlotLabels : undefined,
+            }
           : s,
       )
       await db.workoutPrograms.update(programId, { sessions: updatedSessions })
@@ -123,7 +146,7 @@ export default function EditSessionOrderPage() {
     } finally {
       setSaving(false)
     }
-  }, [data, order, programId, sessionIndex, navigate, saving])
+  }, [data, order, programId, sessionIndex, navigate, saving, deletedSlotLabels])
 
   if (!data) {
     return (

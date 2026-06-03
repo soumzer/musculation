@@ -140,6 +140,13 @@ export interface ProgramSession {
   order: number
   intensity?: SessionIntensity
   exercises: ProgramExercise[]
+  /**
+   * Engine slot labels the user manually deleted from this session. Preserved
+   * across engine regen so the same slot doesn't reappear after a version bump.
+   * User-added exercises (synthetic slotLabel `__custom__…`) are tracked via the
+   * exercise list itself, not here.
+   */
+  deletedSlotLabels?: string[]
 }
 
 export interface ProgramExercise {

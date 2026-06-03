@@ -39,6 +39,64 @@ function applyUserSwaps(
 }
 
 /**
+ * Drop engine slots the user manually deleted in the old program. Each
+ * `ProgramSession.deletedSlotLabels` carries the list of engine slotLabels the
+ * user removed via the reorder page; we filter them out of the fresh program
+ * and carry the list forward so the deletion survives subsequent regens. Slots
+ * that no longer exist in the new engine (renamed/removed) are silently a
+ * no-op. The deletedSlotLabels list itself is preserved verbatim — once a slot
+ * is added back through the reorder UI it'd be added as a fresh custom exo,
+ * not as the engine slot.
+ */
+function applyUserDeletions(
+  newSessions: ProgramSession[],
+  oldProgram: WorkoutProgram | undefined,
+): ProgramSession[] {
+  if (!oldProgram) return newSessions
+  return newSessions.map((newSession) => {
+    const oldSession = oldProgram.sessions.find((s) => s.name === newSession.name)
+    if (!oldSession) return newSession
+    const deleted = oldSession.deletedSlotLabels ?? []
+    if (deleted.length === 0) return newSession
+    const deletedSet = new Set(deleted)
+    return {
+      ...newSession,
+      exercises: newSession.exercises.filter((e) => !e.slotLabel || !deletedSet.has(e.slotLabel)),
+      deletedSlotLabels: deleted,
+    }
+  })
+}
+
+/**
+ * Re-append user-added exercises from the previous program onto the fresh one.
+ * User adds are tagged with a synthetic slotLabel starting with `__custom__`
+ * (set by the reorder page's handleAdd). We walk the old session, collect those
+ * exos, and append them — skipping any whose exerciseId already appears in the
+ * new session (i.e. the engine independently happened to generate it as a
+ * normal slot, no point duplicating). applyUserOrder, which runs after this,
+ * uses the synthetic label to sort them into the user's chosen position.
+ */
+function applyUserAdditions(
+  newSessions: ProgramSession[],
+  oldProgram: WorkoutProgram | undefined,
+): ProgramSession[] {
+  if (!oldProgram) return newSessions
+  return newSessions.map((newSession) => {
+    const oldSession = oldProgram.sessions.find((s) => s.name === newSession.name)
+    if (!oldSession) return newSession
+    const customs = oldSession.exercises.filter((e) => e.slotLabel?.startsWith('__custom__'))
+    if (customs.length === 0) return newSession
+    const presentIds = new Set(newSession.exercises.map((e) => e.exerciseId))
+    const toAdd = customs.filter((c) => !presentIds.has(c.exerciseId))
+    if (toAdd.length === 0) return newSession
+    return {
+      ...newSession,
+      exercises: [...newSession.exercises, ...toAdd],
+    }
+  })
+}
+
+/**
  * Re-apply the user's custom exercise order from the previous program. The
  * order is detected by comparing each session's slotLabel sequence against
  * the natural engine order; if the user reordered slots in the old program,
@@ -131,9 +189,15 @@ export function useRegenerateProgram() {
         .filter(p => p.isActive)
         .first()
 
-      // Two-step patch: swaps first (exerciseId), then user-defined order.
+      // Four-step patch:
+      //  1. swaps     — preserve exerciseId override on engine slots
+      //  2. deletions — drop engine slots the user removed
+      //  3. additions — re-append user-added (custom) exos
+      //  4. order     — sort the final list to mirror the user's session order
       const swapped = applyUserSwaps(generatedProgram.sessions, previousProgram)
-      const patchedSessions = applyUserOrder(swapped, previousProgram)
+      const afterDeletions = applyUserDeletions(swapped, previousProgram)
+      const afterAdditions = applyUserAdditions(afterDeletions, previousProgram)
+      const patchedSessions = applyUserOrder(afterAdditions, previousProgram)
 
       // 6b. Deactivate old + save new in a single transaction
       // Note: ProgramExercise is pure prescription (sets/reps/rest).
@@ -210,6 +274,14 @@ export function useRegenerateProgram() {
         exerciseCatalog,
       )
 
+      // Preserve user curation across the refresh: deletions and custom adds
+      // are user choices that should survive even when they explicitly ask for
+      // new engine variations. Swaps and order are intentionally NOT carried
+      // here — refresh's whole point is to get fresh slot picks, so honouring
+      // an old swap on a new slot wouldn't make sense.
+      const afterDeletions = applyUserDeletions(generatedProgram.sessions, oldProgram)
+      const afterAdditions = applyUserAdditions(afterDeletions, oldProgram)
+
       // Deactivate old + save new in a single transaction
       await db.transaction('rw', db.workoutPrograms, async () => {
         const activePrograms = await db.workoutPrograms
@@ -227,7 +299,7 @@ export function useRegenerateProgram() {
           userId,
           name: generatedProgram.name,
           type: generatedProgram.type,
-          sessions: generatedProgram.sessions,
+          sessions: afterAdditions,
           isActive: true,
           createdAt: new Date(),
           engineVersion: ENGINE_VERSION,
