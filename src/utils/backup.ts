@@ -25,6 +25,131 @@ function isValidBackupStructure(data: unknown): data is {
   )
 }
 
+// --- Content validation -----------------------------------------------------
+// Un backup structurellement valide peut quand même contenir des données
+// corrompues (transfert partiel, édition manuelle) : NaN dans les séries,
+// dates illisibles, tableaux remplacés par des objets. Comme l'import EFFACE
+// les données existantes, on refuse le fichier (throw → rollback de la
+// transaction) plutôt que d'importer du contenu qui fera planter l'app.
+
+function isFiniteNumber(v: unknown): boolean {
+  return typeof v === 'number' && Number.isFinite(v)
+}
+
+function isParseableDate(v: unknown): boolean {
+  if (v === undefined || v === null) return true // les sanitizers mettent new Date()
+  if (v instanceof Date) return !isNaN(v.getTime())
+  if (typeof v !== 'string' && typeof v !== 'number') return false
+  return !isNaN(new Date(v as string | number).getTime())
+}
+
+function isValidNotebookSets(sets: unknown): boolean {
+  if (sets === undefined) return true
+  if (!Array.isArray(sets)) return false
+  return sets.every(s =>
+    typeof s === 'object' && s !== null &&
+    isFiniteNumber((s as Record<string, unknown>).weightKg) &&
+    isFiniteNumber((s as Record<string, unknown>).reps)
+  )
+}
+
+export function validateBackupContent(data: Record<string, unknown>): void {
+  const fail = (msg: string): never => {
+    throw new Error(`Backup corrompu — import annulé (${msg}). Tes données actuelles sont intactes.`)
+  }
+
+  const profile = data.profile as Record<string, unknown>
+  if (profile.daysPerWeek !== undefined && !isFiniteNumber(Number(profile.daysPerWeek))) {
+    fail('profil illisible')
+  }
+
+  for (const e of (data.notebookEntries as unknown[] ?? [])) {
+    if (typeof e !== 'object' || e === null) fail('entrée de carnet illisible')
+    const entry = e as Record<string, unknown>
+    if (!isValidNotebookSets(entry.sets)) fail('séries de carnet illisibles')
+    if (!isParseableDate(entry.date)) fail('date de carnet illisible')
+  }
+
+  for (const p of (data.programs as unknown[] ?? [])) {
+    if (typeof p !== 'object' || p === null) fail('programme illisible')
+    const prog = p as Record<string, unknown>
+    if (prog.sessions !== undefined && !Array.isArray(prog.sessions)) fail('séances de programme illisibles')
+    for (const s of (prog.sessions as unknown[] ?? [])) {
+      if (typeof s !== 'object' || s === null) fail('séance de programme illisible')
+      const session = s as Record<string, unknown>
+      if (!Array.isArray(session.exercises)) fail('exercices de programme illisibles')
+      for (const ex of session.exercises as unknown[]) {
+        if (typeof ex !== 'object' || ex === null) fail('exercice de programme illisible')
+        const pe = ex as Record<string, unknown>
+        if (!isFiniteNumber(Number(pe.exerciseId)) || !isFiniteNumber(Number(pe.sets ?? 0)) || !isFiniteNumber(Number(pe.targetReps ?? 0))) {
+          fail('exercice de programme corrompu')
+        }
+      }
+    }
+  }
+
+  for (const s of (data.sessions as unknown[] ?? [])) {
+    if (typeof s !== 'object' || s === null) fail('séance enregistrée illisible')
+    const session = s as Record<string, unknown>
+    if (session.exercises !== undefined && !Array.isArray(session.exercises)) fail('exercices de séance illisibles')
+    if (!isParseableDate(session.startedAt) || !isParseableDate(session.completedAt)) fail('date de séance illisible')
+  }
+
+  for (const e of (data.exercises as unknown[] ?? [])) {
+    if (typeof e !== 'object' || e === null) fail('exercice de catalogue illisible')
+    const ex = e as Record<string, unknown>
+    if (typeof ex.name !== 'string' || ex.name.length === 0) fail('exercice de catalogue sans nom')
+  }
+}
+
+// --- Date du dernier backup (rappel après 30 jours) --------------------------
+
+const LAST_BACKUP_KEY = 'lastBackupAt'
+
+export function markBackupDone(): void {
+  try { localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString()) } catch { /* ignore */ }
+}
+
+export function getLastBackupAt(): Date | null {
+  try {
+    const raw = localStorage.getItem(LAST_BACKUP_KEY)
+    if (!raw) return null
+    const d = new Date(raw)
+    return isNaN(d.getTime()) ? null : d
+  } catch { return null }
+}
+
+export function daysSinceLastBackup(): number | null {
+  const last = getLastBackupAt()
+  if (!last) return null
+  return Math.floor((Date.now() - last.getTime()) / (24 * 60 * 60 * 1000))
+}
+
+/** Exporte et télécharge un fichier de backup, puis enregistre la date. */
+export async function downloadBackup(userId: number, filenamePrefix = 'musculation-backup'): Promise<void> {
+  const json = await exportData(userId)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${filenamePrefix}-${new Date().toISOString().slice(0, 10)}.json`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  markBackupDone()
+}
+
+/** Lit la date d'export d'un fichier de backup sans l'importer (pour la confirmation). */
+export function readBackupDate(json: string): Date | null {
+  try {
+    const data = JSON.parse(json) as Record<string, unknown>
+    if (typeof data.exportedAt !== 'string') return null
+    const d = new Date(data.exportedAt)
+    return isNaN(d.getTime()) ? null : d
+  } catch { return null }
+}
+
 // Whitelist extractors - only copy known safe properties
 function sanitizeCondition(c: Record<string, unknown>, userId: number): Omit<HealthCondition, 'id'> {
   return {
@@ -207,6 +332,8 @@ export async function importData(json: string): Promise<number> {
       throw new Error(`Format invalide pour ${key}`)
     }
   }
+
+  validateBackupContent(data as Record<string, unknown>)
 
   return await db.transaction('rw',
     [db.userProfiles, db.healthConditions, db.gymEquipment,

@@ -141,10 +141,24 @@ function SessionRunner({
   const [recovered, setRecovered] = useState(false)
 
   // Session persistence
-  const { saveSessionState, loadSessionState, clearSessionState } = useSessionPersistence()
+  const { saveSessionState, saveSessionStateImmediate, loadSessionState, clearSessionState } = useSessionPersistence()
   const restoredRef = useRef(false)
   const draftSetsRef = useRef<Map<number, NotebookSet[]>>(new Map())
   const restTimerEndTimeRef = useRef<number | null>(null)
+
+  // Snapshot complet de l'état de séance pour la persistence — partagé par
+  // l'auto-save débouncé, les handlers draft/timer et le flush en arrière-plan.
+  const buildSessionState = useCallback(() => ({
+    programId,
+    sessionIndex,
+    phase,
+    currentExerciseIdx,
+    exerciseStatuses,
+    sessionStartTime,
+    warmupChecked: [...warmupChecked],
+    draftSets: [...draftSetsRef.current.entries()].map(([exerciseId, sets]) => ({ exerciseId, sets })),
+    restTimerEndTime: restTimerEndTimeRef.current,
+  }), [programId, sessionIndex, phase, currentExerciseIdx, exerciseStatuses, sessionStartTime, warmupChecked])
 
   // Try to restore from activeSession table first
   useEffect(() => {
@@ -210,18 +224,8 @@ function SessionRunner({
   // Auto-save session state on changes (debounced)
   useEffect(() => {
     if (!restoredRef.current || phase === 'done') return
-    saveSessionState({
-      programId,
-      sessionIndex,
-      phase,
-      currentExerciseIdx,
-      exerciseStatuses,
-      sessionStartTime,
-      warmupChecked: [...warmupChecked],
-      draftSets: [...draftSetsRef.current.entries()].map(([exerciseId, sets]) => ({ exerciseId, sets })),
-      restTimerEndTime: restTimerEndTimeRef.current,
-    })
-  }, [phase, currentExerciseIdx, exerciseStatuses, warmupChecked, saveSessionState, programId, sessionIndex, sessionStartTime])
+    saveSessionState(buildSessionState())
+  }, [phase, buildSessionState, saveSessionState])
 
   // Warn before closing/reloading during active session
   useEffect(() => {
@@ -231,39 +235,37 @@ function SessionRunner({
     return () => window.removeEventListener('beforeunload', handler)
   }, [phase])
 
+  // Flush immédiat quand l'app part en arrière-plan ou se ferme : le debounce
+  // de 500 ms perd les dernières saisies si le téléphone est verrouillé ou
+  // l'app tuée juste après une action — fréquent en salle.
+  useEffect(() => {
+    if (phase === 'done') return
+    const flush = () => {
+      if (!restoredRef.current) return
+      saveSessionStateImmediate(buildSessionState()).catch(console.error)
+    }
+    const onVisibilityChange = () => { if (document.hidden) flush() }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    window.addEventListener('pagehide', flush)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('pagehide', flush)
+    }
+  }, [phase, buildSessionState, saveSessionStateImmediate])
+
   // Draft sets change handler
   const handleDraftSetsChange = useCallback((exerciseId: number, sets: NotebookSet[]) => {
     draftSetsRef.current.set(exerciseId, sets)
     if (!restoredRef.current || phase === 'done') return
-    saveSessionState({
-      programId,
-      sessionIndex,
-      phase,
-      currentExerciseIdx,
-      exerciseStatuses,
-      sessionStartTime,
-      warmupChecked: [...warmupChecked],
-      draftSets: [...draftSetsRef.current.entries()].map(([eid, s]) => ({ exerciseId: eid, sets: s })),
-      restTimerEndTime: restTimerEndTimeRef.current,
-    })
-  }, [phase, currentExerciseIdx, exerciseStatuses, warmupChecked, saveSessionState, programId, sessionIndex, sessionStartTime])
+    saveSessionState(buildSessionState())
+  }, [phase, buildSessionState, saveSessionState])
 
   // Rest timer change handler
   const handleRestTimerChange = useCallback((endTime: number | null) => {
     restTimerEndTimeRef.current = endTime
     if (!restoredRef.current || phase === 'done') return
-    saveSessionState({
-      programId,
-      sessionIndex,
-      phase,
-      currentExerciseIdx,
-      exerciseStatuses,
-      sessionStartTime,
-      warmupChecked: [...warmupChecked],
-      draftSets: [...draftSetsRef.current.entries()].map(([eid, s]) => ({ exerciseId: eid, sets: s })),
-      restTimerEndTime: endTime,
-    })
-  }, [phase, currentExerciseIdx, exerciseStatuses, warmupChecked, saveSessionState, programId, sessionIndex, sessionStartTime])
+    saveSessionState(buildSessionState())
+  }, [phase, buildSessionState, saveSessionState])
 
   // Build exercise catalog lookup
   const exerciseMap = useMemo(() => {

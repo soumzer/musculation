@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
 import BackupSection from '../components/settings/BackupSection'
+import { downloadBackup } from '../utils/backup'
 import HealthConditionsManager from '../components/settings/HealthConditionsManager'
 import EquipmentManager from '../components/settings/EquipmentManager'
 import { useRegenerateProgram } from '../hooks/useRegenerateProgram'
@@ -258,12 +259,17 @@ export default function ProfilePage() {
           <p className="text-zinc-400 text-sm">Supprime toutes les donnees et relance l'onboarding.</p>
           <button
             onClick={async () => {
-              if (window.confirm('Supprimer toutes les donnees ?')) {
-                await db.delete()
-                await db.open()
-                localStorage.clear()
-                window.location.href = import.meta.env.BASE_URL
-              }
+              // Filet de sécurité : télécharger un backup avant la suppression
+              // définitive (best effort — ne bloque pas si l'export échoue).
+              try { await downloadBackup(user.id!, 'musculation-avant-reset') } catch { /* rien à sauvegarder */ }
+              const typed = window.prompt(
+                'Un backup de secours vient d\'être téléchargé.\n\nPour supprimer définitivement toutes tes données, tape SUPPRIMER :'
+              )
+              if (typed?.trim().toUpperCase() !== 'SUPPRIMER') return
+              await db.delete()
+              await db.open()
+              localStorage.clear()
+              window.location.href = import.meta.env.BASE_URL
             }}
             className="w-full py-3.5 rounded-2xl font-semibold border border-red-900/50 text-red-400 bg-red-950/30 active:scale-95 transition-all duration-200"
           >

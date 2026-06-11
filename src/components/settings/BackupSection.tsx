@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react'
-import { exportData, importData } from '../../utils/backup'
+import { importData, downloadBackup, readBackupDate, daysSinceLastBackup } from '../../utils/backup'
 
 export default function BackupSection({ userId }: { userId: number }) {
   const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
+  const [daysSince, setDaysSince] = useState<number | null>(() => daysSinceLastBackup())
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function clearMessages() {
@@ -15,17 +16,9 @@ export default function BackupSection({ userId }: { userId: number }) {
   async function handleExport() {
     clearMessages()
     try {
-      const json = await exportData(userId)
-      const blob = new Blob([json], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `musculation-backup-${new Date().toISOString().slice(0, 10)}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      setStatus('Backup exporte avec succes')
+      await downloadBackup(userId)
+      setStatus('Backup exporté avec succès')
+      setDaysSince(daysSinceLastBackup())
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur lors de l\'export')
     }
@@ -33,11 +26,29 @@ export default function BackupSection({ userId }: { userId: number }) {
 
   async function handleImport(file: File) {
     clearMessages()
-    setImporting(true)
     try {
       const json = await file.text()
+
+      // Confirmation explicite : l'import remplace TOUT. On montre la date du
+      // fichier pour éviter de restaurer un vieux backup par erreur.
+      const backupDate = readBackupDate(json)
+      const dateLabel = backupDate
+        ? `du ${backupDate.toLocaleDateString('fr-FR')}`
+        : 'de date inconnue'
+      const confirmed = window.confirm(
+        `Ce backup date ${dateLabel}.\n\nIl va REMPLACER toutes tes données actuelles (séances, carnet, programme).\n\nUne sauvegarde de tes données actuelles va d'abord être téléchargée par sécurité.\n\nContinuer ?`
+      )
+      if (!confirmed) return
+
+      setImporting(true)
+
+      // Filet de sécurité : exporter l'état actuel avant de l'écraser.
+      // Best effort — sur un appareil vierge (pas de profil) il n'y a rien à sauver.
+      try { await downloadBackup(userId, 'musculation-avant-import') } catch { /* rien à sauvegarder */ }
+
       await importData(json)
-      setStatus('Donnees restaurees avec succes')
+      setStatus('Données restaurées avec succès')
+      setDaysSince(daysSinceLastBackup())
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur lors de l'import")
     } finally {
@@ -59,7 +70,7 @@ export default function BackupSection({ userId }: { userId: number }) {
         onClick={handleExport}
         className="w-full py-3.5 rounded-2xl font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 active:scale-95 transition-all duration-200"
       >
-        Exporter mes donnees
+        Exporter mes données
       </button>
 
       <button
@@ -84,6 +95,14 @@ export default function BackupSection({ userId }: { userId: number }) {
         onChange={onFileChange}
         className="hidden"
       />
+
+      <p className={`text-xs ${daysSince !== null && daysSince > 30 ? 'text-amber-400' : daysSince === null ? 'text-amber-400' : 'text-zinc-600'}`}>
+        {daysSince === null
+          ? 'Aucune sauvegarde effectuée — pense à exporter tes données.'
+          : daysSince === 0
+            ? 'Dernière sauvegarde : aujourd\'hui'
+            : `Dernière sauvegarde : il y a ${daysSince} jour${daysSince > 1 ? 's' : ''}`}
+      </p>
 
       {status && (
         <p className="text-sm text-emerald-400">{status}</p>

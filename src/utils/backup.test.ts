@@ -227,4 +227,52 @@ describe('backup', () => {
   it('rejects invalid JSON', async () => {
     await expect(importData('not valid json')).rejects.toThrow()
   })
+
+  it('rejects corrupted notebook sets and keeps existing data intact', async () => {
+    const userId = await seedUser()
+    const json = await exportData(userId)
+
+    // Corrompt une série : weightKg devient une string non numérique
+    const data = JSON.parse(json)
+    data.notebookEntries[0].sets = [{ weightKg: 'abc', reps: 10 }]
+    await expect(importData(JSON.stringify(data))).rejects.toThrow('Backup corrompu')
+
+    // Les données existantes n'ont pas été touchées
+    const profiles = await db.userProfiles.toArray()
+    expect(profiles).toHaveLength(1)
+    const entries = await db.notebookEntries.toArray()
+    expect(entries).toHaveLength(1)
+    expect(entries[0].sets[0].weightKg).toBe(80)
+  })
+
+  it('rejects corrupted program exercises', async () => {
+    const userId = await seedUser()
+    const json = await exportData(userId)
+
+    const data = JSON.parse(json)
+    data.programs = [{
+      name: 'Programme test',
+      type: 'custom',
+      isActive: true,
+      sessions: [{ name: 'Séance A', order: 0, exercises: [{ exerciseId: 'oops', sets: 3, targetReps: 10 }] }],
+    }]
+    await expect(importData(JSON.stringify(data))).rejects.toThrow('Backup corrompu')
+  })
+
+  it('rejects unparseable dates in notebook entries', async () => {
+    const userId = await seedUser()
+    const json = await exportData(userId)
+
+    const data = JSON.parse(json)
+    data.notebookEntries[0].date = 'pas-une-date'
+    await expect(importData(JSON.stringify(data))).rejects.toThrow('Backup corrompu')
+  })
+
+  it('still accepts a valid round-trip after validation hardening', async () => {
+    const userId = await seedUser()
+    const json = await exportData(userId)
+    const newUserId = await importData(json)
+    const entries = await db.notebookEntries.where('userId').equals(newUserId).toArray()
+    expect(entries).toHaveLength(1)
+  })
 })

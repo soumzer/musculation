@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { db } from '../db'
 import { useNextSession } from '../hooks/useNextSession'
 import { useActiveSession } from '../hooks/useActiveSession'
+import { daysSinceLastBackup } from '../utils/backup'
 import type { NotebookEntry } from '../db/types'
 
 // ---------------------------------------------------------------------------
@@ -205,6 +206,8 @@ export default function HomePage() {
 
         <p className="text-zinc-600 text-sm mb-5">~ {info.estimatedMinutes} min</p>
 
+        <BackupReminder userId={user.id!} />
+
         {/* Week dots */}
         {sessions.length > 0 && (
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-4">
@@ -296,6 +299,41 @@ export default function HomePage() {
         </button>
       </div>
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Backup reminder — visible quand les données ne sont plus protégées
+// ---------------------------------------------------------------------------
+
+function BackupReminder({ userId }: { userId: number }) {
+  const navigate = useNavigate()
+  // Lu une fois au montage — la page est remontée à chaque navigation, et la
+  // valeur exacte au jour près n'a pas d'importance pour un rappel.
+  const [daysSince] = useState<number | null>(() => daysSinceLastBackup())
+  const entryCount = useLiveQuery(
+    () => db.notebookEntries.where('userId').equals(userId).count(),
+    [userId]
+  )
+
+  // Pas de rappel tant qu'il n'y a presque rien à perdre, ni si backup récent.
+  const overdue = daysSince === null || daysSince > 30
+  if (entryCount === undefined || entryCount < 5 || !overdue) return null
+
+  return (
+    <button
+      onClick={() => navigate('/profile')}
+      className="w-full bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3 mb-4 text-left active:scale-[0.98] transition-all duration-150"
+    >
+      <p className="text-amber-400 text-sm font-semibold">
+        {daysSince === null
+          ? 'Tes données ne sont pas sauvegardées'
+          : `Dernière sauvegarde il y a ${daysSince} jours`}
+      </p>
+      <p className="text-zinc-500 text-xs mt-0.5">
+        Tout vit sur ce téléphone — exporte un backup depuis le Profil →
+      </p>
+    </button>
   )
 }
 
