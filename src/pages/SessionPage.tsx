@@ -6,6 +6,7 @@ import ExerciseNotebook from '../components/session/ExerciseNotebook'
 import { fixedWarmupRoutine } from '../data/warmup-routine'
 import { selectCooldownExercises } from '../engine/cooldown'
 import { useSessionPersistence } from '../hooks/useSessionPersistence'
+import { useWakeLock } from '../hooks/useWakeLock'
 import type { BodyZone, Exercise, ProgramSession, SessionPhase, ExerciseStatus, NotebookSet } from '../db/types'
 import type { SwapOption } from '../components/session/ExerciseNotebook'
 
@@ -139,6 +140,9 @@ function SessionRunner({
   const [sessionStartTime, setSessionStartTime] = useState(() => new Date())
   const [warmupChecked, setWarmupChecked] = useState<Set<number>>(() => new Set())
   const [recovered, setRecovered] = useState(false)
+
+  // L'écran reste allumé pendant toute la séance (timer visible entre les séries)
+  useWakeLock(phase !== 'done')
 
   // Session persistence
   const { saveSessionState, saveSessionStateImmediate, loadSessionState, clearSessionState } = useSessionPersistence()
@@ -318,6 +322,18 @@ function SessionRunner({
     setPhase('notebook')
   }, [])
 
+  // Sortie de secours : une séance lancée par erreur ne doit pas coller 12h.
+  // Les séries déjà validées restent dans le carnet ; seule la progression de
+  // séance (exercices cochés, brouillons, timer) est effacée.
+  const handleAbandonSession = useCallback(async () => {
+    const confirmed = window.confirm(
+      'Abandonner la séance ?\n\nLes séries déjà validées restent dans le carnet, mais la progression de la séance sera effacée.'
+    )
+    if (!confirmed) return
+    await clearSessionState()
+    navigate('/')
+  }, [clearSessionState, navigate])
+
   const allDone = exerciseStatuses.every(s => s.status !== 'pending')
 
   const handleFinishSession = useCallback(async () => {
@@ -335,7 +351,20 @@ function SessionRunner({
         .toArray()
       const entryByExercise = new Map(recentEntries.map(e => [e.exerciseId, e]))
 
-      await db.workoutSessions.add({
+      // « Modifier la séance » (ou re-terminer dans la fenêtre d'édition de 10h)
+      // doit METTRE À JOUR la séance déjà enregistrée, pas en créer une deuxième
+      // — sinon doublons dans le calendrier et le compteur de séances.
+      const existingRecent = await db.workoutSessions
+        .where('userId').equals(userId)
+        .filter(s =>
+          s.programId === programId
+          && s.sessionName === programSession.name
+          && s.completedAt !== undefined
+          && (s.completedAt instanceof Date ? s.completedAt : new Date(s.completedAt)) >= cutoff
+        )
+        .last()
+
+      const sessionRecord = {
         userId,
         programId,
         sessionName: programSession.name,
@@ -368,7 +397,13 @@ function SessionRunner({
         }),
         endPainChecks: [],
         notes: '',
-      })
+      }
+
+      if (existingRecent?.id !== undefined) {
+        await db.workoutSessions.put({ ...sessionRecord, id: existingRecent.id, startedAt: existingRecent.startedAt })
+      } else {
+        await db.workoutSessions.add(sessionRecord)
+      }
       await clearSessionState()
       setPhase('done')
     } catch (error) {
@@ -494,9 +529,12 @@ function SessionRunner({
             ))}
           </div>
 
-          <div className="pt-4 pb-6 flex-shrink-0">
+          <div className="pt-4 pb-6 flex-shrink-0 space-y-2">
             <button onClick={() => setPhase('exercises')} className={CTA}>
               C'est parti
+            </button>
+            <button onClick={handleAbandonSession} className="w-full text-center text-zinc-600 text-sm py-2 active:text-zinc-400 transition-colors">
+              Abandonner la séance
             </button>
           </div>
         </div>
@@ -572,7 +610,7 @@ function SessionRunner({
           </div>
 
           {/* CTA */}
-          <div className="pt-4 pb-6 flex-shrink-0">
+          <div className="pt-4 pb-6 flex-shrink-0 space-y-2">
             {allDone ? (
               <button
                 onClick={() => cooldownExercises.length > 0 ? setPhase('cooldown') : handleFinishSession()}
@@ -589,6 +627,11 @@ function SessionRunner({
                 className={CTA}
               >
                 Continuer
+              </button>
+            )}
+            {!allDone && (
+              <button onClick={handleAbandonSession} className="w-full text-center text-zinc-600 text-sm py-2 active:text-zinc-400 transition-colors">
+                Abandonner la séance
               </button>
             )}
           </div>

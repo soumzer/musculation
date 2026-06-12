@@ -5,6 +5,7 @@ import type { BodyZone, Exercise } from '../db/types'
 import { generateRestDayRoutine, type RestDayExercise, type RestDayRoutine } from '../engine/rest-day'
 import { recordRehabExercisesDone } from '../utils/rehab-rotation'
 import ExerciseNotebook from '../components/session/ExerciseNotebook'
+import { useWakeLock } from '../hooks/useWakeLock'
 import { bodyZones } from '../constants/body-zones'
 
 const ZONE_LABEL: Record<string, string> = Object.fromEntries(
@@ -179,6 +180,12 @@ export default function RehabPage() {
   // Phase state machine
   const [phase, setPhase] = useState<'intro' | 'exo' | 'finished'>('intro')
   const [currentIndex, setCurrentIndex] = useState(0)
+  // Nombre d'exos complétés, figé à la fin de la routine pour l'écran final
+  // (completedRef est un ref — interdit de le lire pendant le render).
+  const [finishedCount, setFinishedCount] = useState(0)
+
+  // L'écran reste allumé pendant la routine (tenues chronométrées mains libres)
+  useWakeLock(phase === 'exo')
 
   const [videoIdx] = useState(() => getNextVideoIndex())
   const [videoDone, setVideoDone] = useState(false)
@@ -257,6 +264,7 @@ export default function RehabPage() {
       await persistRehabProgress(sequence, nextIndex, completedRef.current)
     } else {
       await finalizeSession()
+      setFinishedCount(completedRef.current.size)
       setPhase('finished')
     }
   }, [sequence, currentIndex, finalizeSession])
@@ -317,7 +325,7 @@ export default function RehabPage() {
   }
 
   if (phase === 'finished') {
-    const count = completedRef.current.size
+    const count = finishedCount
     return (
       <div className="flex flex-col items-center justify-center h-[var(--content-h)] px-6 text-center">
         <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mb-5">

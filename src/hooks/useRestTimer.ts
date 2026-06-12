@@ -21,21 +21,34 @@ function playTimerSound() {
   const ctx = ensureAudioContext()
   if (!ctx) return
   try {
-    const oscillator = ctx.createOscillator()
-    const gain = ctx.createGain()
-    oscillator.type = 'sine'
-    oscillator.frequency.setValueAtTime(880, ctx.currentTime)
-    gain.gain.setValueAtTime(0.3, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3)
-    oscillator.connect(gain)
-    gain.connect(ctx.destination)
-    oscillator.start()
-    oscillator.stop(ctx.currentTime + 0.3)
+    // Triple bip appuyé — un seul bip de 0.3s à faible volume est inaudible
+    // dans une salle bruyante ou avec le téléphone posé sur un banc.
+    const BEEP_DURATION = 0.25
+    const BEEP_GAP = 0.15
+    for (let i = 0; i < 3; i++) {
+      const startAt = ctx.currentTime + i * (BEEP_DURATION + BEEP_GAP)
+      const oscillator = ctx.createOscillator()
+      const gain = ctx.createGain()
+      oscillator.type = 'sine'
+      oscillator.frequency.setValueAtTime(880, startAt)
+      gain.gain.setValueAtTime(0.6, startAt)
+      gain.gain.exponentialRampToValueAtTime(0.01, startAt + BEEP_DURATION)
+      oscillator.connect(gain)
+      gain.connect(ctx.destination)
+      oscillator.start(startAt)
+      oscillator.stop(startAt + BEEP_DURATION)
+    }
   } catch { /* ignore */ }
 }
 
 function vibrate(pattern: number[]) {
   try { navigator.vibrate?.(pattern) } catch { /* ignore */ }
+}
+
+/** Fin du repos : son + vibration longue (Android — iOS ignore navigator.vibrate). */
+function notifyTimerEnd() {
+  playTimerSound()
+  vibrate([300, 120, 300, 120, 300])
 }
 
 export interface UseRestTimerReturn {
@@ -77,8 +90,7 @@ export function useRestTimer(restSeconds: number, initialEndTime?: number | null
           intervalRef.current = null
           endTimeRef.current = null
           setIsRunning(false)
-          playTimerSound()
-          vibrate([200, 100, 200])
+          notifyTimerEnd()
         }
       }, 250)
     }
@@ -111,8 +123,7 @@ export function useRestTimer(restSeconds: number, initialEndTime?: number | null
         intervalRef.current = null
         endTimeRef.current = null
         setIsRunning(false)
-        playTimerSound()
-        vibrate([200, 100, 200])
+        notifyTimerEnd()
       }
     }, 250)
   }, [remaining])
@@ -156,8 +167,7 @@ export function useRestTimer(restSeconds: number, initialEndTime?: number | null
         if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
         endTimeRef.current = null
         setIsRunning(false)
-        playTimerSound()
-        vibrate([200, 100, 200])
+        notifyTimerEnd()
       }
     }
     document.addEventListener('visibilitychange', onVisible)

@@ -182,6 +182,16 @@ export default function ExerciseNotebook({
     }
   }, [notebook, onNext])
 
+  // « Suivant » (ex-« Passer ») : ne jette jamais des séries déjà saisies —
+  // elles sont enregistrées silencieusement avant d'avancer. Sans séries,
+  // l'exercice est simplement marqué fait, comme avant.
+  const handlePass = useCallback(async () => {
+    if (notebook.currentSets.length > 0) {
+      await notebook.saveAndNext()
+    }
+    onNext()
+  }, [notebook, onNext])
+
   const handleAddSet = useCallback(() => {
     const w = parseFloat(inputWeight)
     const r = parseInt(inputReps, 10)
@@ -256,8 +266,8 @@ export default function ExerciseNotebook({
       <div className={`flex-1 overflow-auto px-4 pt-3 ${onPrev || onNextNav ? 'pb-32' : 'pb-20'}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
-          <button onClick={onNext} className="text-zinc-500 text-sm active:text-zinc-300 transition-colors">
-            Passer
+          <button onClick={handlePass} className="text-zinc-500 text-sm active:text-zinc-300 transition-colors py-2 pr-3">
+            Suivant ›
           </button>
           <span className="text-zinc-600 text-sm tabular-nums">{exerciseIndex + 1}/{totalExercises}</span>
         </div>
