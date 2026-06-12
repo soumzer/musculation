@@ -247,3 +247,40 @@ Titre de `HomePage` en `text-3xl` (les autres pages : `text-2xl`) ; `CTA_SECONDA
 - ~~Champ `sex` du profil~~ → supprimé (non utilisé par l'engine) : retiré de `UserProfile`, onboarding (StepBody), ProfilePage, backup. Pas de migration DB (`sex` n'était pas indexé)
 - ~~Séances tronquées (3-4 exercices au lieu de 6-7) pour les profils à matériel limité~~ → un slot sans candidat était silencieusement abandonné. Corrigé en 2 temps : (A) routage bodyweight élargi — accessoires seuls → programme poids de corps ; (B) fallback de slot dans `buildStructuredSession` pour les profils à matériel partiel
 - ~~RehabPage : exercices chronométrés jamais détectés~~ → `isTimeBased` testait la regex `/^\d+s$/` (« 30s ») alors que les protocoles stockent « 30 sec » → détection morte. Corrigé : champ `durationSeconds` ajouté sur ~57 exercices de `rehab-protocols.ts` (+ `RehabExercise` / `RestDayExercise`), détection basée sur ce champ, et minuteur de tenue (réutilise `useRestTimer`) dans `RehabExerciseCard`
+
+---
+
+## Changelog — 12 juin 2026 (lots issus de l'audit, rapport complet : `docs/audit-2026-06-12.md`)
+
+**Lot 1 — Protection des données**
+- `navigator.storage.persist()` demandé au démarrage (`main.tsx`) — anti-purge IndexedDB iOS/Safari
+- Import de backup : confirmation avec la date du fichier + export automatique de secours avant écrasement (`BackupSection`)
+- `validateBackupContent` dans `utils/backup.ts` : un fichier corrompu (NaN, dates illisibles, tableaux invalides) est refusé AVANT d'écraser quoi que ce soit (rollback transactionnel) — couvert par 4 nouveaux tests
+- Reset complet : backup auto téléchargé + confirmation par saisie de « SUPPRIMER » (`ProfilePage`)
+- Rappel de sauvegarde : date du dernier export en localStorage (`lastBackupAt`), affichée dans la section Sauvegarde, bannière Home après 30 jours sans export (si ≥ 5 entrées de carnet)
+- Flush immédiat de la séance en cours sur `visibilitychange`/`pagehide` (`SessionPage` + `saveSessionStateImmediate`)
+
+**Lot 2 — Expérience en salle**
+- `hooks/useWakeLock.ts` : écran maintenu allumé pendant la séance muscu et la routine rehab
+- Fin du timer de repos : triple bip à 0.6 de gain + vibration longue (`useRestTimer`)
+- « Passer » → « Suivant » : enregistre les séries saisies avant d'avancer au lieu de les jeter (`ExerciseNotebook.handlePass`)
+- « Abandonner la séance » (échauffement + liste d'exercices) avec confirmation — `clearSessionState()` + retour Home
+- « Modifier la séance » / re-terminer dans la fenêtre de 10h : met à jour la WorkoutSession existante au lieu d'en créer un doublon (`handleFinishSession`)
+
+**Lot 4 — PWA & déploiement**
+- Workflow GitHub Actions commité et actif : tests + build avant chaque déploiement sur push main
+- `404.html` copié depuis `index.html` au deploy (rechargement sur sous-route sans erreur GitHub Pages)
+- Icônes maskable Android (192/512, zone de sécurité 80 %) + `apple-touch-icon.png` 180px
+- `lang="fr"` (index.html + manifest), meta `mobile-web-app-capable`
+- `icons/original.png` (1,2 Mo) exclu du précache : 2,38 Mo → 1,53 Mo ; règles `runtimeCaching` mortes supprimées
+
+**Lot 5 — Finitions**
+- Lint : 15 erreurs + 3 warnings → **0** (règles react-hooks strictes : refs au render, setState dans effect, pureté, mémoïsation compilateur)
+- `useNotebook` et `useRestTimer` retournent des objets mémoïsés ; `endTime` du timer est un state (plus de lecture de ref au render) ; brouillons/timer capturés à l'ouverture du carnet (`notebookInit`)
+- `constants/intensity.ts` : styles Force/Volume/Modéré centralisés (était dupliqué dans 4 fichiers)
+- `utils/infer-session-name.ts` : heuristique de nom de séance partagée Calendar/Dashboard (la variante de `useNextSession` retourne un index, sémantique différente — laissée en place)
+- CalendarPage : requêtes bornées au mois affiché via les index `date`/`completedAt` (plus de scan complet de l'historique) ; récupération de séance bornée aux exercices de la séance via `[userId+exerciseId]`
+- Accents français corrigés sur toute l'app (séance, données, Modéré, Échauffement, Occupée, équipement…)
+- Paramètre `onNext` mort retiré de `useNotebook`
+
+**Hors périmètre (lot 3 ignoré sur demande)** : fallback programme SA sans machines, doublons/équipement des swaps à la régénération, progression poids de corps sur exos chronométrés, repos 10h après régénération — voir le rapport d'audit.

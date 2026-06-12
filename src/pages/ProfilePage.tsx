@@ -21,7 +21,7 @@ const splitLabels: Record<string, string> = {
   full_body: 'Full Body',
   push_pull_legs: 'Push / Pull / Legs',
   bodyweight: 'Poids de Corps',
-  custom: 'Personnalise',
+  custom: 'Personnalisé',
 }
 
 // ---------------------------------------------------------------------------
@@ -68,7 +68,7 @@ function TrainingSettings({
 
   return (
     <div className={CARD + ' space-y-4'}>
-      <p className={SECTION_LABEL}>Entrainement</p>
+      <p className={SECTION_LABEL}>Entraînement</p>
 
       {/* Days per week */}
       <div>
@@ -100,7 +100,7 @@ function TrainingSettings({
           {saving || isRegenerating ? (
             <span className="flex items-center justify-center gap-2">
               <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Mise a jour...
+              Mise à jour...
             </span>
           ) : 'Appliquer les changements'}
         </button>
@@ -113,12 +113,12 @@ function TrainingSettings({
             <p className="text-white text-sm font-semibold">
               {splitLabels[programType] ?? programType}
             </p>
-            <p className="text-zinc-600 text-xs">{programSessionCount} seances</p>
+            <p className="text-zinc-600 text-xs">{programSessionCount} séances</p>
           </div>
         )}
         <div className="text-right">
           <p className="text-white text-sm font-semibold">{sessionCount}</p>
-          <p className="text-zinc-600 text-xs">seance{sessionCount > 1 ? 's' : ''} completee{sessionCount > 1 ? 's' : ''}</p>
+          <p className="text-zinc-600 text-xs">séance{sessionCount > 1 ? 's' : ''} complétée{sessionCount > 1 ? 's' : ''}</p>
         </div>
       </div>
     </div>
@@ -131,12 +131,12 @@ function TrainingSettings({
 
 function HowItWorksModal({ onClose }: { onClose: () => void }) {
   const sections = [
-    { title: 'Programme', text: 'Ton programme est genere automatiquement selon ton nombre de jours par semaine et ton equipement. Le split (Full Body, Upper/Lower, PPL) est choisi en fonction du nombre de seances. Chaque seance alterne entre Force, Volume et Modere.' },
-    { title: 'Conditions de sante', text: 'Les conditions de sante ne modifient pas le programme. Un bandeau orange s\'affiche sur les exercices qui touchent une zone sensible pour te rappeler d\'adapter la charge ou de skip.' },
-    { title: 'Skip et questionnaire', text: 'Si un exercice te fait mal, tu peux le passer en indiquant la zone douloureuse. Un questionnaire identifie le probleme et cree une condition de sante automatiquement.' },
-    { title: 'Reeducation', text: 'La page Rehab propose des exercices de reeducation adaptes a tes conditions actives. Apres un skip, les exercices de rehab pour la zone concernee sont mis en avant pendant 3-4 jours.' },
-    { title: 'Carnet', text: 'Chaque exercice a un carnet qui enregistre tes series (poids et repetitions). L\'historique est visible pour suivre ta progression. Le dernier poids utilise est pre-rempli.' },
-    { title: 'Donnees', text: 'Toutes tes donnees sont stockees localement sur ton appareil. Rien n\'est envoye sur un serveur. Utilise la section Sauvegarde pour exporter/importer.' },
+    { title: 'Programme', text: 'Ton programme est généré automatiquement selon ton nombre de jours par semaine et ton équipement. Le split (Full Body, Upper/Lower, PPL) est choisi en fonction du nombre de séances. Chaque séance alterne entre Force, Volume et Modéré.' },
+    { title: 'Conditions de santé', text: 'Les conditions de santé ne modifient pas le programme. Un bandeau orange s\'affiche sur les exercices qui touchent une zone sensible pour te rappeler d\'adapter la charge ou de skip.' },
+    { title: 'Skip et questionnaire', text: 'Si un exercice te fait mal, tu peux le passer en indiquant la zone douloureuse. Un questionnaire identifie le problème et crée une condition de santé automatiquement.' },
+    { title: 'Rééducation', text: 'La page Rehab propose des exercices de rééducation adaptés à tes conditions actives. Après un skip, les exercices de rehab pour la zone concernée sont mis en avant pendant 3-4 jours.' },
+    { title: 'Carnet', text: 'Chaque exercice a un carnet qui enregistre tes séries (poids et répétitions). L\'historique est visible pour suivre ta progression. Le dernier poids utilisé est pré-rempli.' },
+    { title: 'Données', text: 'Toutes tes données sont stockées localement sur ton appareil. Rien n\'est envoyé sur un serveur. Utilise la section Sauvegarde pour exporter/importer.' },
   ]
 
   return (
@@ -150,7 +150,7 @@ function HowItWorksModal({ onClose }: { onClose: () => void }) {
           <div className="w-10 h-1 bg-zinc-700 rounded-full" />
         </div>
 
-        <h2 className="text-xl font-black text-white">Comment ca marche</h2>
+        <h2 className="text-xl font-black text-white">Comment ça marche</h2>
 
         {sections.map(s => (
           <section key={s.title} className="space-y-1.5">
@@ -207,7 +207,7 @@ export default function ProfilePage() {
             onClick={() => setShowHowItWorks(true)}
             className="text-zinc-500 text-sm active:text-zinc-300 transition-colors"
           >
-            Comment ca marche ?
+            Comment ça marche ?
           </button>
         </div>
 
@@ -256,7 +256,7 @@ export default function ProfilePage() {
         {/* Reset */}
         <div className={CARD + ' space-y-3'}>
           <p className={SECTION_LABEL}>Zone de danger</p>
-          <p className="text-zinc-400 text-sm">Supprime toutes les donnees et relance l'onboarding.</p>
+          <p className="text-zinc-400 text-sm">Supprime toutes les données et relance l'onboarding.</p>
           <button
             onClick={async () => {
               // Filet de sécurité : télécharger un backup avant la suppression
@@ -279,7 +279,7 @@ export default function ProfilePage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-zinc-700 pt-2">
-          Musculation · Donnees 100% locales
+          Musculation · Données 100% locales
         </p>
       </div>
 

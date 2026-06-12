@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
+import { inferSessionName } from '../utils/infer-session-name'
 import type { WorkoutSession, NotebookEntry } from '../db/types'
 
 // ---------------------------------------------------------------------------
@@ -10,12 +11,12 @@ import type { WorkoutSession, NotebookEntry } from '../db/types'
 const CARD = 'bg-zinc-900 border border-zinc-800 rounded-2xl p-4'
 
 const MONTHS = [
-  'Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre',
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
 ]
 const MONTHS_SHORT = [
-  'jan', 'fev', 'mars', 'avr', 'mai', 'juin',
-  'juil', 'aout', 'sept', 'oct', 'nov', 'dec',
+  'jan', 'fév', 'mars', 'avr', 'mai', 'juin',
+  'juil', 'août', 'sept', 'oct', 'nov', 'déc',
 ]
 const WEEKDAYS = ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di']
 
@@ -65,25 +66,44 @@ export default function CalendarPage() {
   const user = useLiveQuery(() => db.userProfiles.toCollection().first())
   const userId = user?.id
 
+  const [view, setView] = useState(() => {
+    const now = new Date()
+    return { year: now.getFullYear(), month: now.getMonth() }
+  })
+
+  // Fenêtre du mois affiché [début, fin) — les requêtes sont bornées via les
+  // index `completedAt`/`date` au lieu de relire tout l'historique (qui
+  // grossit indéfiniment) à chaque changement de mois.
+  const monthStart = useMemo(() => new Date(view.year, view.month, 1), [view])
+  const monthEnd = useMemo(() => new Date(view.year, view.month + 1, 1), [view])
+
   const allSessions = useLiveQuery(
-    () => (userId ? db.workoutSessions.where('userId').equals(userId).toArray() : []),
-    [userId],
+    () => (userId
+      ? db.workoutSessions
+          .where('completedAt').between(monthStart, monthEnd)
+          .filter(s => s.userId === userId)
+          .toArray()
+      : []),
+    [userId, monthStart, monthEnd],
   )
   const allRehab = useLiveQuery(
     () => (userId
-      ? db.notebookEntries.where('sessionIntensity').equals('rehab').filter(e => e.userId === userId).toArray()
+      ? db.notebookEntries
+          .where('date').between(monthStart, monthEnd)
+          .filter(e => e.userId === userId && e.sessionIntensity === 'rehab')
+          .toArray()
       : []),
-    [userId],
+    [userId, monthStart, monthEnd],
   )
   // Muscu notebook entries — fallback for sessions where "Terminer" was never clicked
   const allMuscuEntries = useLiveQuery(
     () => (userId
       ? db.notebookEntries
-          .where('userId').equals(userId)
-          .filter(e => e.sessionIntensity !== 'rehab' && !e.skipped && e.sets.length > 0)
+          .where('date').between(monthStart, monthEnd)
+          .filter(e => e.userId === userId && e.sessionIntensity !== 'rehab' && !e.skipped && e.sets.length > 0)
           .toArray()
       : []),
-    [userId],
+    [userId, monthStart, monthEnd],
   )
   // Active program — used to infer session name from notebook entries
   const activeProgram = useLiveQuery(
@@ -92,11 +112,6 @@ export default function CalendarPage() {
       : undefined),
     [userId],
   )
-
-  const [view, setView] = useState(() => {
-    const now = new Date()
-    return { year: now.getFullYear(), month: now.getMonth() }
-  })
   const [selected, setSelected] = useState<number | null>(null)
   const [showMarkModal, setShowMarkModal] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -181,15 +196,7 @@ export default function CalendarPage() {
       // Infer session name by matching exerciseIds against active program sessions
       if (activeProgram) {
         const doneIds = new Set(entries.map(e => e.exerciseId))
-        let bestName: string | undefined
-        let bestScore = 0
-        for (const s of activeProgram.sessions) {
-          const sIds = new Set(s.exercises.map(pe => pe.exerciseId))
-          let score = 0
-          for (const id of doneIds) { if (sIds.has(id)) score++ }
-          if (score > bestScore) { bestScore = score; bestName = s.name }
-        }
-        if (bestScore >= 2) dayData.inferredSessionName = bestName
+        dayData.inferredSessionName = inferSessionName(doneIds, activeProgram.sessions)
       }
     }
     for (const e of allRehab ?? []) {
@@ -233,7 +240,7 @@ export default function CalendarPage() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => shiftMonth(-1)}
-            aria-label="Mois precedent"
+            aria-label="Mois précédent"
             className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 active:scale-90 transition-all duration-150"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -1,18 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
 import { useDashboardData, type ExerciseHistory, type SessionVolume } from '../hooks/useDashboardData'
 import { useNextSession } from '../hooks/useNextSession'
-
-// ---------------------------------------------------------------------------
-// Design tokens
-// ---------------------------------------------------------------------------
-
-const intensityStyle: Record<string, { stroke: string; bg: string; text: string; label: string; letter: string }> = {
-  heavy:    { stroke: '#6366f1', bg: 'bg-indigo-500/20', text: 'text-indigo-400', label: 'Force', letter: 'F' },
-  volume:   { stroke: '#10b981', bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Volume', letter: 'V' },
-  moderate: { stroke: '#f59e0b', bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Modere', letter: 'M' },
-}
+import { INTENSITY_STYLES as intensityStyle } from '../constants/intensity'
 
 const trendConfig = {
   up:   { color: 'text-emerald-400', arrow: '\u2191' },
@@ -41,7 +32,7 @@ function ExerciseRow({ exercise }: { exercise: ExerciseHistory }) {
         <div className="flex-1 min-w-0">
           <p className="text-white text-sm font-semibold truncate">{exercise.exerciseName}</p>
           <p className="text-zinc-600 text-xs mt-0.5">
-            {formatDate(exercise.lastDate)} — {exercise.entries.length} entree{exercise.entries.length > 1 ? 's' : ''}
+            {formatDate(exercise.lastDate)} — {exercise.entries.length} entrée{exercise.entries.length > 1 ? 's' : ''}
           </p>
         </div>
         <div className="flex items-center gap-2 ml-3 flex-shrink-0">
@@ -189,13 +180,10 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
 
   const selectedInfo = selected ? dataPoints[selected.idx] : null
 
-  // Reset selection when filter changes — its idx is now stale.
-  useEffect(() => { setSelected(null) }, [sessionFilter])
-
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-zinc-600 text-xs uppercase tracking-wider">Tonnage par seance</p>
+        <p className="text-zinc-600 text-xs uppercase tracking-wider">Tonnage par séance</p>
         <button
           onClick={() => { setExpanded(e => !e); setSelected(null) }}
           className="text-zinc-600 text-xs active:text-zinc-400 transition-colors"
@@ -208,7 +196,7 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
       {sessionNames.length > 1 && (
         <div className="flex gap-1.5 mb-3 overflow-x-auto -mx-1 px-1 pb-1">
           <button
-            onClick={() => setSessionFilter(null)}
+            onClick={() => { setSessionFilter(null); setSelected(null) }}
             className={`flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors ${
               sessionFilter === null
                 ? 'bg-emerald-500 text-zinc-950'
@@ -223,7 +211,8 @@ function TonnageChart({ sessionVolumes }: { sessionVolumes: SessionVolume[] }) {
             return (
               <button
                 key={name}
-                onClick={() => setSessionFilter(name)}
+                // La sélection est indexée sur le filtre courant — on la vide en changeant de filtre
+                onClick={() => { setSessionFilter(name); setSelected(null) }}
                 className={`flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors whitespace-nowrap ${
                   isActive
                     ? 'bg-emerald-500 text-zinc-950'
@@ -385,9 +374,9 @@ export default function DashboardPage() {
         ) : !data.hasData ? (
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 text-center">
             <p className="text-zinc-600 text-4xl mb-3">—</p>
-            <p className="text-white font-semibold mb-1">Aucune donnee</p>
+            <p className="text-white font-semibold mb-1">Aucune donnée</p>
             <p className="text-zinc-400 text-sm">
-              Complete ta premiere seance pour voir l'historique.
+              Complète ta première séance pour voir l'historique.
             </p>
           </div>
         ) : (

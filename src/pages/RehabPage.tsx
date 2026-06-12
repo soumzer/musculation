@@ -222,12 +222,19 @@ export default function RehabPage() {
   useEffect(() => {
     if (routineGenerated.current) return
     if (conditions === undefined || rehabHistoryMap === undefined) return
-    if (conditions.length === 0) {
-      setRoutine(null)
-      return
-    }
-    routineGenerated.current = true
-    setRoutine(generateRestDayRoutine(conditions, 'all', accentZones, rehabHistoryMap))
+    // Génération différée d'un tick : pas de setState synchrone dans l'effect
+    // (même pattern que la restauration au-dessus), et la garde est revérifiée
+    // au cas où la restauration aurait gagné la course entre-temps.
+    void (async () => {
+      await Promise.resolve()
+      if (routineGenerated.current) return
+      if (conditions.length === 0) {
+        setRoutine(null)
+        return
+      }
+      routineGenerated.current = true
+      setRoutine(generateRestDayRoutine(conditions, 'all', accentZones, rehabHistoryMap))
+    })()
   }, [conditions, accentZones, rehabHistoryMap])
 
   // Linear sequence: SA exercises (when present) then the regular routine.
@@ -236,12 +243,13 @@ export default function RehabPage() {
     [routine],
   )
 
+  const userId = user?.id
   const finalizeSession = useCallback(async () => {
-    if (!user?.id) return
+    if (!userId) return
     const names = [...completedRef.current]
     if (names.length > 0) await recordRehabExercisesDone(names)
     const reports = await db.painReports
-      .where('userId').equals(user.id)
+      .where('userId').equals(userId)
       .and(r => r.accentDaysRemaining > 0)
       .toArray()
     for (const report of reports) {
@@ -252,7 +260,7 @@ export default function RehabPage() {
     if (videoDone) localStorage.setItem('rehab_video_idx', String(videoIdx))
     // Clear the persisted in-progress state — session is done.
     await clearRehabSession()
-  }, [user?.id, videoDone, videoIdx])
+  }, [userId, videoDone, videoIdx])
 
   const advance = useCallback(async () => {
     const cur = sequence[currentIndex]
@@ -305,7 +313,7 @@ export default function RehabPage() {
       <div className="flex flex-col h-[var(--content-h)]">
         <div className="flex-1 px-5 pt-8">
           <h1 className="text-2xl font-black text-white mb-1">Rehab</h1>
-          <p className="text-zinc-400 text-sm mb-6">Aucune condition de sante active.</p>
+          <p className="text-zinc-400 text-sm mb-6">Aucune condition de santé active.</p>
           <VideoCheckbox video={video} checked={videoDone} onToggle={() => setVideoDone(v => !v)} />
         </div>
         <div className="flex-shrink-0 px-5 pb-6">
@@ -334,7 +342,7 @@ export default function RehabPage() {
           </svg>
         </div>
         <p className="text-2xl font-black text-white mb-1">
-          {count > 0 ? 'Session enregistree' : 'Routine terminee'}
+          {count > 0 ? 'Session enregistrée' : 'Routine terminée'}
         </p>
         {count > 0 && (
           <p className="text-zinc-400 mb-6">{count} exercice{count > 1 ? 's' : ''} de rehab</p>

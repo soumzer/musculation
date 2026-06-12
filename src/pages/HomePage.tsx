@@ -11,11 +11,7 @@ import type { NotebookEntry } from '../db/types'
 // Design tokens
 // ---------------------------------------------------------------------------
 
-const INTENSITY_STYLE: Record<string, { bg: string; text: string; label: string }> = {
-  heavy:    { bg: 'bg-indigo-500/20', text: 'text-indigo-400', label: 'Force' },
-  volume:   { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Volume' },
-  moderate: { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Modere' },
-}
+import { INTENSITY_STYLES as INTENSITY_STYLE } from '../constants/intensity'
 
 const CTA = 'w-full py-4 rounded-2xl font-bold text-lg bg-emerald-500 text-white active:scale-95 transition-all duration-200'
 const CTA_SECONDARY = 'w-full py-4 rounded-2xl font-semibold border border-zinc-700 text-zinc-300 active:scale-95 transition-all duration-200'
@@ -101,7 +97,7 @@ export default function HomePage() {
     return (
       <div className="flex flex-col h-[var(--content-h)] px-5 pt-8">
         <div className="flex-1">
-          <p className="text-zinc-400 text-sm mb-1">Seance terminee</p>
+          <p className="text-zinc-400 text-sm mb-1">Séance terminée</p>
           <p className="text-3xl font-black text-white mb-3">{info.lastSessionName}</p>
         </div>
         <div className="flex-shrink-0 pb-6 flex flex-col gap-3">
@@ -109,13 +105,13 @@ export default function HomePage() {
             onClick={() => navigate(`/session?programId=${info.programId}&sessionIndex=${info.nextSessionIndex}`)}
             className={CTA}
           >
-            {info.nextSessionName ?? 'Seance suivante'}
+            {info.nextSessionName ?? 'Séance suivante'}
           </button>
           <button
             onClick={() => navigate(`/session?programId=${info.programId}&sessionIndex=${info.lastSessionIndex}`)}
             className={CTA_SECONDARY}
           >
-            Modifier la seance
+            Modifier la séance
           </button>
         </div>
       </div>
@@ -135,12 +131,12 @@ export default function HomePage() {
   if (activeSession) {
     const doneCount = activeSession.exerciseStatuses.filter(s => s.status !== 'pending').length
     const totalCount = activeSession.exerciseStatuses.length
-    const sessionName = info.status === 'ready' ? info.nextSessionName : info.lastSessionName ?? 'Seance'
+    const sessionName = info.status === 'ready' ? info.nextSessionName : info.lastSessionName ?? 'Séance'
 
     return (
       <div className="flex flex-col h-[var(--content-h)] px-5 pt-8">
         <div className="flex-1 overflow-y-auto">
-          <p className="text-zinc-400 text-sm mb-1">Seance en cours</p>
+          <p className="text-zinc-400 text-sm mb-1">Séance en cours</p>
           <p className="text-3xl font-black text-white mb-1">{sessionName}</p>
           <p className="text-zinc-600 text-sm mb-5">{doneCount}/{totalCount} exercices</p>
 
@@ -169,7 +165,7 @@ export default function HomePage() {
             onClick={() => navigate(`/session?programId=${activeSession.programId}&sessionIndex=${activeSession.sessionIndex}`)}
             className={CTA}
           >
-            Reprendre la seance
+            Reprendre la séance
           </button>
         </div>
       </div>
@@ -295,7 +291,7 @@ export default function HomePage() {
           onClick={() => navigate(`/session?programId=${info.programId}&sessionIndex=${info.nextSessionIndex}`)}
           className={CTA}
         >
-          Commencer la seance
+          Commencer la séance
         </button>
       </div>
     </div>
@@ -342,7 +338,7 @@ function BackupReminder({ userId }: { userId: number }) {
 // ---------------------------------------------------------------------------
 
 const ZONE_LABELS: Record<string, string> = {
-  neck: 'Cou', shoulder_left: 'Epaule G', shoulder_right: 'Epaule D',
+  neck: 'Cou', shoulder_left: 'Épaule G', shoulder_right: 'Épaule D',
   elbow_left: 'Coude G', elbow_right: 'Coude D',
   wrist_left: 'Poignet G', wrist_right: 'Poignet D',
   upper_back: 'Haut du dos', lower_back: 'Bas du dos',
@@ -408,7 +404,7 @@ function RehabDayCard({ activeZones, nextSessionName, userId }: {
     <div className="flex flex-col h-[var(--content-h)] px-5 pt-8">
       <div className="flex-1 overflow-y-auto">
         <p className="text-zinc-400 text-sm mb-1">Jour de repos</p>
-        <p className="text-3xl font-black text-white mb-5">Rehab & recuperation</p>
+        <p className="text-3xl font-black text-white mb-5">Rehab & récupération</p>
 
         {/* Active zones */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-4">
@@ -423,7 +419,7 @@ function RehabDayCard({ activeZones, nextSessionName, userId }: {
         </div>
 
         <p className="text-zinc-600 text-sm mb-4">
-          Prochaine seance : {nextSessionName}
+          Prochaine séance : {nextSessionName}
         </p>
 
         {/* Cardio */}
@@ -433,7 +429,7 @@ function RehabDayCard({ activeZones, nextSessionName, userId }: {
             type="text"
             value={cardioText}
             onChange={e => setCardioText(e.target.value)}
-            placeholder="Ex: velo 30min intensite 5"
+            placeholder="Ex: vélo 30min intensité 5"
             className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm"
           />
         </div>
@@ -444,7 +440,7 @@ function RehabDayCard({ activeZones, nextSessionName, userId }: {
           Faire le rehab
         </button>
         <button onClick={handleSkip} disabled={saving} className={`${CTA_SECONDARY} text-sm disabled:opacity-50`}>
-          {saving ? 'Enregistrement...' : 'Passer et aller a la seance'}
+          {saving ? 'Enregistrement...' : 'Passer et aller à la séance'}
         </button>
       </div>
     </div>

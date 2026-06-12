@@ -8,7 +8,7 @@ import StepSchedule from '../components/onboarding/StepSchedule'
 
 const CTA_BACK = 'flex-1 py-4 rounded-2xl font-semibold bg-zinc-900 border border-zinc-800 text-zinc-300 active:scale-95 transition-all duration-200'
 
-const STEP_LABELS = ['Profil', 'Sante', 'Materiel', 'Planning', 'Pret']
+const STEP_LABELS = ['Profil', 'Santé', 'Matériel', 'Planning', 'Prêt']
 
 export default function OnboardingPage() {
   const onboarding = useOnboarding()

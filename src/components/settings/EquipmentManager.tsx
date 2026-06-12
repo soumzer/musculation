@@ -51,7 +51,7 @@ export default function EquipmentManager({ userId, onRegenerate, isRegenerating 
 
   return (
     <div className="space-y-4">
-      <p className="text-zinc-600 text-xs uppercase tracking-wider">Equipement</p>
+      <p className="text-zinc-600 text-xs uppercase tracking-wider">Équipement</p>
 
       <EquipmentPicker
         phase={phase}

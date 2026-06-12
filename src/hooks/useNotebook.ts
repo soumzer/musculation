@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
 import type { NotebookEntry, NotebookSet, BodyZone } from '../db/types'
@@ -42,7 +42,6 @@ export function useNotebook(
   exerciseId: number,
   exerciseName: string,
   sessionIntensity: 'heavy' | 'volume' | 'moderate' | 'rehab',
-  onNext: () => void,
   onSkip: (zone: BodyZone) => void,
   initialDraftSets?: NotebookSet[],
   onDraftSetsChange?: (exerciseId: number, sets: NotebookSet[]) => void,
@@ -196,7 +195,7 @@ export function useNotebook(
     } finally {
       setIsSaving(false)
     }
-  }, [userId, exerciseId, exerciseName, sessionIntensity, currentSets, isSaving, onNext, todayEntryId])
+  }, [userId, exerciseId, exerciseName, sessionIntensity, currentSets, isSaving, todayEntryId])
 
   const skipExercise = useCallback(async (zone: BodyZone, questionnaireResult?: QuestionnaireResult): Promise<SkipResult> => {
     if (isSaving) return { conditionCreated: false }
@@ -270,7 +269,9 @@ export function useNotebook(
     }
   }, [userId, exerciseId, exerciseName, sessionIntensity, currentSets, isSaving, onSkip, todayEntryId])
 
-  return {
+  // Objet mémoïsé : les consommateurs l'utilisent comme dépendance de
+  // useCallback/useEffect — sans ça, chaque render casse leur mémoïsation.
+  return useMemo(() => ({
     currentSets,
     history,
     lastWeight,
@@ -280,5 +281,5 @@ export function useNotebook(
     removeLastSet,
     saveAndNext,
     skipExercise,
-  }
+  }), [currentSets, history, lastWeight, isSaving, addSet, updateSet, removeLastSet, saveAndNext, skipExercise])
 }

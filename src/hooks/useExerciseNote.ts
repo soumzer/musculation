@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
 
@@ -17,13 +17,14 @@ export function useExerciseNote(userId: number, exerciseId: number) {
 
   const [draft, setDraft] = useState('')
   const [dirty, setDirty] = useState(false)
+  const [syncedNote, setSyncedNote] = useState<string | null>(null)
 
-  // Sync draft with DB value when it loads
-  useEffect(() => {
-    if (existing && !dirty) {
-      setDraft(existing.note)
-    }
-  }, [existing, dirty])
+  // Synchronise le brouillon quand la valeur DB change et qu'on n'édite pas —
+  // ajustement d'état pendant le render (pattern React officiel), pas d'effect.
+  if (existing && !dirty && existing.note !== syncedNote) {
+    setDraft(existing.note)
+    setSyncedNote(existing.note)
+  }
 
   const save = useCallback(async (text: string) => {
     const trimmed = text.trim()

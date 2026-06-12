@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 
 // Shared AudioContext — created on first user gesture (start), reused for timer sounds.
 // iOS Safari suspends AudioContext created outside a user gesture, so we create it
@@ -62,21 +62,31 @@ export interface UseRestTimerReturn {
 }
 
 export function useRestTimer(restSeconds: number, initialEndTime?: number | null): UseRestTimerReturn {
-  const [remaining, setRemaining] = useState(() => {
-    if (initialEndTime) {
-      const left = Math.max(0, Math.ceil((initialEndTime - Date.now()) / 1000))
-      return left > 0 ? left : restSeconds
+  // État initial calculé une seule fois (lazy) — un timer restauré encore
+  // valide reprend son décompte, sinon on démarre arrêté à restSeconds.
+  const [initial] = useState(() => {
+    const now = Date.now()
+    const running = !!initialEndTime && initialEndTime > now
+    const left = initialEndTime ? Math.max(0, Math.ceil((initialEndTime - now) / 1000)) : 0
+    return {
+      remaining: running && left > 0 ? left : restSeconds,
+      isRunning: running,
+      endTime: running ? (initialEndTime as number) : null,
     }
-    return restSeconds
   })
-  const [isRunning, setIsRunning] = useState(() => {
-    if (initialEndTime) {
-      return initialEndTime > Date.now()
-    }
-    return false
-  })
+  const [remaining, setRemaining] = useState(initial.remaining)
+  const [isRunning, setIsRunning] = useState(initial.isRunning)
+  // endTime est exposé aux consommateurs (persistence de séance) → state.
+  // Le ref miroir sert aux callbacks (interval, visibilitychange) qui ont
+  // besoin de la valeur courante sans re-création.
+  const [endTime, setEndTime] = useState<number | null>(initial.endTime)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const endTimeRef = useRef<number | null>(initialEndTime && initialEndTime > Date.now() ? initialEndTime : null)
+  const endTimeRef = useRef<number | null>(initial.endTime)
+
+  const setEnd = useCallback((value: number | null) => {
+    endTimeRef.current = value
+    setEndTime(value)
+  }, [])
 
   // Auto-start interval if restored with a running timer
   useEffect(() => {
@@ -88,22 +98,22 @@ export function useRestTimer(restSeconds: number, initialEndTime?: number | null
         if (left <= 0) {
           clearInterval(intervalRef.current!)
           intervalRef.current = null
-          endTimeRef.current = null
+          setEnd(null)
           setIsRunning(false)
           notifyTimerEnd()
         }
       }, 250)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setEnd])
 
   const stop = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
       intervalRef.current = null
     }
-    endTimeRef.current = null
+    setEnd(null)
     setIsRunning(false)
-  }, [])
+  }, [setEnd])
 
   const start = useCallback(() => {
     // Unlock AudioContext on user gesture (required for iOS Safari)
@@ -111,7 +121,7 @@ export function useRestTimer(restSeconds: number, initialEndTime?: number | null
 
     // Use wall-clock based timer for accuracy (survives tab suspension)
     const end = Date.now() + remaining * 1000
-    endTimeRef.current = end
+    setEnd(end)
     setIsRunning(true)
 
     if (intervalRef.current) clearInterval(intervalRef.current)
@@ -121,12 +131,12 @@ export function useRestTimer(restSeconds: number, initialEndTime?: number | null
       if (left <= 0) {
         clearInterval(intervalRef.current!)
         intervalRef.current = null
-        endTimeRef.current = null
+        setEnd(null)
         setIsRunning(false)
         notifyTimerEnd()
       }
     }, 250)
-  }, [remaining])
+  }, [remaining, setEnd])
 
   const pause = useCallback(() => {
     if (intervalRef.current) {
@@ -138,20 +148,24 @@ export function useRestTimer(restSeconds: number, initialEndTime?: number | null
       const left = Math.max(0, Math.ceil((endTimeRef.current - Date.now()) / 1000))
       setRemaining(left)
     }
-    endTimeRef.current = null
+    setEnd(null)
     setIsRunning(false)
-  }, [])
+  }, [setEnd])
 
   const reset = useCallback(() => {
     stop()
     setRemaining(restSeconds)
   }, [stop, restSeconds])
 
-  // Reset remaining when restSeconds prop changes
+  // Reset remaining when restSeconds prop changes (or the timer stops).
+  // Différé d'un microtask : les effects consommateurs (auto-log des exos
+  // chronométrés) doivent d'abord observer remaining === 0 dans ce commit.
   useEffect(() => {
-    if (!isRunning) {
+    if (isRunning) return
+    void (async () => {
+      await Promise.resolve()
       setRemaining(restSeconds)
-    }
+    })()
   }, [restSeconds, isRunning])
 
   // When app comes back to foreground, catch expired timer and notify
@@ -165,14 +179,14 @@ export function useRestTimer(restSeconds: number, initialEndTime?: number | null
         firedRef.current = true
         setRemaining(0)
         if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
-        endTimeRef.current = null
+        setEnd(null)
         setIsRunning(false)
         notifyTimerEnd()
       }
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [])
+  }, [setEnd])
 
   // Reset firedRef when timer starts
   useEffect(() => {
@@ -192,5 +206,9 @@ export function useRestTimer(restSeconds: number, initialEndTime?: number | null
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }, [remaining])
 
-  return { remaining, isRunning, endTime: endTimeRef.current, start, pause, reset, formatTime }
+  // Objet mémoïsé : utilisé comme dépendance de useCallback par les consommateurs.
+  return useMemo(
+    () => ({ remaining, isRunning, endTime, start, pause, reset, formatTime }),
+    [remaining, isRunning, endTime, start, pause, reset, formatTime],
+  )
 }

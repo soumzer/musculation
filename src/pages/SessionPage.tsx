@@ -14,11 +14,7 @@ import type { SwapOption } from '../components/session/ExerciseNotebook'
 // Design tokens
 // ---------------------------------------------------------------------------
 
-const INTENSITY: Record<string, { bar: string; text: string; label: string; letter: string }> = {
-  heavy:    { bar: 'bg-indigo-500', text: 'text-indigo-400', label: 'Force', letter: 'F' },
-  volume:   { bar: 'bg-emerald-500', text: 'text-emerald-400', label: 'Volume', letter: 'V' },
-  moderate: { bar: 'bg-amber-500', text: 'text-amber-400', label: 'Modere', letter: 'M' },
-}
+import { INTENSITY_STYLES as INTENSITY } from '../constants/intensity'
 
 const CTA = 'w-full py-4 rounded-2xl font-bold text-lg bg-emerald-500 text-white active:scale-95 transition-all duration-200'
 const CTA_SECONDARY = 'w-full py-4 rounded-2xl font-semibold border border-zinc-700 text-zinc-300 active:scale-95 transition-all duration-200'
@@ -83,7 +79,7 @@ function SessionContent({ programId, sessionIndex }: { programId: number; sessio
   if (!programSession || !programSession.exercises?.length) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] px-6 text-center">
-        <p className="text-red-400 text-lg font-bold mb-3">Seance introuvable</p>
+        <p className="text-red-400 text-lg font-bold mb-3">Séance introuvable</p>
         <button onClick={() => navigate('/')} className={CTA_SECONDARY}>
           Retour
         </button>
@@ -140,6 +136,10 @@ function SessionRunner({
   const [sessionStartTime, setSessionStartTime] = useState(() => new Date())
   const [warmupChecked, setWarmupChecked] = useState<Set<number>>(() => new Set())
   const [recovered, setRecovered] = useState(false)
+  // Brouillons + timer capturés au moment d'OUVRIR le carnet (les refs ne
+  // doivent pas être lus pendant le render). Mis à jour à chaque transition
+  // vers la phase notebook : ouverture, restauration, swap.
+  const [notebookInit, setNotebookInit] = useState<{ drafts?: NotebookSet[]; restTimerEndTime: number | null }>({ restTimerEndTime: null })
 
   // L'écran reste allumé pendant toute la séance (timer visible entre les séries)
   useWakeLock(phase !== 'done')
@@ -180,49 +180,66 @@ function SessionRunner({
         for (const d of saved.draftSets) map.set(d.exerciseId, d.sets)
         draftSetsRef.current = map
         restTimerEndTimeRef.current = saved.restTimerEndTime ?? null
+        // Si on restaure en plein carnet, lui redonner ses brouillons/timer
+        const restoredExerciseId = saved.exerciseStatuses[saved.currentExerciseIdx]?.exerciseId
+        setNotebookInit({
+          drafts: restoredExerciseId !== undefined ? map.get(restoredExerciseId) : undefined,
+          restTimerEndTime: saved.restTimerEndTime ?? null,
+        })
         setRecovered(true)
       }
     })
   }, [programId, sessionIndex, loadSessionState])
 
-  // Recover session state from recent notebookEntries (within 10h editing window) — fallback
+  // Recover session state from recent notebookEntries (within 10h editing window) — fallback.
+  // Requête bornée aux exercices de la séance via l'index composé — l'ancienne
+  // version relisait TOUT l'historique de l'utilisateur à chaque écriture.
+  const sessionExerciseIds = useMemo(
+    () => programSession.exercises.map(e => e.exerciseId),
+    [programSession.exercises]
+  )
   const recentEntries = useLiveQuery(async () => {
     const cutoff = new Date(Date.now() - 10 * 60 * 60 * 1000)
     return db.notebookEntries
-      .where('userId').equals(userId)
+      .where('[userId+exerciseId]')
+      .anyOf(sessionExerciseIds.map(id => [userId, id]))
       .filter(e => {
         const d = e.date instanceof Date ? e.date : new Date(e.date)
         return d >= cutoff
       })
       .toArray()
-  }, [userId])
+  }, [userId, sessionExerciseIds])
 
   useEffect(() => {
     if (!recentEntries || recovered) return
-    const exerciseIds = programSession.exercises.map(e => e.exerciseId)
-    const todayByExercise = new Map<number, typeof recentEntries[0]>()
-    for (const entry of recentEntries) {
-      if (exerciseIds.includes(entry.exerciseId)) {
-        todayByExercise.set(entry.exerciseId, entry)
-      }
-    }
-
-    if (todayByExercise.size > 0) {
-      const newStatuses = programSession.exercises.map(e => {
-        const entry = todayByExercise.get(e.exerciseId)
-        if (entry) {
-          return {
-            exerciseId: e.exerciseId,
-            status: entry.skipped ? 'skipped' as const : 'done' as const,
-            skipZone: entry.skipZone,
-          }
+    // setState différé d'un tick (pas de setState synchrone dans l'effect)
+    void (async () => {
+      await Promise.resolve()
+      const exerciseIds = programSession.exercises.map(e => e.exerciseId)
+      const todayByExercise = new Map<number, typeof recentEntries[0]>()
+      for (const entry of recentEntries) {
+        if (exerciseIds.includes(entry.exerciseId)) {
+          todayByExercise.set(entry.exerciseId, entry)
         }
-        return { exerciseId: e.exerciseId, status: 'pending' as const }
-      })
-      setExerciseStatuses(newStatuses)
-      setPhase('exercises')
-    }
-    setRecovered(true)
+      }
+
+      if (todayByExercise.size > 0) {
+        const newStatuses = programSession.exercises.map(e => {
+          const entry = todayByExercise.get(e.exerciseId)
+          if (entry) {
+            return {
+              exerciseId: e.exerciseId,
+              status: entry.skipped ? 'skipped' as const : 'done' as const,
+              skipZone: entry.skipZone,
+            }
+          }
+          return { exerciseId: e.exerciseId, status: 'pending' as const }
+        })
+        setExerciseStatuses(newStatuses)
+        setPhase('exercises')
+      }
+      setRecovered(true)
+    })()
   }, [recentEntries, recovered, programSession.exercises])
 
   // Auto-save session state on changes (debounced)
@@ -318,9 +335,14 @@ function SessionRunner({
   }, [currentExerciseIdx])
 
   const handleOpenExercise = useCallback((idx: number) => {
+    const exerciseId = programSession.exercises[idx]?.exerciseId
+    setNotebookInit({
+      drafts: exerciseId !== undefined ? draftSetsRef.current.get(exerciseId) : undefined,
+      restTimerEndTime: restTimerEndTimeRef.current,
+    })
     setCurrentExerciseIdx(idx)
     setPhase('notebook')
-  }, [])
+  }, [programSession.exercises])
 
   // Sortie de secours : une séance lancée par erreur ne doit pas coller 12h.
   // Les séries déjà validées restent dans le carnet ; seule la progression de
@@ -471,10 +493,15 @@ function SessionRunner({
         ),
       }
     })
+    // Le carnet (keyed par exerciseId) va remonter : lui donner les brouillons
+    // du nouvel exercice et l'état courant du timer.
+    setNotebookInit({
+      drafts: draftSetsRef.current.get(newExerciseId),
+      restTimerEndTime: restTimerEndTimeRef.current,
+    })
     await db.workoutPrograms.update(programId, { sessions: updatedSessions })
     // Stay in notebook phase — useLiveQuery reloads the program and
-    // ExerciseNotebook re-renders with the new exercise without unmounting,
-    // so the rest timer keeps running.
+    // ExerciseNotebook re-renders with the new exercise.
   }, [programId, programSession.name, currentExerciseIdx])
 
   // Intensity style
@@ -492,10 +519,10 @@ function SessionRunner({
         <div className={`h-1 ${style.bar}`} />
         <div className="px-5 pt-6 flex-1 flex flex-col overflow-hidden">
           <div className="text-center mb-5">
-            <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">Echauffement</p>
+            <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">Échauffement</p>
             <h2 className="text-2xl font-black text-white mb-1">{programSession.name}</h2>
             <div className="flex items-center justify-center gap-2">
-              <p className="text-zinc-400 text-sm">Halteres legeres ou barre a vide</p>
+              <p className="text-zinc-400 text-sm">Haltères légères ou barre à vide</p>
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${style.text} ${style.bar}/20`}>{style.letter}</span>
             </div>
           </div>
@@ -506,7 +533,8 @@ function SessionRunner({
                 key={i}
                 onClick={() => setWarmupChecked(prev => {
                   const next = new Set(prev)
-                  next.has(i) ? next.delete(i) : next.add(i)
+                  if (next.has(i)) next.delete(i)
+                  else next.add(i)
                   return next
                 })}
                 className="w-full flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-left active:scale-[0.98] transition-all duration-150"
@@ -616,7 +644,7 @@ function SessionRunner({
                 onClick={() => cooldownExercises.length > 0 ? setPhase('cooldown') : handleFinishSession()}
                 className={CTA}
               >
-                {cooldownExercises.length > 0 ? 'Cooldown' : 'Terminer la seance'}
+                {cooldownExercises.length > 0 ? 'Cooldown' : 'Terminer la séance'}
               </button>
             ) : (
               <button
@@ -643,7 +671,6 @@ function SessionRunner({
   // --- NOTEBOOK (exercise detail) ---
   if (phase === 'notebook' && currentProgramExercise && currentCatalogExercise) {
     const intensity = (programSession.intensity ?? 'volume') as 'heavy' | 'volume' | 'moderate'
-    const drafts = draftSetsRef.current.get(currentProgramExercise.exerciseId)
     return (
       <ExerciseNotebook
         exercise={{
@@ -668,8 +695,8 @@ function SessionRunner({
         userId={userId}
         exerciseCatalog={allExercises}
         swapOptions={swapOptions}
-        initialDraftSets={drafts}
-        initialRestTimerEndTime={restTimerEndTimeRef.current}
+        initialDraftSets={notebookInit.drafts}
+        initialRestTimerEndTime={notebookInit.restTimerEndTime}
         onDraftSetsChange={handleDraftSetsChange}
         onRestTimerChange={handleRestTimerChange}
         onNext={handleNextExercise}
@@ -687,7 +714,7 @@ function SessionRunner({
         <div className="px-5 pt-6 flex-1 flex flex-col overflow-hidden">
           <div className="text-center mb-5">
             <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">Cooldown</p>
-            <h2 className="text-2xl font-black text-white">Etirements</h2>
+            <h2 className="text-2xl font-black text-white">Étirements</h2>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3">
@@ -698,13 +725,13 @@ function SessionRunner({
               </div>
             ))}
             {cooldownExercises.length === 0 && (
-              <p className="text-zinc-600 text-center py-8">Pas d'etirements specifiques aujourd'hui.</p>
+              <p className="text-zinc-600 text-center py-8">Pas d'étirements spécifiques aujourd'hui.</p>
             )}
           </div>
 
           <div className="pt-4 pb-6 flex-shrink-0">
             <button onClick={handleFinishSession} className={CTA}>
-              Terminer la seance
+              Terminer la séance
             </button>
           </div>
         </div>
@@ -756,7 +783,8 @@ function DoneScreen({
   onModify: () => void
 }) {
   const doneCount = exerciseStatuses.filter(s => s.status === 'done').length
-  const duration = Math.round((Date.now() - sessionStartTime.getTime()) / 60000)
+  // Durée figée au montage de l'écran de fin (pas de Date.now() à chaque render)
+  const [duration] = useState(() => Math.round((Date.now() - sessionStartTime.getTime()) / 60000))
 
   const stats = useLiveQuery(async () => {
     const cutoff = new Date(Date.now() - 12 * 60 * 60 * 1000)

@@ -64,14 +64,15 @@ export interface ExerciseNotebookProps {
 // Design tokens
 // ---------------------------------------------------------------------------
 
-const INTENSITY_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  heavy: { bg: 'bg-indigo-500/20', text: 'text-indigo-400', label: 'Force' },
-  volume: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Volume' },
-  moderate: { bg: 'bg-amber-500/20', text: 'text-amber-400', label: 'Modere' },
-}
+import { INTENSITY_STYLES as INTENSITY_COLORS } from '../../constants/intensity'
 
 const CARD = 'bg-zinc-900 border border-zinc-800 rounded-2xl p-4'
 const SECTION_LABEL = 'text-zinc-600 text-xs uppercase tracking-wider'
+
+/** Petite vibration de confirmation a l'ajout d'une serie (Android). */
+function tapFeedback() {
+  try { navigator.vibrate?.(10) } catch { /* ignore */ }
+}
 
 import { bodyZones as BODY_ZONES } from '../../constants/body-zones'
 
@@ -99,7 +100,6 @@ export default function ExerciseNotebook({
     exercise.exerciseId,
     exercise.exerciseName,
     target.intensity,
-    onNext,
     onSkip,
     initialDraftSets,
     onDraftSetsChange,
@@ -158,16 +158,15 @@ export default function ExerciseNotebook({
   const ww = parseFloat(workingWeight) || 0
   const warmupSets = isCompound && ww > 0 ? generateWarmupSets(ww) : []
 
-  // Set input state
+  // Set input state — le poids affiché est dérivé : tant que l'utilisateur n'a
+  // pas touché le champ, on pré-remplit avec le dernier poids de l'historique
+  // (pas d'effect + setState, qui cascade les renders).
   const [inputWeight, setInputWeight] = useState('')
+  const [weightTouched, setWeightTouched] = useState(false)
   const [inputReps, setInputReps] = useState('')
-
-  // Pre-fill weight from last session when history loads
-  useEffect(() => {
-    if (notebook.lastWeight !== null && inputWeight === '') {
-      setInputWeight(String(notebook.lastWeight))
-    }
-  }, [notebook.lastWeight])
+  const effectiveWeight = weightTouched || inputWeight !== ''
+    ? inputWeight
+    : (notebook.lastWeight !== null ? String(notebook.lastWeight) : '')
 
   const handleSave = useCallback(async () => {
     const result = await notebook.saveAndNext()
@@ -193,12 +192,14 @@ export default function ExerciseNotebook({
   }, [notebook, onNext])
 
   const handleAddSet = useCallback(() => {
-    const w = parseFloat(inputWeight)
+    const w = parseFloat(effectiveWeight)
     const r = parseInt(inputReps, 10)
     if (isNaN(w) || w < 0 || !r || r <= 0) return
     notebook.addSet(w, r)
-    try { navigator.vibrate?.(10) } catch { /* ignore */ }
+    tapFeedback()
     // Keep weight, clear reps for next set
+    setInputWeight(String(w))
+    setWeightTouched(true)
     setInputReps('')
     // Start rest timer after logging a set (unless restSeconds is 0 — used
     // for rehab massages / passive mobilization where pacing isn't relevant).
@@ -206,7 +207,7 @@ export default function ExerciseNotebook({
       timer.reset()
       timer.start()
     }
-  }, [inputWeight, inputReps, notebook, timer, target.restSeconds])
+  }, [effectiveWeight, inputReps, notebook, timer, target.restSeconds, setInputWeight, setWeightTouched, setInputReps])
 
   // Timed exos: when the hold countdown reaches 0, auto-log a set with
   // {weightKg:0, reps:duration} and trigger the inter-set rest. A ref prevents
@@ -224,7 +225,7 @@ export default function ExerciseNotebook({
     if (notebook.currentSets.length >= target.sets) return
     holdValidatedRef.current = true
     notebook.addSet(0, target.reps)
-    try { navigator.vibrate?.(10) } catch { /* ignore */ }
+    tapFeedback()
     // Start rest unless that was the final set OR restSeconds is 0 (massage etc.)
     if (notebook.currentSets.length + 1 < target.sets && target.restSeconds > 0) {
       timer.reset()
@@ -291,7 +292,7 @@ export default function ExerciseNotebook({
           </div>
           {!exercise.isRehab && (
             <p className="text-zinc-600 text-xs mt-1.5">
-              Increment: {isCompound ? '+2.5kg' : '+1.25kg'} quand reussi
+              Incrément : {isCompound ? '+2.5kg' : '+1.25kg'} quand réussi
             </p>
           )}
         </div>
@@ -347,7 +348,7 @@ export default function ExerciseNotebook({
         {/* Warmup (compounds only) */}
         {isCompound && (
           <div className={`${CARD} mb-3`}>
-            <p className={`${SECTION_LABEL} mb-2`}>Echauffement</p>
+            <p className={`${SECTION_LABEL} mb-2`}>Échauffement</p>
             <div className="flex items-center gap-2 mb-2">
               <span className="text-zinc-400 text-sm">Poids travail:</span>
               <input
@@ -403,7 +404,7 @@ export default function ExerciseNotebook({
 
         {/* Set input */}
         <div className={`${CARD} mb-3`}>
-          <p className={`${SECTION_LABEL} mb-3`}>Series</p>
+          <p className={`${SECTION_LABEL} mb-3`}>Séries</p>
 
           {/* Completed sets */}
           {notebook.currentSets.map((set, i) => (
@@ -449,7 +450,7 @@ export default function ExerciseNotebook({
                         onClick={holdTimer.start}
                         className="bg-emerald-500 text-white font-semibold rounded-lg px-3 py-1.5 text-sm active:scale-95 transition-all duration-200"
                       >
-                        Demarrer
+                        Démarrer
                       </button>
                     )}
                     <button
@@ -467,8 +468,8 @@ export default function ExerciseNotebook({
                 <input
                   type="number"
                   inputMode="decimal"
-                  value={inputWeight}
-                  onChange={e => setInputWeight(e.target.value)}
+                  value={effectiveWeight}
+                  onChange={e => { setInputWeight(e.target.value); setWeightTouched(true) }}
                   placeholder="kg"
                   className="w-20 bg-zinc-800 text-white text-center rounded-xl px-2 py-2 text-sm outline-none placeholder-zinc-600"
                 />
@@ -483,7 +484,7 @@ export default function ExerciseNotebook({
                 />
                 <button
                   onClick={handleAddSet}
-                  disabled={!inputWeight || !inputReps}
+                  disabled={!effectiveWeight || !inputReps}
                   className="ml-auto bg-emerald-500 text-white rounded-xl px-3.5 py-2 text-lg font-bold active:scale-95 transition-all duration-200 disabled:opacity-30"
                 >
                   +
@@ -498,7 +499,7 @@ export default function ExerciseNotebook({
               onClick={notebook.removeLastSet}
               className="text-zinc-500 text-xs mt-2 underline"
             >
-              Supprimer derniere serie
+              Supprimer dernière série
             </button>
           )}
         </div>
@@ -573,7 +574,7 @@ export default function ExerciseNotebook({
           onClick={openOccupied}
           className="bg-zinc-800 text-zinc-300 rounded-xl py-3 px-4 text-sm flex-shrink-0 active:scale-95 transition-all duration-200"
         >
-          Occupee
+          Occupée
         </button>
         <button
           onClick={handleSave}
@@ -612,7 +613,7 @@ function SkipModal({ onSelect, onCancel }: { onSelect: (zone: BodyZone, result?:
         </div>
         {selectedZone === null ? (
           <>
-            <p className="text-white font-black text-lg mb-3">Ou as-tu eu mal ?</p>
+            <p className="text-white font-black text-lg mb-3">Où as-tu eu mal ?</p>
             <div className="grid grid-cols-2 gap-2 mb-4">
               {BODY_ZONES.map(({ zone, label }) => (
                 <button
@@ -657,7 +658,7 @@ function OccupiedOverlay({
         <div className="flex justify-center mb-3">
           <div className="w-10 h-1 bg-zinc-700 rounded-full" />
         </div>
-        <p className="text-white font-black text-lg mb-1">Machine occupee</p>
+        <p className="text-white font-black text-lg mb-1">Machine occupée</p>
         <p className="text-zinc-400 text-sm mb-4">En attendant, essaie :</p>
         {suggestions.length > 0 ? (
           <div className="space-y-2 mb-4">
@@ -675,7 +676,7 @@ function OccupiedOverlay({
             ))}
           </div>
         ) : (
-          <p className="text-zinc-500 text-sm mb-4">Pas de suggestion disponible. Etire-toi !</p>
+          <p className="text-zinc-500 text-sm mb-4">Pas de suggestion disponible. Étire-toi !</p>
         )}
         <button
           onClick={onClose}

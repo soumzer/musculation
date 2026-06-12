@@ -30,10 +30,10 @@ export default function StepGymEquipment({ state, updateEquipment, nextStep, pre
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto space-y-5 pb-4">
         <div>
-          <h2 className="text-2xl font-black text-white mb-1">Equipement</h2>
+          <h2 className="text-2xl font-black text-white mb-1">Équipement</h2>
           <p className="text-zinc-400 text-sm">
             {phase === 'context'
-              ? "Choisis ton contexte d'entrainement."
+              ? "Choisis ton contexte d'entraînement."
               : 'Coche le materiel dont tu disposes.'}
           </p>
         </div>

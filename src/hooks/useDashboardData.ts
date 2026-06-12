@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
+import { inferSessionName } from '../utils/infer-session-name'
 import type { NotebookEntry } from '../db/types'
 
 export interface ExerciseHistory {
@@ -175,19 +176,10 @@ export function useDashboardData(userId: number | undefined): DashboardData {
           if (v > maxCount) { maxCount = v; intensity = k as 'heavy' | 'volume' | 'moderate' }
         }
         // Resolve session name: formal WorkoutSession first, then infer from
-        // exerciseId overlap with the active program's sessions (≥2 matches
-        // to avoid false positives on warmup-only or near-empty days).
+        // exerciseId overlap with the active program's sessions.
         let sessionName = formalByDay.get(key)
         if (!sessionName && activeProgram) {
-          let bestName: string | undefined
-          let bestScore = 0
-          for (const s of activeProgram.sessions) {
-            const sIds = new Set(s.exercises.map(pe => pe.exerciseId))
-            let score = 0
-            for (const id of d.exerciseIds) { if (sIds.has(id)) score++ }
-            if (score > bestScore) { bestScore = score; bestName = s.name }
-          }
-          if (bestScore >= 2) sessionName = bestName
+          sessionName = inferSessionName(d.exerciseIds, activeProgram.sessions)
         }
         // Resolve session order from the active program (used by UI sorting).
         let sessionOrder: number | undefined

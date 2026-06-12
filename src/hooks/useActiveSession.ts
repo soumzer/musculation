@@ -5,12 +5,15 @@ import type { ActiveSessionState } from '../db/types'
 const MAX_AGE_MS = 12 * 60 * 60 * 1000 // 12 hours
 
 export function useActiveSession(): ActiveSessionState | null {
-  const row = useLiveQuery(() => db.activeSession.get(1))
+  // Le check d'expiration vit dans la query (pas dans le render — Date.now()
+  // y est impur). La fraîcheur est réévaluée à chaque écriture de la table.
+  const row = useLiveQuery(async () => {
+    const r = await db.activeSession.get(1)
+    if (!r) return null
+    const updatedAt = r.updatedAt instanceof Date ? r.updatedAt : new Date(r.updatedAt)
+    if (Date.now() - updatedAt.getTime() > MAX_AGE_MS) return null
+    return r
+  })
 
-  if (!row) return null
-
-  const updatedAt = row.updatedAt instanceof Date ? row.updatedAt : new Date(row.updatedAt)
-  if (Date.now() - updatedAt.getTime() > MAX_AGE_MS) return null
-
-  return row
+  return row ?? null
 }
