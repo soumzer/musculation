@@ -10,11 +10,12 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/icon-192.png', 'icons/icon-512.png'],
+      includeAssets: ['icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'],
       manifest: {
         name: 'Health Coach',
         short_name: 'Coach',
         description: 'Coach sportif personnalisé',
+        lang: 'fr',
         start_url: '/musculation/',
         display: 'standalone',
         background_color: '#09090b',
@@ -22,40 +23,20 @@ export default defineConfig({
         icons: [
           { src: '/musculation/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/musculation/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          // Variantes maskable : contenu dans la zone de sécurité de 80% pour
+          // les masques d'icône Android (cercle, squircle…).
+          { src: '/musculation/icons/icon-192-maskable.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: '/musculation/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // original.png (1,2 Mo) est l'artwork source, pas une ressource de
+        // l'app — inutile de le précacher sur chaque appareil.
+        globIgnores: ['icons/original.png'],
         // Skip waiting to activate new service worker immediately
         skipWaiting: true,
         clientsClaim: true,
-        // Cache strategies for different asset types
-        runtimeCaching: [
-          {
-            // HTML files: network-first to always get latest version
-            urlPattern: /\.html$/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'html-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24, // 1 day
-              },
-            },
-          },
-          {
-            // Static assets: cache-first for performance
-            urlPattern: /\.(js|css|woff2)$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'static-assets',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-              },
-            },
-          },
-        ],
       },
     }),
   ],
