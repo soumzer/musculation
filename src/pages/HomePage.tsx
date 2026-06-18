@@ -5,7 +5,7 @@ import { db } from '../db'
 import { useNextSession } from '../hooks/useNextSession'
 import { useActiveSession } from '../hooks/useActiveSession'
 import { daysSinceLastBackup } from '../utils/backup'
-import type { NotebookEntry } from '../db/types'
+import type { NotebookEntry, ProgramSession } from '../db/types'
 
 // ---------------------------------------------------------------------------
 // Design tokens
@@ -15,6 +15,71 @@ import { INTENSITY_STYLES as INTENSITY_STYLE } from '../constants/intensity'
 
 const CTA = 'w-full py-4 rounded-2xl font-bold text-lg bg-emerald-500 text-white active:scale-95 transition-all duration-200'
 const CTA_SECONDARY = 'w-full py-4 rounded-2xl font-semibold border border-zinc-700 text-zinc-300 active:scale-95 transition-all duration-200'
+
+// ---------------------------------------------------------------------------
+// Carte "Cette semaine" — pastilles des séances du cycle, cliquables pour
+// réorganiser. Partagée par l'accueil normal (ready) et l'écran post-séance
+// (editing_window) ; `showReorder` ajoute le bouton Réorganiser explicite
+// quand aucune autre carte ne le propose (cas post-séance).
+// ---------------------------------------------------------------------------
+
+function WeekCard({ sessions, nextSessionIndex, programId, showReorder }: {
+  sessions: ProgramSession[]
+  nextSessionIndex: number
+  programId: number
+  showReorder?: boolean
+}) {
+  const navigate = useNavigate()
+  if (sessions.length === 0) return null
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-zinc-600 text-xs uppercase tracking-wider">Cette semaine</p>
+        {showReorder && (
+          <button
+            onClick={() => navigate(`/edit-order?programId=${programId}&sessionIndex=${nextSessionIndex}`)}
+            className="text-zinc-500 text-xs active:text-emerald-400 transition-colors flex items-center gap-1"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            Réorganiser
+          </button>
+        )}
+      </div>
+      <div className="flex justify-around">
+        {sessions.map((s, idx) => {
+          const isCurrent = idx === nextSessionIndex
+          const isDone = idx < nextSessionIndex
+          const dotStyle = s.intensity ? INTENSITY_STYLE[s.intensity] : null
+          return (
+            <button
+              key={idx}
+              onClick={() => navigate(`/edit-order?programId=${programId}&sessionIndex=${idx}`)}
+              className="flex flex-col items-center gap-1.5 active:scale-90 transition-all duration-150"
+            >
+              <div className={`w-4 h-4 rounded-full transition-all ${
+                isDone ? 'bg-emerald-500' :
+                isCurrent ? 'border-2 border-emerald-500 bg-transparent' :
+                'bg-zinc-800 border border-zinc-700'
+              }`} />
+              <span className={`text-[10px] leading-tight text-center max-w-[56px] ${
+                isCurrent ? 'text-white font-semibold' : 'text-zinc-600'
+              }`}>
+                {s.name.replace(/ — .*/, '')}
+              </span>
+              {dotStyle && (
+                <span className={`text-[9px] font-bold ${dotStyle.text}`}>
+                  {dotStyle.label[0]}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 // ---------------------------------------------------------------------------
 // Main component
@@ -96,9 +161,22 @@ export default function HomePage() {
   if (info.status === 'editing_window') {
     return (
       <div className="flex flex-col h-[var(--content-h)] px-5 pt-8">
-        <div className="flex-1">
+        <div className="flex-1 overflow-y-auto pb-4">
           <p className="text-zinc-400 text-sm mb-1">Séance terminée</p>
-          <p className="text-3xl font-black text-white mb-3">{info.lastSessionName}</p>
+          <p className="text-3xl font-black text-white mb-1">{info.lastSessionName}</p>
+          <p className="text-zinc-600 text-sm mb-5">
+            {info.editingHoursRemaining != null
+              ? `Repos conseillé encore ~${info.editingHoursRemaining}h`
+              : 'Repos conseillé'}
+          </p>
+
+          {/* Séances de la semaine — accès même pendant la fenêtre de repos */}
+          <WeekCard
+            sessions={info.program?.sessions ?? []}
+            nextSessionIndex={info.nextSessionIndex ?? 0}
+            programId={info.programId!}
+            showReorder
+          />
         </div>
         <div className="flex-shrink-0 pb-6 flex flex-col gap-3">
           <button
@@ -111,7 +189,7 @@ export default function HomePage() {
             onClick={() => navigate(`/session?programId=${info.programId}&sessionIndex=${info.lastSessionIndex}`)}
             className={CTA_SECONDARY}
           >
-            Modifier la séance
+            Modifier la dernière séance
           </button>
         </div>
       </div>
@@ -204,43 +282,12 @@ export default function HomePage() {
 
         <BackupReminder userId={user.id!} />
 
-        {/* Week dots */}
-        {sessions.length > 0 && (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-4">
-            <p className="text-zinc-600 text-xs uppercase tracking-wider mb-3">Cette semaine</p>
-            <div className="flex justify-around">
-              {sessions.map((s, idx) => {
-                const isCurrent = idx === info.nextSessionIndex
-                const isDone = idx < (info.nextSessionIndex ?? 0)
-                const sessionIntensity = s.intensity
-                const dotStyle = sessionIntensity ? INTENSITY_STYLE[sessionIntensity] : null
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => navigate(`/edit-order?programId=${info.programId}&sessionIndex=${idx}`)}
-                    className="flex flex-col items-center gap-1.5 active:scale-90 transition-all duration-150"
-                  >
-                    <div className={`w-4 h-4 rounded-full transition-all ${
-                      isDone ? 'bg-emerald-500' :
-                      isCurrent ? 'border-2 border-emerald-500 bg-transparent' :
-                      'bg-zinc-800 border border-zinc-700'
-                    }`} />
-                    <span className={`text-[10px] leading-tight text-center max-w-[56px] ${
-                      isCurrent ? 'text-white font-semibold' : 'text-zinc-600'
-                    }`}>
-                      {s.name.replace(/ — .*/, '')}
-                    </span>
-                    {dotStyle && (
-                      <span className={`text-[9px] font-bold ${dotStyle.text}`}>
-                        {dotStyle.label[0]}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
+        {/* Week dots — bouton Réorganiser porté par la carte "Au programme" en dessous */}
+        <WeekCard
+          sessions={sessions}
+          nextSessionIndex={info.nextSessionIndex ?? 0}
+          programId={info.programId!}
+        />
 
         {/* Exercise preview with last perfs */}
         {info.preview && info.preview.exercises.length > 0 && (
