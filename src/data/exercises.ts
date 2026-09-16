@@ -104,7 +104,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['ischio-jambiers'],
     equipmentNeeded: ['leg_press'],
     contraindications: ['knee_left', 'knee_right'],
-    alternatives: ['Squat smith machine', 'Squat goblet', 'Squat hack'],
+    alternatives: ['Fentes haltères', 'Squat smith machine', 'Squat goblet', 'Squat hack'],
     instructions:
       'Placez les pieds largeur épaules sur la plateforme, milieu de la plateforme. Descendez jusqu\'à 90° aux genoux sans décoller le bas du dos. Poussez sans verrouiller complètement les genoux. Bonne alternative au squat si douleurs lombaires.',
     isRehab: false,
@@ -182,7 +182,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['biceps', 'trapèzes'],
     equipmentNeeded: ['cable'],
     contraindications: [],
-    alternatives: ['Rowing haltère unilatéral', 'Rowing machine (chest-supported)', 'Rowing barre', 'Rowing câble assis unilatéral'],
+    alternatives: ['Rowing haltère unilatéral', 'Rowing penché haltères', 'Rowing machine (chest-supported)', 'Rowing barre', 'Rowing câble assis unilatéral'],
     instructions:
       'Assis au câble, pieds calés, tirez la poignée vers l\'abdomen en serrant les omoplates. Gardez le buste droit sans balancer. Retour contrôlé en tendant les bras. Bon exercice pour la posture.',
     isRehab: false,
@@ -273,7 +273,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: ['biceps', 'rhomboïdes'],
     equipmentNeeded: ['lat_pulldown'],
     contraindications: ['shoulder_left', 'shoulder_right'],
-    alternatives: ['Traction (pull-up)', 'Tirage vertical unilatéral câble', 'Chin-up (traction supination)'],
+    alternatives: ['Rowing haltère unilatéral', 'Traction (pull-up)', 'Tirage vertical unilatéral câble', 'Chin-up (traction supination)'],
     instructions:
       'Assis à la machine, prise large pronation. Tirez la barre vers le haut de la poitrine en serrant les omoplates vers le bas. Contrôlez la remontée. Ne tirez pas derrière la nuque.',
     isRehab: false,
@@ -589,7 +589,7 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     secondaryMuscles: [],
     equipmentNeeded: ['hip_abduction'],
     contraindications: ['hip_left', 'hip_right'],
-    alternatives: ['Pont fessier', 'Hip thrust élastique'],
+    alternatives: ['Abduction hanche debout élastique', 'Pont fessier', 'Hip thrust élastique'],
     instructions:
       'Assise à la machine, dos droit. Ouvrez les jambes contre la résistance en contractant les fessiers latéraux. Contrôlez le retour. Important pour la stabilité du genou et la marche.',
     isRehab: false,
@@ -3446,5 +3446,130 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
       'Sous une barre basse ou une table solide. Corps en planche, tirer la poitrine vers la barre. Plus les pieds sont avancés, plus c\'est difficile. Alternative aux tractions sans barre de traction.',
     isRehab: false,
     tags: ['pull', 'upper_body', 'back', 'bodyweight'],
+  },
+
+  // =========================================================================
+  // PROGRAMME COACH (data/coach-program.ts) — exos absents du catalogue (5)
+  // =========================================================================
+  {
+    name: 'Turkish get-up kettlebell',
+    category: 'compound',
+    primaryMuscles: ['core', 'épaules', 'fessiers'],
+    secondaryMuscles: ['quadriceps', 'obliques', 'triceps'],
+    equipmentNeeded: ['kettlebell'],
+    contraindications: ['shoulder_left', 'shoulder_right', 'wrist_left', 'wrist_right'],
+    alternatives: ['Pallof press', 'Sandbag carry (marche avec sandbag)'],
+    instructions:
+      'Allongé sur le dos, kettlebell léger tenu bras tendu au-dessus de l\'épaule. Se relever jusqu\'à la position debout en gardant le bras verrouillé et le regard sur le kettlebell : roulé sur le coude, main au sol, pont, jambe passée dessous, genou au sol, debout. Redescendre par les mêmes étapes. Lent et contrôlé — c\'est un exercice de stabilité, pas de charge.',
+    isRehab: false,
+    tags: ['full_body', 'core', 'shoulders', 'kettlebell', 'stability'],
+  },
+  {
+    name: 'Traction excentrique',
+    category: 'compound',
+    primaryMuscles: ['dorsaux', 'grand rond'],
+    secondaryMuscles: ['biceps', 'rhomboïdes', 'avant-bras'],
+    equipmentNeeded: ['pull_up_bar'],
+    contraindications: ['shoulder_left', 'shoulder_right', 'elbow_left', 'elbow_right'],
+    alternatives: ['Tirage vertical (lat pulldown)', 'Traction (pull-up)', 'Rowing inversé'],
+    instructions:
+      'Montez menton au-dessus de la barre avec un saut ou une marche/box, puis descendez le plus lentement possible (5 secondes) jusqu\'aux bras tendus. Seule la descente compte. Construit la force nécessaire à la traction complète.',
+    isRehab: false,
+    tags: ['pull', 'upper_body', 'back', 'bodyweight', 'eccentric'],
+  },
+  {
+    name: 'Curl incliné haltères prise neutre',
+    category: 'isolation',
+    primaryMuscles: ['biceps', 'brachial'],
+    secondaryMuscles: ['avant-bras'],
+    equipmentNeeded: ['bench', 'dumbbells'],
+    contraindications: ['elbow_left', 'elbow_right'],
+    alternatives: ['Curl marteau haltères', 'Curl marteau câble', 'Curl biceps haltères'],
+    instructions:
+      'Assis sur un banc incliné à 45-60°, haltères bras pendants, paumes face à face. Fléchissez les coudes sans avancer les épaules ni tourner les poignets. Le bras en arrière du corps étire la longue portion du biceps ; la prise neutre ménage le coude.',
+    isRehab: false,
+    tags: ['pull', 'upper_body', 'biceps', 'dumbbell', 'neutral_grip'],
+  },
+  {
+    name: 'Pont fessier haltère au sol',
+    category: 'compound',
+    primaryMuscles: ['fessiers'],
+    secondaryMuscles: ['ischio-jambiers', 'core'],
+    equipmentNeeded: ['dumbbells'],
+    contraindications: [],
+    alternatives: ['Hip thrust haltère', 'Glute bridge', 'Pull-through câble (tirage entre les jambes)'],
+    instructions:
+      'Allongé sur le dos, genoux fléchis, pieds à plat, un haltère posé sur les hanches et maintenu à deux mains. Poussez les hanches vers le plafond en serrant les fessiers, marquez une pause en haut (3s), redescendez lentement. Le dos reste neutre : pas de cambrure en haut. Sans banc, donc sans flexion profonde — adapté genou et sciatique.',
+    isRehab: false,
+    tags: ['lower_body', 'glutes', 'posterior_chain', 'dumbbell'],
+  },
+  {
+    name: 'Extension hanche poulie',
+    category: 'isolation',
+    primaryMuscles: ['fessiers'],
+    secondaryMuscles: ['ischio-jambiers'],
+    equipmentNeeded: ['cable'],
+    contraindications: [],
+    alternatives: ['Kickback élastique', 'Leg curl (ischio-jambiers)', 'Pull-through câble (tirage entre les jambes)', 'Pont fessier haltère au sol'],
+    instructions:
+      'Sangle de cheville sur la poulie basse, face à la machine, mains sur le montant. Jambe tendue ou légèrement fléchie, poussez le pied vers l\'arrière par la hanche sans cambrer le bas du dos. Contrôlez le retour. Si la poulie basse est prise : leg curl.',
+    isRehab: false,
+    tags: ['lower_body', 'glutes', 'posterior_chain', 'cable'],
+  },
+
+  // =========================================================================
+  // PROGRAMME COACH — Janna (4)
+  // =========================================================================
+  {
+    name: 'Curl incliné haltères',
+    category: 'isolation',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: ['avant-bras'],
+    equipmentNeeded: ['bench', 'dumbbells'],
+    contraindications: ['elbow_left', 'elbow_right'],
+    alternatives: ['Curl incliné haltères prise neutre', 'Curl biceps haltères', 'Curl biceps câble'],
+    instructions:
+      'Assis sur un banc incliné à 45-60°, haltères bras pendants, paumes vers l\'avant. Fléchissez les coudes sans avancer les épaules. Le bras en arrière du corps étire la longue portion du biceps : descente contrôlée jusqu\'aux bras tendus.',
+    isRehab: false,
+    tags: ['pull', 'upper_body', 'biceps', 'dumbbell'],
+  },
+  {
+    name: 'Rowing penché haltères',
+    category: 'compound',
+    primaryMuscles: ['dorsaux', 'rhomboïdes'],
+    secondaryMuscles: ['biceps', 'trapèzes', 'lombaires'],
+    equipmentNeeded: ['dumbbells'],
+    contraindications: ['lower_back'],
+    alternatives: ['Rowing haltère unilatéral', 'Rowing câble assis', 'Rowing machine (chest-supported)'],
+    instructions:
+      'Debout, buste penché à 45°, dos plat, un haltère dans chaque main bras tendus. Tirez les coudes vers l\'arrière le long du corps en serrant les omoplates, redescendez lentement. Genoux légèrement fléchis, regard au sol devant vous.',
+    isRehab: false,
+    tags: ['pull', 'upper_body', 'back', 'dumbbells'],
+  },
+  {
+    name: 'Abduction hanche debout élastique',
+    category: 'isolation',
+    primaryMuscles: ['moyen fessier'],
+    secondaryMuscles: ['fessiers'],
+    equipmentNeeded: ['band'],
+    contraindications: [],
+    alternatives: ['Abduction hanche machine', 'Clam shell avec bande', 'Abduction hanche couché (side-lying hip abduction)'],
+    instructions:
+      'Debout, élastique autour des cuisses juste au-dessus des genoux, une main sur un support. Écartez la jambe sur le côté sans pencher le buste, marquez un temps en haut, revenez lentement. Le bassin reste fixe. Remplace la machine à abduction quand elle est prise.',
+    isRehab: false,
+    tags: ['lower_body', 'glutes', 'band', 'hip'],
+  },
+  {
+    name: 'Kickback élastique',
+    category: 'isolation',
+    primaryMuscles: ['fessiers'],
+    secondaryMuscles: ['ischio-jambiers'],
+    equipmentNeeded: ['band'],
+    contraindications: [],
+    alternatives: ['Extension hanche poulie', 'Pont fessier haltère au sol'],
+    instructions:
+      'Élastique sous le pied d\'appui et autour de la cheville qui travaille (ou autour des deux chevilles), mains sur un support, buste légèrement penché. Poussez la jambe vers l\'arrière par la hanche sans cambrer, serrez le fessier en haut, contrôlez le retour. Remplace le kickback poulie.',
+    isRehab: false,
+    tags: ['lower_body', 'glutes', 'band'],
   },
 ]

@@ -434,3 +434,94 @@ describe('useNextSession - Upper/Lower 4-session rotation', () => {
     expect(result.current!.nextSession!.exercises[0].exerciseId).toBe(201)
   })
 })
+
+describe('useNextSession - programme coach (semaine, finisher)', () => {
+  const userId = 1
+
+  beforeEach(async () => {
+    await db.delete()
+    await db.open()
+  })
+
+  async function createCoachProgram(startedAt: Date): Promise<number> {
+    return await db.workoutPrograms.add({
+      userId,
+      name: 'Programme coach — Recomp',
+      type: 'custom',
+      isCoach: true,
+      startedAt,
+      sessions: [
+        {
+          name: 'Poussée',
+          order: 0,
+          durationMin: 33,
+          finisher: { kind: 'emom', durationMin: 8, title: 'EMOM 8 min', description: '5 presses KB par bras', rounds: 8 },
+          exercises: [
+            { exerciseId: 1, order: 0, sets: 3, targetReps: 6, targetRepsMax: 10, restSeconds: 0, isRehab: false, supersetGroup: 'A' },
+            { exerciseId: 2, order: 1, sets: 3, targetReps: 10, targetRepsMax: 12, restSeconds: 90, isRehab: false, supersetGroup: 'A', perSide: 'bras' },
+          ],
+        },
+        {
+          name: 'Jambes',
+          order: 1,
+          durationMin: 30,
+          exercises: [
+            { exerciseId: 3, order: 0, sets: 4, targetReps: 8, targetRepsMax: 12, restSeconds: 90, isRehab: false },
+          ],
+        },
+      ],
+      isActive: true,
+      createdAt: startedAt,
+    } as WorkoutProgram) as number
+  }
+
+  it('expose la semaine coach, la durée du coach et le finisher', async () => {
+    // Activé un lundi il y a 8 jours → semaine 2 (cible 4 séances)
+    const now = new Date()
+    const startedAt = new Date(now)
+    startedAt.setDate(startedAt.getDate() - 7)
+    const programId = await createCoachProgram(startedAt)
+
+    // Séance terminée il y a 11h (hors fenêtre d'édition de 10h → statut ready).
+    // Selon l'heure du test elle tombe cette semaine ou la précédente : le
+    // compteur est donc 0 ou 1.
+    const completedAt = new Date(now.getTime() - 11 * 60 * 60 * 1000)
+    await db.workoutSessions.add({
+      userId, programId, sessionName: 'Poussée',
+      startedAt: completedAt, completedAt,
+      exercises: [], endPainChecks: [], notes: '',
+    } as WorkoutSession)
+
+    const { result } = renderHook(() => useNextSession(userId))
+    await waitFor(() => {
+      expect(result.current).toBeDefined()
+      expect(result.current!.status).toBe('ready')
+    })
+
+    const info = result.current!
+    expect(info.coachWeek).toBeDefined()
+    expect(info.coachWeek!.week).toBe(2)
+    expect(info.coachWeek!.targetSessions).toBe(4)
+    expect(info.coachWeek!.isDeload).toBe(false)
+    expect(info.coachWeek!.doneThisWeek).toBeGreaterThanOrEqual(0)
+    expect(info.coachWeek!.doneThisWeek).toBeLessThanOrEqual(1)
+    expect(info.nextSessionName).toBe('Jambes')
+    expect(info.estimatedMinutes).toBe(30)
+    expect(info.preview!.finisher).toBeUndefined()
+    expect(info.preview!.exercises[0].targetRepsMax).toBe(12)
+    expect(info.deloadReminder).toBeNull()
+  })
+
+  it('aperçu Poussée : finisher + superset + perSide remontent dans le preview', async () => {
+    await createCoachProgram(new Date())
+    const { result } = renderHook(() => useNextSession(userId))
+    await waitFor(() => expect(result.current?.status).toBe('ready'))
+    const preview = result.current!.preview!
+    expect(preview.finisher?.title).toBe('EMOM 8 min')
+    expect(preview.exercises[0].supersetGroup).toBe('A')
+    expect(preview.exercises[1].perSide).toBe('bras')
+    expect(result.current!.estimatedMinutes).toBe(33)
+    expect(result.current!.coachWeek!.week).toBe(1)
+    expect(result.current!.coachWeek!.targetSessions).toBe(3)
+  })
+})

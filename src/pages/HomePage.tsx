@@ -2,9 +2,10 @@ import { useState, useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../db'
-import { useNextSession } from '../hooks/useNextSession'
+import { useNextSession, type CoachWeekStatus } from '../hooks/useNextSession'
 import { useActiveSession } from '../hooks/useActiveSession'
 import { daysSinceLastBackup } from '../utils/backup'
+import { formatPrescription } from '../utils/format-prescription'
 import type { NotebookEntry, ProgramSession } from '../db/types'
 
 // ---------------------------------------------------------------------------
@@ -22,6 +23,40 @@ const CTA_SECONDARY = 'w-full py-4 rounded-2xl font-semibold border border-zinc-
 // (editing_window) ; `showReorder` ajoute le bouton Réorganiser explicite
 // quand aucune autre carte ne le propose (cas post-séance).
 // ---------------------------------------------------------------------------
+
+/**
+ * Programme coach : semaine en cours — montée en charge (3 → 4 → 5 séances)
+ * et semaine allégée. Informatif : on ne bloque jamais une séance.
+ */
+function CoachWeekCard({ week }: { week: CoachWeekStatus }) {
+  const navigate = useNavigate()
+  const reached = week.doneThisWeek >= week.targetSessions
+  return (
+    <div className={`rounded-2xl px-4 py-3 mb-4 border ${
+      week.isDeload ? 'bg-amber-500/10 border-amber-500/20' : 'bg-zinc-900 border-zinc-800'
+    }`}>
+      <div className="flex items-center justify-between">
+        <p className={`text-sm font-semibold ${week.isDeload ? 'text-amber-400' : 'text-white'}`}>
+          Semaine {week.week}{week.isDeload ? ' · allégée' : ''}
+        </p>
+        <p className={`text-sm tabular-nums ${reached ? 'text-emerald-400' : 'text-zinc-400'}`}>
+          {week.doneThisWeek}/{week.targetSessions} séances{reached ? ' ✓' : ''}
+        </p>
+      </div>
+      <p className="text-zinc-500 text-xs mt-1">
+        {week.isDeload
+          ? '2 séries par exo, charges à 70 %. Tu repars la semaine prochaine.'
+          : week.nextTargetSessions !== undefined
+            ? `Montée en charge : ${week.targetSessions} séances cette semaine, ${week.nextTargetSessions} la prochaine.`
+          : reached ? 'Objectif de la semaine atteint — le reste, c\'est du bonus.'
+          : week.hint}
+      </p>
+      <button onClick={() => navigate('/coach-rules')} className="text-zinc-500 text-xs mt-2 active:text-emerald-400 transition-colors">
+        Règles du programme ›
+      </button>
+    </div>
+  )
+}
 
 function WeekCard({ sessions, nextSessionIndex, programId, showReorder }: {
   sessions: ProgramSession[]
@@ -280,6 +315,8 @@ export default function HomePage() {
 
         <p className="text-zinc-600 text-sm mb-5">~ {info.estimatedMinutes} min</p>
 
+        {info.coachWeek && <CoachWeekCard week={info.coachWeek} />}
+
         <BackupReminder userId={user.id!} />
 
         {/* Week dots — bouton Réorganiser porté par la carte "Au programme" en dessous */}
@@ -313,7 +350,7 @@ export default function HomePage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-medium truncate">{ex.name}</p>
                       <p className="text-zinc-600 text-xs">
-                        {ex.sets} x {ex.isTimeBased ? `${ex.targetReps}s` : ex.targetReps}
+                        {formatPrescription(ex)}
                       </p>
                     </div>
                     {bestSet && bestSet.weightKg > 0 ? (
@@ -326,6 +363,15 @@ export default function HomePage() {
                   </div>
                 )
               })}
+              {info.preview.finisher && (
+                <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium truncate">Finisher · {info.preview.finisher.title}</p>
+                    <p className="text-zinc-600 text-xs truncate">{info.preview.finisher.description}</p>
+                  </div>
+                  <span className="text-zinc-500 text-xs flex-shrink-0 ml-3">{info.preview.finisher.durationMin} min</span>
+                </div>
+              )}
             </div>
           </div>
         )}

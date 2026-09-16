@@ -28,7 +28,10 @@ export interface SaveResult {
 export interface UseNotebookReturn {
   currentSets: NotebookSet[]
   history: NotebookEntry[]
+  /** Dernier poids utilisé (hors entrées allégées). */
   lastWeight: number | null
+  /** Dernière entrée valide (hors skip, hors allégée) — base de la double progression. */
+  lastEntry: NotebookEntry | null
   isSaving: boolean
   addSet: (weightKg: number, reps: number) => void
   updateSet: (index: number, weightKg: number, reps: number) => void
@@ -45,7 +48,12 @@ export function useNotebook(
   onSkip: (zone: BodyZone) => void,
   initialDraftSets?: NotebookSet[],
   onDraftSetsChange?: (exerciseId: number, sets: NotebookSet[]) => void,
+  options?: {
+    /** Semaine allégée (programme coach) : marquer l'entrée `deload`. */
+    deload?: boolean
+  },
 ): UseNotebookReturn {
+  const isDeload = options?.deload === true
   const [currentSets, setCurrentSets] = useState<NotebookSet[]>(initialDraftSets ?? [])
   const [isSaving, setIsSaving] = useState(false)
   const [todayEntryId, setTodayEntryId] = useState<number | null>(null)
@@ -98,10 +106,12 @@ export function useNotebook(
   // Last weight from history. history is already filtered to the current
   // session's intensity (see the useLiveQuery above), so we just walk the most
   // recent non-skipped entry with sets.
-  const lastWeight = (() => {
-    const recent = history.find(e => !e.skipped && e.sets.length > 0)
-    return recent ? recent.sets[0].weightKg : null
-  })()
+  // Les entrées allégées (70 %) sont ignorées : la semaine d'après on repart
+  // de la vraie charge, pas de la charge allégée.
+  // Pour la progression, on exclut aussi l'entrée du jour en cours d'édition :
+  // la consigne « monte à X kg » se base sur la séance précédente.
+  const lastEntry = history.find(e => !e.skipped && e.sets.length > 0 && !e.deload && e.id !== todayEntryId) ?? null
+  const lastWeight = history.find(e => !e.skipped && e.sets.length > 0 && !e.deload)?.sets[0].weightKg ?? null
 
   // Notify parent of draft sets changes for session persistence
   useEffect(() => {
@@ -156,6 +166,7 @@ export function useNotebook(
         await db.notebookEntries.update(todayEntryId, {
           sets: validSets,
           date: new Date(),
+          ...(isDeload ? { deload: true } : {}),
         })
       } else {
         const entry: NotebookEntry = {
@@ -166,6 +177,7 @@ export function useNotebook(
           sessionIntensity,
           sets: validSets,
           skipped: false,
+          ...(isDeload ? { deload: true } : {}),
         }
         await db.notebookEntries.add(entry)
       }
@@ -195,7 +207,7 @@ export function useNotebook(
     } finally {
       setIsSaving(false)
     }
-  }, [userId, exerciseId, exerciseName, sessionIntensity, currentSets, isSaving, todayEntryId])
+  }, [userId, exerciseId, exerciseName, sessionIntensity, currentSets, isSaving, todayEntryId, isDeload])
 
   const skipExercise = useCallback(async (zone: BodyZone, questionnaireResult?: QuestionnaireResult): Promise<SkipResult> => {
     if (isSaving) return { conditionCreated: false }
@@ -275,11 +287,12 @@ export function useNotebook(
     currentSets,
     history,
     lastWeight,
+    lastEntry,
     isSaving,
     addSet,
     updateSet,
     removeLastSet,
     saveAndNext,
     skipExercise,
-  }), [currentSets, history, lastWeight, isSaving, addSet, updateSet, removeLastSet, saveAndNext, skipExercise])
+  }), [currentSets, history, lastWeight, lastEntry, isSaving, addSet, updateSet, removeLastSet, saveAndNext, skipExercise])
 }

@@ -46,9 +46,34 @@ function vibrate(pattern: number[]) {
 }
 
 /** Fin du repos : son + vibration longue (Android — iOS ignore navigator.vibrate). */
-function notifyTimerEnd() {
+export function notifyTimerEnd() {
   playTimerSound()
   vibrate([300, 120, 300, 120, 300])
+}
+
+/** Bip simple — changement de tour / de phase dans un finisher. */
+export function notifyRoundChange() {
+  const ctx = ensureAudioContext()
+  if (ctx) {
+    try {
+      const oscillator = ctx.createOscillator()
+      const gain = ctx.createGain()
+      oscillator.type = 'sine'
+      oscillator.frequency.setValueAtTime(1046, ctx.currentTime)
+      gain.gain.setValueAtTime(0.6, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3)
+      oscillator.connect(gain)
+      gain.connect(ctx.destination)
+      oscillator.start(ctx.currentTime)
+      oscillator.stop(ctx.currentTime + 0.3)
+    } catch { /* ignore */ }
+  }
+  vibrate([200])
+}
+
+/** À appeler dans un geste utilisateur (bouton Démarrer) pour débloquer l'audio iOS. */
+export function unlockAudio() {
+  ensureAudioContext()
 }
 
 export interface UseRestTimerReturn {

@@ -1,6 +1,6 @@
 // --- Session persistence ---
 
-export type SessionPhase = 'warmup' | 'exercises' | 'notebook' | 'cooldown' | 'done'
+export type SessionPhase = 'warmup' | 'exercises' | 'notebook' | 'cooldown' | 'finisher' | 'done'
 
 export interface ExerciseStatus {
   exerciseId: number
@@ -131,6 +131,44 @@ export interface WorkoutProgram {
    * automatic regeneration. Missing/undefined = pre-versioning (treated as v1).
    */
   engineVersion?: number
+  /**
+   * Programme fixe écrit par le coach (data/coach-program.ts) : jamais touché
+   * par le générateur ni par la régénération automatique.
+   */
+  isCoach?: boolean
+  /** Quel programme coach (data/coach-program.ts) — absent = 'yassine' (antérieur au second programme). */
+  coachId?: string
+  /** Version de la définition qui a produit ce programme (isCoach). */
+  coachVersion?: number
+  /** Date d'activation — sert à compter les semaines (montée en charge, allégée). */
+  startedAt?: Date
+  /** Prépa posture affichée à la place de l'échauffement standard. */
+  prepRoutine?: PrepItem[]
+}
+
+/** Unité « par côté » d'une prescription unilatérale. */
+export type PerSide = 'bras' | 'côté' | 'jambe'
+
+/** Un item de la prépa posture (même forme que l'échauffement fixe). */
+export interface PrepItem {
+  name: string
+  reps: string
+}
+
+/** Finisher de fin de séance : timer + consigne, pas de saisie. */
+export interface Finisher {
+  kind: 'emom' | 'intervals' | 'circuit'
+  durationMin: number
+  /** Titre court : « EMOM 8 min », « 8 × 30s/30s », « 6 tours ». */
+  title: string
+  /** Consigne complète affichée sous le timer. */
+  description: string
+  /** Intervals / circuit : nombre de tours. */
+  rounds?: number
+  /** Intervals : secondes de travail. */
+  workSeconds?: number
+  /** Intervals / circuit : secondes de repos entre les tours. */
+  restSeconds?: number
 }
 
 export type SessionIntensity = 'heavy' | 'moderate' | 'volume'
@@ -140,6 +178,15 @@ export interface ProgramSession {
   order: number
   intensity?: SessionIntensity
   exercises: ProgramExercise[]
+  /** Durée cible annoncée par le coach (minutes). Programme coach uniquement. */
+  durationMin?: number
+  /**
+   * Gainage à faire pendant les repos de la partie force (ex. « Planche RKC »,
+   * « 30s »). Affiché comme rappel dans le timer de repos, sans saisie.
+   */
+  coreDuringRest?: { name: string; detail: string }
+  /** Finisher cardio/conditioning en fin de séance (remplace le cooldown). */
+  finisher?: Finisher
   /**
    * Engine slot labels the user manually deleted from this session. Preserved
    * across engine regen so the same slot doesn't reappear after a version bump.
@@ -157,6 +204,21 @@ export interface ProgramExercise {
   restSeconds: number
   isRehab: boolean
   isTimeBased?: boolean // true for isometric exercises (plank, etc.) - targetReps = seconds
+  /**
+   * Haut de la fourchette de reps (ex. 6-10 → targetReps=6, targetRepsMax=10).
+   * Absent = cible fixe. Sert à la double progression : on monte la charge
+   * quand le haut de la fourchette est atteint sur toutes les séries.
+   */
+  targetRepsMax?: number
+  /**
+   * Lettre du superset (A, B, C…). Les exos d'un même groupe s'enchaînent
+   * sans repos ; le `restSeconds` du dernier exo du groupe = repos du groupe.
+   */
+  supersetGroup?: string
+  /** Consigne courte affichée avec l'exo : « tempo 3s descente », « pause 2s en bas ». */
+  cue?: string
+  /** Reps (ou secondes) comptées par bras / côté / jambe — le mot affiché. */
+  perSide?: PerSide
   /**
    * Slot identifier from the generator (e.g. 'Quad compound', 'Core'). Stable
    * across slot reordering — used to re-apply user swaps when the program is
@@ -240,6 +302,12 @@ export interface NotebookEntry {
   sets: NotebookSet[]
   skipped: boolean
   skipZone?: BodyZone
+  /**
+   * Entrée saisie pendant une semaine allégée du programme coach (2 séries à
+   * 70 %). Ignorée par la double progression et par le pré-remplissage du
+   * poids, pour ne pas repartir de la charge allégée la semaine suivante.
+   */
+  deload?: boolean
 }
 
 export interface NotebookSet {

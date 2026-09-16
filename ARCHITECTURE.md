@@ -250,6 +250,53 @@ Titre de `HomePage` en `text-3xl` (les autres pages : `text-2xl`) ; `CTA_SECONDA
 
 ---
 
+## Changelog — 16 septembre 2026 — Second programme coach (Janna)
+
+- `data/coach-program.ts` devient un **registre** : `coachPrograms = [yassineProgram, jannaProgram]`, chaque `CoachProgramDef` porte ses séances, sa prépa (optionnelle), son `weekPlan` (`rampUp: number[]`, `deloadEvery`), ses `increments` (machine / haltères), son `homeHint` et ses `rules`. `getCoachProgramDef(id)` — un programme stocké sans `coachId` (antérieur) = Yassine.
+- `WorkoutProgram.coachId` ; `PerSide` gagne `'jambe'`.
+- `useCoachProgram.activate(userId, coachId)` : même programme actif → mise à jour en place (garde `startedAt`) ; autre programme → remplacement (nouveau `startedAt`).
+- Profil : la carte propose le **choix** Yassine / Janna, puis « Changer de programme » / « Programme auto ».
+- `coach-week.ts` et `double-progression.ts` prennent le plan / les incréments du programme (défauts = Yassine). Home : message de montée en charge dérivé de `nextTargetSessions`.
+- Janna : 3 séances de 40-43 min (Fessiers 1 / Haut du corps + 3 × élévations latérales / Fessiers 2), prépa courte de 4 items (activation fessiers/hanches + band pull-apart), pas de finisher (cooldown standard), 3 séances dès la S1, allégée toutes les 5 semaines, +5 machines / +2 haltères. 4 exos ajoutés au catalogue (Curl incliné haltères, Rowing penché haltères, Abduction hanche debout élastique, Kickback élastique) + substitutions du coach ajoutées aux `alternatives` de Leg press / Tirage vertical / Rowing câble assis / Abduction machine / Extension hanche poulie.
+- Tests : 297 → 307.
+
+---
+
+## Changelog — 15 septembre 2026 — Programme coach (fixe)
+
+Programme écrit par le coach, à côté du générateur automatique. Source unique : `src/data/coach-program.ts` (5 séances, prépa posture, règles). Activation via Profil → carte « Programme coach ».
+
+**Modèle** (`db/types.ts`, tout optionnel — rétro-compatible)
+- `WorkoutProgram` : `isCoach`, `coachVersion`, `startedAt` (compteur de semaines), `prepRoutine`
+- `ProgramSession` : `durationMin`, `coreDuringRest` (gainage pendant le repos), `finisher` (`Finisher` : emom / intervals / circuit)
+- `ProgramExercise` : `targetRepsMax` (fourchette), `supersetGroup` (A/B/C — repos 0 sauf sur le dernier du groupe), `cue`, `perSide` ('bras' | 'côté')
+- `NotebookEntry.deload` : entrée saisie en semaine allégée — ignorée par la double progression et le pré-remplissage
+- `SessionPhase` gagne `'finisher'`
+
+**Activation / protection** (`hooks/useCoachProgram.ts`)
+- `activate` résout les noms d'exos vers les ids du catalogue (5 exos ajoutés au catalogue : Turkish get-up, Traction excentrique, Curl incliné neutre, Pont fessier haltère au sol, Extension hanche poulie), désactive le programme auto (jamais supprimé), ré-activation = mise à jour en place (garde `startedAt`)
+- `deactivate` remet le dernier programme auto en actif
+- `useEngineVersionCheck` ignore un programme coach ; `useRegenerateProgram.regenerate/refresh` refusent tant qu'il est actif (message affiché par EquipmentManager)
+
+**Écran salle** (`pages/SessionPage.tsx`)
+- Phase warmup : `prepRoutine` du programme à la place de `fixedWarmupRoutine`
+- Supersets : ouvrir un exo d'un groupe ouvre `components/session/SupersetNotebook.tsx` (nouveau — le carnet `ExerciseNotebook` validé n'est pas modifié) : un bloc par exo, timer partagé lancé après le dernier exo du groupe, `onGroupDone` / `onSkipAt` / `onSwapAt`
+- `ExerciseNotebook` : ajouts optionnels seulement — `target.repsMax/perSide/cue/deload/increment`, `restHint`, `hideIntensityBadge`
+- Phase `finisher` (`components/session/FinisherTimer.tsx`) remplace le cooldown quand la séance a un finisher ; horloge murale, transitions et bips dans le tick (règle lint `set-state-in-effect`) ; non persisté (rechargement = chrono à zéro)
+- Semaine allégée : `SessionContent` plafonne `sets` à 2 (`DELOAD_SETS`) sans toucher la prescription stockée ; carnets affichent 70 % de la dernière charge
+
+**Semaines** (`utils/coach-week.ts`) : S1 = semaine calendaire (lundi→dimanche) de l'activation ; cible 3 → 4 → 5 séances ; allégée toutes les 5 semaines. `useNextSession.coachWeek` + `CoachWeekCard` sur Home. Jamais bloquant.
+
+**Double progression** (`utils/double-progression.ts`) : monte quand le haut de la fourchette est atteint sur toutes les séries (+2,5 haltères/kettlebell, +5 machines/poulies, via `equipmentNeeded`) ; base = `useNotebook.lastEntry` (hors skip, hors allégée, hors entrée du jour en cours d'édition) ; la charge suggérée pré-remplit le poids.
+
+**Page règles** : `pages/CoachRulesPage.tsx` (`/coach-rules`), contenu `coachRules` dans `data/coach-program.ts` ; liens depuis la carte Profil et la carte semaine Home.
+
+**Partagé** : `utils/format-prescription.ts` (`formatPrescription`, `formatReps`, `formatRestLabel`), `utils/swap-options.ts` (`computeSwapOptions`, extrait de SessionPage), `utils/superset.ts`.
+
+Tests : 266 → 297.
+
+---
+
 ## Changelog — 12 juin 2026 (lots issus de l'audit, rapport complet : `docs/audit-2026-06-12.md`)
 
 **Lot 1 — Protection des données**

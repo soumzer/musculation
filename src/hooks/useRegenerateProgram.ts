@@ -137,6 +137,19 @@ function applyUserOrder(
   })
 }
 
+const COACH_ACTIVE_ERROR = {
+  success: false,
+  error: 'Programme coach actif : il n\'est jamais régénéré. Désactive-le dans la carte « Programme coach » pour revenir au programme automatique.',
+}
+
+async function hasActiveCoachProgram(userId: number): Promise<boolean> {
+  const active = await db.workoutPrograms
+    .where('userId').equals(userId)
+    .filter((p) => p.isActive)
+    .first()
+  return active?.isCoach === true
+}
+
 /**
  * Hook that returns a function to regenerate the workout program.
  *
@@ -151,6 +164,8 @@ export function useRegenerateProgram() {
   const regenerate = useCallback(async (userId: number): Promise<{ success: boolean; error?: string }> => {
     setIsRegenerating(true)
     try {
+      if (await hasActiveCoachProgram(userId)) return COACH_ACTIVE_ERROR
+
       // 1. Read the current user profile
       const profile = await db.userProfiles.get(userId)
       if (!profile) {
@@ -239,6 +254,8 @@ export function useRegenerateProgram() {
   const refresh = useCallback(async (userId: number): Promise<{ success: boolean; error?: string }> => {
     setIsRegenerating(true)
     try {
+      if (await hasActiveCoachProgram(userId)) return COACH_ACTIVE_ERROR
+
       const profile = await db.userProfiles.get(userId)
       if (!profile) return { success: false, error: 'Profil utilisateur introuvable.' }
 

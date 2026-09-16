@@ -5,6 +5,7 @@ import BackupSection from '../components/settings/BackupSection'
 import { downloadBackup } from '../utils/backup'
 import HealthConditionsManager from '../components/settings/HealthConditionsManager'
 import EquipmentManager from '../components/settings/EquipmentManager'
+import CoachProgramCard from '../components/settings/CoachProgramCard'
 import { useRegenerateProgram } from '../hooks/useRegenerateProgram'
 
 // ---------------------------------------------------------------------------
@@ -36,10 +37,13 @@ function TrainingSettings({
   sessionCount,
   onRegenerate,
   isRegenerating,
+  isCoach = false,
 }: {
   userId: number
   daysPerWeek: number
   programType?: string
+  /** Programme coach actif : le sélecteur de jours ne pilote plus rien, on le cache. */
+  isCoach?: boolean
   programSessionCount?: number
   sessionCount: number
   onRegenerate: () => Promise<{ success: boolean; error?: string }>
@@ -71,6 +75,7 @@ function TrainingSettings({
       <p className={SECTION_LABEL}>Entraînement</p>
 
       {/* Days per week */}
+      {!isCoach && (
       <div>
         <p className="text-zinc-400 text-sm mb-2">Jours par semaine</p>
         <div className="flex gap-2">
@@ -89,9 +94,10 @@ function TrainingSettings({
           ))}
         </div>
       </div>
+      )}
 
       {/* Save button */}
-      {hasChanges && (
+      {!isCoach && hasChanges && (
         <button
           onClick={handleSave}
           disabled={saving || isRegenerating}
@@ -111,7 +117,7 @@ function TrainingSettings({
         {programType && (
           <div>
             <p className="text-white text-sm font-semibold">
-              {splitLabels[programType] ?? programType}
+              {isCoach ? 'Programme coach' : (splitLabels[programType] ?? programType)}
             </p>
             <p className="text-zinc-600 text-xs">{programSessionCount} séances</p>
           </div>
@@ -234,6 +240,14 @@ export default function ProfilePage() {
           sessionCount={sessionCount ?? 0}
           onRegenerate={() => regenerate(user.id!)}
           isRegenerating={isRegenerating}
+          isCoach={program?.isCoach === true}
+        />
+
+        {/* Coach program (fixed) */}
+        <CoachProgramCard
+          userId={user.id!}
+          activeProgram={program}
+          onNeedsRegenerate={() => regenerate(user.id!)}
         />
 
         {/* Health conditions manager */}

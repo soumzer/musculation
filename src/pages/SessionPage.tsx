@@ -3,12 +3,19 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { db } from '../db'
 import ExerciseNotebook from '../components/session/ExerciseNotebook'
+import SupersetNotebook, { type SupersetMember } from '../components/session/SupersetNotebook'
+import FinisherTimer from '../components/session/FinisherTimer'
 import { fixedWarmupRoutine } from '../data/warmup-routine'
 import { selectCooldownExercises } from '../engine/cooldown'
 import { useSessionPersistence } from '../hooks/useSessionPersistence'
 import { useWakeLock } from '../hooks/useWakeLock'
-import type { BodyZone, Exercise, ProgramSession, SessionPhase, ExerciseStatus, NotebookSet } from '../db/types'
-import type { SwapOption } from '../components/session/ExerciseNotebook'
+import type { BodyZone, Exercise, ProgramSession, SessionPhase, ExerciseStatus, NotebookSet, PrepItem } from '../db/types'
+import { computeSwapOptions, type SwapOption } from '../utils/swap-options'
+import { supersetIndices, supersetLabel, supersetRest } from '../utils/superset'
+import { formatPrescription } from '../utils/format-prescription'
+import { getCoachWeek, DELOAD_SETS } from '../utils/coach-week'
+import { getCoachProgramDef } from '../data/coach-program'
+import { incrementFor } from '../utils/double-progression'
 
 // ---------------------------------------------------------------------------
 // Design tokens
@@ -74,7 +81,16 @@ function SessionContent({ programId, sessionIndex }: { programId: number; sessio
   }
 
   const { program, user, allExercises, conditions } = data
-  const programSession = program.sessions?.[sessionIndex]
+  const rawSession = program.sessions?.[sessionIndex]
+
+  // Programme coach, semaine allégée : 2 séries par exo (les charges à 70 %
+  // sont suggérées dans le carnet). La prescription stockée ne bouge pas.
+  const coachDef = program.isCoach ? getCoachProgramDef(program.coachId) : null
+  const isDeload = coachDef !== null && program.startedAt !== undefined
+    && getCoachWeek(program.startedAt, new Date(), coachDef.weekPlan).isDeload
+  const programSession = rawSession && isDeload
+    ? { ...rawSession, exercises: rawSession.exercises.map((e) => ({ ...e, sets: Math.min(e.sets, DELOAD_SETS) })) }
+    : rawSession
 
   if (!programSession || !programSession.exercises?.length) {
     return (
@@ -100,6 +116,9 @@ function SessionContent({ programId, sessionIndex }: { programId: number; sessio
       nextSessionName={nextSessionName}
       allExercises={allExercises}
       activeZones={conditions.map(c => c.bodyZone)}
+      prepRoutine={program.prepRoutine}
+      isDeload={isDeload}
+      coachIncrements={coachDef?.increments}
     />
   )
 }
@@ -117,6 +136,9 @@ function SessionRunner({
   nextSessionName,
   allExercises,
   activeZones,
+  prepRoutine,
+  isDeload = false,
+  coachIncrements,
 }: {
   programSession: ProgramSession
   userId: number
@@ -126,6 +148,12 @@ function SessionRunner({
   nextSessionName: string
   allExercises: Exercise[]
   activeZones: string[]
+  /** Programme coach : prépa posture affichée à la place de l'échauffement fixe. */
+  prepRoutine?: PrepItem[]
+  /** Programme coach : semaine allégée (2 séries, 70 % des charges). */
+  isDeload?: boolean
+  /** Programme coach : incréments de la double progression (présents = séance coach). */
+  coachIncrements?: { machine: number; free: number }
 }) {
   const navigate = useNavigate()
   const [phase, setPhase] = useState<SessionPhase>('warmup')
@@ -139,7 +167,12 @@ function SessionRunner({
   // Brouillons + timer capturés au moment d'OUVRIR le carnet (les refs ne
   // doivent pas être lus pendant le render). Mis à jour à chaque transition
   // vers la phase notebook : ouverture, restauration, swap.
-  const [notebookInit, setNotebookInit] = useState<{ drafts?: NotebookSet[]; restTimerEndTime: number | null }>({ restTimerEndTime: null })
+  const [notebookInit, setNotebookInit] = useState<{
+    drafts?: NotebookSet[]
+    /** Brouillons de chaque exo d'un superset (keyed par exerciseId). */
+    groupDrafts?: Map<number, NotebookSet[]>
+    restTimerEndTime: number | null
+  }>({ restTimerEndTime: null })
 
   // L'écran reste allumé pendant toute la séance (timer visible entre les séries)
   useWakeLock(phase !== 'done')
@@ -184,6 +217,7 @@ function SessionRunner({
         const restoredExerciseId = saved.exerciseStatuses[saved.currentExerciseIdx]?.exerciseId
         setNotebookInit({
           drafts: restoredExerciseId !== undefined ? map.get(restoredExerciseId) : undefined,
+          groupDrafts: new Map(map),
           restTimerEndTime: saved.restTimerEndTime ?? null,
         })
         setRecovered(true)
@@ -334,13 +368,39 @@ function SessionRunner({
     setPhase('exercises')
   }, [currentExerciseIdx])
 
+  // Superset : tous les exos du groupe sont marqués faits d'un coup
+  // (les skippés gardent leur statut).
+  const handleGroupDone = useCallback((indices: number[]) => {
+    setExerciseStatuses(prev => prev.map((s, i) =>
+      indices.includes(i) && s.status !== 'skipped' ? { ...s, status: 'done' as const } : s
+    ))
+    setPhase('exercises')
+  }, [])
+
+  const handleSkipAt = useCallback((idx: number, zone: BodyZone) => {
+    setExerciseStatuses(prev => prev.map((s, i) =>
+      i === idx ? { ...s, status: 'skipped' as const, skipZone: zone } : s
+    ))
+    setPhase('exercises')
+  }, [])
+
+  // Ouvrir un exo d'un superset ouvre tout le groupe (écran commun).
   const handleOpenExercise = useCallback((idx: number) => {
-    const exerciseId = programSession.exercises[idx]?.exerciseId
+    const group = supersetIndices(programSession.exercises, idx)
+    const firstIdx = group[0]
+    const exerciseId = programSession.exercises[firstIdx]?.exerciseId
+    const groupDrafts = new Map<number, NotebookSet[]>()
+    for (const i of group) {
+      const id = programSession.exercises[i]?.exerciseId
+      const d = id !== undefined ? draftSetsRef.current.get(id) : undefined
+      if (id !== undefined && d) groupDrafts.set(id, d)
+    }
     setNotebookInit({
       drafts: exerciseId !== undefined ? draftSetsRef.current.get(exerciseId) : undefined,
+      groupDrafts,
       restTimerEndTime: restTimerEndTimeRef.current,
     })
-    setCurrentExerciseIdx(idx)
+    setCurrentExerciseIdx(firstIdx)
     setPhase('notebook')
   }, [programSession.exercises])
 
@@ -434,54 +494,18 @@ function SessionRunner({
     }
   }, [userId, programId, programSession, sessionStartTime, exerciseStatuses, exerciseMap, clearSessionState])
 
-  // Swap: curated alternatives first (preserved order), then auto-matched
-  // candidates derived from primaryMuscles + category. The auto-match acts as
-  // a safety net so a freshly added exercise is reachable even if no curated
-  // alternatives field references it yet.
-  const swapOptions: SwapOption[] = useMemo(() => {
-    if (!currentCatalogExercise) return []
-    const usedIds = new Set(programSession.exercises.map((e) => e.exerciseId))
-    const seen = new Set<number>()
-    const result: SwapOption[] = []
+  // Swap: alternatives curées puis auto-match — logique partagée avec l'écran
+  // superset (utils/swap-options.ts).
+  const usedExerciseIds = useMemo(
+    () => new Set(programSession.exercises.map((e) => e.exerciseId)),
+    [programSession.exercises],
+  )
+  const swapOptions: SwapOption[] = useMemo(
+    () => computeSwapOptions(currentCatalogExercise, allExercises, usedExerciseIds),
+    [currentCatalogExercise, allExercises, usedExerciseIds],
+  )
 
-    const canShow = (e: typeof allExercises[number]): boolean => {
-      if (e.id === undefined) return false
-      if (e.id === currentCatalogExercise.id) return false
-      if (e.isRehab) return false
-      if (usedIds.has(e.id)) return false
-      if (seen.has(e.id)) return false
-      return true
-    }
-
-    // 1. Curated alternatives, in the order declared on the exercise.
-    const altNames = currentCatalogExercise.alternatives ?? []
-    const altNamesLower = altNames.map((n) => n.toLowerCase())
-    const byNameLower = new Map(
-      allExercises.filter((e) => e.id !== undefined).map((e) => [e.name.toLowerCase(), e]),
-    )
-    for (const lower of altNamesLower) {
-      const e = byNameLower.get(lower)
-      if (e && canShow(e)) {
-        seen.add(e.id!)
-        result.push({ exerciseId: e.id!, name: e.name })
-      }
-    }
-
-    // 2. Auto-match: same category + at least one shared primary muscle.
-    const currentMuscles = new Set(currentCatalogExercise.primaryMuscles.map((m) => m.toLowerCase()))
-    for (const e of allExercises) {
-      if (!canShow(e)) continue
-      if (e.category !== currentCatalogExercise.category) continue
-      const shares = e.primaryMuscles.some((m) => currentMuscles.has(m.toLowerCase()))
-      if (!shares) continue
-      seen.add(e.id!)
-      result.push({ exerciseId: e.id!, name: e.name })
-    }
-
-    return result
-  }, [currentCatalogExercise, allExercises, programSession.exercises])
-
-  const handleSwapExercise = useCallback(async (newExerciseId: number) => {
+  const handleSwapAt = useCallback(async (idx: number, newExerciseId: number) => {
     const program = await db.workoutPrograms.get(programId)
     if (!program?.sessions) return
     const updatedSessions = program.sessions.map((s) => {
@@ -489,20 +513,32 @@ function SessionRunner({
       return {
         ...s,
         exercises: s.exercises.map((e, eIdx) =>
-          eIdx === currentExerciseIdx ? { ...e, exerciseId: newExerciseId } : e,
+          eIdx === idx ? { ...e, exerciseId: newExerciseId } : e,
         ),
       }
     })
     // Le carnet (keyed par exerciseId) va remonter : lui donner les brouillons
     // du nouvel exercice et l'état courant du timer.
-    setNotebookInit({
+    setNotebookInit(prev => ({
       drafts: draftSetsRef.current.get(newExerciseId),
+      groupDrafts: prev.groupDrafts,
       restTimerEndTime: restTimerEndTimeRef.current,
-    })
+    }))
     await db.workoutPrograms.update(programId, { sessions: updatedSessions })
     // Stay in notebook phase — useLiveQuery reloads the program and
     // ExerciseNotebook re-renders with the new exercise.
-  }, [programId, programSession.name, currentExerciseIdx])
+  }, [programId, programSession.name])
+
+  const handleSwapExercise = useCallback(
+    (newExerciseId: number) => handleSwapAt(currentExerciseIdx, newExerciseId),
+    [handleSwapAt, currentExerciseIdx],
+  )
+
+  // Groupe superset de l'exo courant (un seul index hors superset).
+  const currentGroup = useMemo(
+    () => supersetIndices(programSession.exercises, currentExerciseIdx),
+    [programSession.exercises, currentExerciseIdx],
+  )
 
   // Intensity style
   const intensityKey = programSession.intensity as 'heavy' | 'volume' | 'moderate' | undefined
@@ -519,16 +555,18 @@ function SessionRunner({
         <div className={`h-1 ${style.bar}`} />
         <div className="px-5 pt-6 flex-1 flex flex-col overflow-hidden">
           <div className="text-center mb-5">
-            <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">Échauffement</p>
+            <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">{prepRoutine ? 'Prépa posture' : 'Échauffement'}</p>
             <h2 className="text-2xl font-black text-white mb-1">{programSession.name}</h2>
             <div className="flex items-center justify-center gap-2">
-              <p className="text-zinc-400 text-sm">Haltères légères ou barre à vide</p>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${style.text} ${style.bar}/20`}>{style.letter}</span>
+              <p className="text-zinc-400 text-sm">{prepRoutine ? '4 min · tous les jours' : 'Haltères légères ou barre à vide'}</p>
+              {programSession.intensity && (
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${style.text} ${style.bar}/20`}>{style.letter}</span>
+              )}
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-1.5">
-            {fixedWarmupRoutine.map((item, i) => (
+            {(prepRoutine ?? fixedWarmupRoutine).map((item, i) => (
               <button
                 key={i}
                 onClick={() => setWarmupChecked(prev => {
@@ -582,7 +620,9 @@ function SessionRunner({
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <h2 className="text-2xl font-black text-white">{programSession.name}</h2>
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${style.text} bg-zinc-800`}>{style.letter}</span>
+                {programSession.intensity && (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${style.text} bg-zinc-800`}>{style.letter}</span>
+                )}
               </div>
               <ElapsedTimer startTime={sessionStartTime} />
             </div>
@@ -598,11 +638,20 @@ function SessionRunner({
             </div>
           </div>
 
+          {isDeload && (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 mb-3">
+              <p className="text-amber-400 text-sm font-semibold">Semaine allégée</p>
+              <p className="text-amber-400/80 text-xs mt-0.5">2 séries par exo, charges à 70 % de d'habitude. Tu repars la semaine prochaine.</p>
+            </div>
+          )}
+
           {/* Exercise list */}
           <div className="flex-1 overflow-y-auto space-y-2">
             {programSession.exercises.map((pe, idx) => {
               const catalog = exerciseMap.get(pe.exerciseId)
               const status = exerciseStatuses[idx]
+              const ssLabel = supersetLabel(programSession.exercises, idx)
+              const ssRest = ssLabel ? supersetRest(programSession.exercises, idx) : pe.restSeconds
               return (
                 <button
                   key={pe.exerciseId}
@@ -626,10 +675,11 @@ function SessionRunner({
                   {/* Exercise info */}
                   <div className="flex-1 min-w-0">
                     <p className={`font-semibold text-sm ${status.status !== 'pending' ? 'text-zinc-500' : 'text-white'}`}>
+                      {ssLabel && <span className="text-emerald-400 text-xs font-black mr-2">{ssLabel}</span>}
                       {catalog?.name ?? `Exercise #${pe.exerciseId}`}
                     </p>
                     <p className="text-zinc-600 text-xs mt-0.5">
-                      {pe.sets} x {pe.isTimeBased ? `${pe.targetReps}s` : pe.targetReps} — {pe.restSeconds}s repos
+                      {formatPrescription(pe)} — {ssLabel ? `superset, ${ssRest}s repos` : `${pe.restSeconds}s repos`}
                     </p>
                   </div>
                 </button>
@@ -641,10 +691,10 @@ function SessionRunner({
           <div className="pt-4 pb-6 flex-shrink-0 space-y-2">
             {allDone ? (
               <button
-                onClick={() => cooldownExercises.length > 0 ? setPhase('cooldown') : handleFinishSession()}
+                onClick={() => programSession.finisher ? setPhase('finisher') : cooldownExercises.length > 0 ? setPhase('cooldown') : handleFinishSession()}
                 className={CTA}
               >
-                {cooldownExercises.length > 0 ? 'Cooldown' : 'Terminer la séance'}
+                {programSession.finisher ? `Finisher · ${programSession.finisher.title}` : cooldownExercises.length > 0 ? 'Cooldown' : 'Terminer la séance'}
               </button>
             ) : (
               <button
@@ -665,6 +715,60 @@ function SessionRunner({
           </div>
         </div>
       </div>
+    )
+  }
+
+  // --- NOTEBOOK superset (A1 + A2 sur le même écran) ---
+  if (phase === 'notebook' && currentGroup.length > 1) {
+    const intensity = (programSession.intensity ?? 'volume') as 'heavy' | 'volume' | 'moderate'
+    const members: SupersetMember[] = currentGroup.map((idx) => {
+      const pe = programSession.exercises[idx]
+      const cat = exerciseMap.get(pe.exerciseId)
+      return {
+        index: idx,
+        label: supersetLabel(programSession.exercises, idx) ?? `${idx + 1}`,
+        exercise: {
+          exerciseId: pe.exerciseId,
+          exerciseName: cat?.name ?? `Exercice #${pe.exerciseId}`,
+          instructions: cat?.instructions ?? '',
+          category: (cat?.category ?? 'compound') as SupersetMember['exercise']['category'],
+          primaryMuscles: cat?.primaryMuscles ?? [],
+          contraindications: cat?.contraindications ?? [],
+        },
+        target: {
+          sets: pe.sets,
+          reps: pe.targetReps,
+          repsMax: pe.targetRepsMax,
+          restSeconds: pe.restSeconds,
+          isTimeBased: pe.isTimeBased,
+          perSide: pe.perSide,
+          cue: pe.cue,
+          deload: isDeload,
+          increment: coachIncrements ? incrementFor(cat?.equipmentNeeded ?? [], coachIncrements) : undefined,
+        },
+        status: exerciseStatuses[idx]?.status ?? 'pending',
+        swapOptions: computeSwapOptions(cat, allExercises, usedExerciseIds),
+        initialDraftSets: notebookInit.groupDrafts?.get(pe.exerciseId),
+      }
+    })
+    return (
+      <SupersetNotebook
+        group={programSession.exercises[currentExerciseIdx].supersetGroup ?? ''}
+        members={members}
+        totalExercises={programSession.exercises.length}
+        intensity={intensity}
+        userId={userId}
+        activeZones={activeZones}
+        exerciseCatalog={allExercises}
+        restSeconds={supersetRest(programSession.exercises, currentExerciseIdx)}
+        restHint={programSession.coreDuringRest}
+        initialRestTimerEndTime={notebookInit.restTimerEndTime}
+        onDraftSetsChange={handleDraftSetsChange}
+        onRestTimerChange={handleRestTimerChange}
+        onGroupDone={() => handleGroupDone(currentGroup)}
+        onSkipAt={handleSkipAt}
+        onSwapAt={handleSwapAt}
+      />
     )
   }
 
@@ -689,7 +793,14 @@ function SessionRunner({
           restSeconds: currentProgramExercise.restSeconds,
           intensity,
           isTimeBased: currentProgramExercise.isTimeBased,
+          repsMax: currentProgramExercise.targetRepsMax,
+          perSide: currentProgramExercise.perSide,
+          cue: currentProgramExercise.cue,
+          deload: isDeload,
+          increment: coachIncrements ? incrementFor(currentCatalogExercise.equipmentNeeded, coachIncrements) : undefined,
         }}
+        restHint={programSession.coreDuringRest}
+        hideIntensityBadge={programSession.intensity === undefined}
         exerciseIndex={currentExerciseIdx}
         totalExercises={programSession.exercises.length}
         userId={userId}
@@ -702,6 +813,17 @@ function SessionRunner({
         onNext={handleNextExercise}
         onSkip={handleSkipExercise}
         onSwap={handleSwapExercise}
+      />
+    )
+  }
+
+  // --- FINISHER (programme coach : remplace le cooldown) ---
+  if (phase === 'finisher' && programSession.finisher) {
+    return (
+      <FinisherTimer
+        finisher={programSession.finisher}
+        sessionName={programSession.name}
+        onFinish={handleFinishSession}
       />
     )
   }

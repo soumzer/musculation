@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
-import type { ProgramSession, SessionIntensity, WorkoutProgram } from '../db/types'
+import type { Finisher, PerSide, ProgramSession, SessionIntensity, WorkoutProgram } from '../db/types'
+import { getCoachWeek } from '../utils/coach-week'
+import { getCoachProgramDef } from '../data/coach-program'
 
 export interface NextSessionExercisePreview {
   /**
@@ -11,8 +13,14 @@ export interface NextSessionExercisePreview {
   name: string
   sets: number
   targetReps: number
+  /** Haut de la fourchette (programme coach) — absent = cible fixe. */
+  targetRepsMax?: number
   isRehab: boolean
   isTimeBased?: boolean
+  /** Reps comptées par bras ou par côté. */
+  perSide?: PerSide
+  /** Lettre du superset (programme coach). */
+  supersetGroup?: string
 }
 
 export interface NextSessionPreview {
@@ -24,6 +32,20 @@ export interface NextSessionPreview {
    */
   intensity?: SessionIntensity
   exercises: NextSessionExercisePreview[]
+  /** Finisher de la séance (programme coach). */
+  finisher?: Finisher
+}
+
+/** Semaine du programme coach — montée en charge et semaine allégée. */
+export interface CoachWeekStatus {
+  week: number
+  targetSessions: number
+  /** Cible de la semaine suivante si elle change (montée en charge). */
+  nextTargetSessions?: number
+  doneThisWeek: number
+  isDeload: boolean
+  /** Conseil du programme sous la carte semaine (cardio, piscine…). */
+  hint: string
 }
 
 export interface WeekSessionStatus {
@@ -60,6 +82,8 @@ export interface NextSessionInfo {
   activeZones?: string[]
   /** Sessions of the program with their status relative to the current cycle. */
   weekSessions?: WeekSessionStatus[]
+  /** Programme coach uniquement : semaine en cours (3 → 4 → 5 séances, allégée). */
+  coachWeek?: CoachWeekStatus
 }
 
 export function useNextSession(userId: number | undefined): NextSessionInfo | undefined {
@@ -164,6 +188,25 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
     const nextProgramSession = activeProgram.sessions[nextSessionIndex]
     const exerciseCount = nextProgramSession.exercises.length
 
+    // Programme coach : semaine calendaire courante et séances déjà faites dedans.
+    let coachWeek: CoachWeekStatus | undefined
+    if (activeProgram.isCoach && activeProgram.startedAt) {
+      const def = getCoachProgramDef(activeProgram.coachId)
+      const info = getCoachWeek(activeProgram.startedAt, new Date(), def.weekPlan)
+      const doneThisWeek = completedSessions.filter((s) => {
+        const d = s.completedAt!
+        return d >= info.weekStart && d < info.weekEnd
+      }).length
+      coachWeek = {
+        week: info.week,
+        targetSessions: info.targetSessions,
+        nextTargetSessions: info.nextTargetSessions,
+        doneThisWeek,
+        isDeload: info.isDeload,
+        hint: def.homeHint,
+      }
+    }
+
     // Per-session status for the "Cette semaine" block on HomePage.
     const weekSessions: WeekSessionStatus[] = activeProgram.sessions.map((s, idx) => ({
       sessionIndex: idx,
@@ -192,7 +235,9 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
       totalSeconds += exerciseTime + transitionTime
     }
     const warmupCooldown = 10 * 60 // 5 min warmup + 5 min cooldown
-    const estimatedMinutes = Math.round((totalSeconds + warmupCooldown) / 60)
+    // Programme coach : la durée annoncée par le coach prime sur l'estimation.
+    const estimatedMinutes = nextProgramSession.durationMin
+      ?? Math.round((totalSeconds + warmupCooldown) / 60)
 
     const minimumRestHours = 10
 
@@ -209,13 +254,17 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
     const preview: NextSessionPreview = {
       sessionName: nextProgramSession.name,
       intensity: nextProgramSession.intensity,
+      finisher: nextProgramSession.finisher,
       exercises: nextProgramSession.exercises.map((pe) => ({
         exerciseId: pe.exerciseId,
         name: exerciseNameMap.get(pe.exerciseId) ?? `Exercice #${pe.exerciseId}`,
         sets: pe.sets,
         targetReps: pe.targetReps,
+        targetRepsMax: pe.targetRepsMax,
         isRehab: pe.isRehab,
         isTimeBased: pe.isTimeBased,
+        perSide: pe.perSide,
+        supersetGroup: pe.supersetGroup,
       })),
     }
 
@@ -249,6 +298,7 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
           nextSessionName: nextProgramSession.name,
           nextSessionIndex,
           weekSessions,
+          coachWeek,
         }
       }
     }
@@ -286,6 +336,7 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
           deloadReminder: null,
           activeZones: zones,
           weekSessions,
+          coachWeek,
         }
       }
     }
@@ -307,8 +358,9 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
       restRecommendation: null,
       program: activeProgram,
       preview,
-      deloadReminder,
+      deloadReminder: activeProgram.isCoach ? null : deloadReminder,
       weekSessions,
+      coachWeek,
     }
   }, [userId])
 }

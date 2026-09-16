@@ -53,6 +53,7 @@ export function useEngineVersionCheck(userId: number | undefined): EngineVersion
         .first()
 
       if (!activeProgram) return // No program yet — onboarding handles creation.
+      if (activeProgram.isCoach) return // Programme coach : jamais régénéré par le moteur.
 
       const storedVersion = activeProgram.engineVersion ?? 1
       if (storedVersion >= ENGINE_VERSION) return

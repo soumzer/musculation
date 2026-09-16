@@ -5,14 +5,15 @@ import { useExerciseNote } from '../../hooks/useExerciseNote'
 import { generateWarmupSets } from '../../engine/warmup'
 import SymptomQuestionnaire from '../onboarding/SymptomQuestionnaire'
 import type { QuestionnaireResult } from '../onboarding/SymptomQuestionnaire'
-import type { BodyZone, NotebookSet } from '../../db/types'
+import type { BodyZone, NotebookSet, PerSide } from '../../db/types'
 import { suggestFillerFromCatalog, type FillerSuggestion } from '../../engine/filler'
+import { formatReps, formatRestLabel } from '../../utils/format-prescription'
+import { deloadWeight } from '../../utils/coach-week'
+import { doubleProgression } from '../../utils/double-progression'
 import type { Exercise } from '../../db/types'
 
-export interface SwapOption {
-  exerciseId: number
-  name: string
-}
+export type { SwapOption } from '../../utils/swap-options'
+import type { SwapOption } from '../../utils/swap-options'
 
 export interface ExerciseNotebookProps {
   exercise: {
@@ -32,7 +33,31 @@ export interface ExerciseNotebookProps {
     restSeconds: number
     intensity: 'heavy' | 'volume' | 'moderate' | 'rehab'
     isTimeBased?: boolean
+    /** Haut de la fourchette (programme coach) — affiché « 6-10 ». */
+    repsMax?: number
+    /** Reps comptées par bras / par côté (programme coach). */
+    perSide?: PerSide
+    /** Consigne courte du coach : « tempo 3s descente ». */
+    cue?: string
+    /** Semaine allégée (programme coach) : suggérer 70 % de la dernière charge. */
+    deload?: boolean
+    /**
+     * Programme coach : incrément de la double progression (+2,5 haltères,
+     * +5 machines). Sa présence active la ligne « Monte à X kg » à la place
+     * de l'ancien « Incrément : … quand réussi ».
+     */
+    increment?: number
   }
+  /**
+   * Rappel affiché sous le timer de repos (programme coach : gainage à faire
+   * pendant le repos, ex. « Planche RKC · 30s »). Sans saisie.
+   */
+  restHint?: { name: string; detail: string }
+  /**
+   * Cacher le badge Force/Volume/Modéré — programme coach, dont les séances
+   * n'ont pas d'intensité (target.intensity ne sert alors qu'au stockage).
+   */
+  hideIntensityBadge?: boolean
   exerciseIndex: number
   totalExercises: number
   userId: number
@@ -94,6 +119,8 @@ export default function ExerciseNotebook({
   onSwap,
   onPrev,
   onNextNav,
+  restHint,
+  hideIntensityBadge = false,
 }: ExerciseNotebookProps) {
   const notebook = useNotebook(
     userId,
@@ -103,7 +130,13 @@ export default function ExerciseNotebook({
     onSkip,
     initialDraftSets,
     onDraftSetsChange,
+    { deload: target.deload },
   )
+
+  // Double progression (programme coach) — null hors coach.
+  const progression = target.increment !== undefined && !target.isTimeBased
+    ? doubleProgression(notebook.lastEntry, { sets: target.sets, reps: target.reps, repsMax: target.repsMax }, target.increment)
+    : null
 
   const timer = useRestTimer(target.restSeconds, initialRestTimerEndTime)
 
@@ -164,9 +197,17 @@ export default function ExerciseNotebook({
   const [inputWeight, setInputWeight] = useState('')
   const [weightTouched, setWeightTouched] = useState(false)
   const [inputReps, setInputReps] = useState('')
+  // Pré-remplissage : la charge suggérée par la double progression si elle
+  // monte, sinon le dernier poids (hors semaine allégée, où l'on laisse vide
+  // pour que l'utilisateur saisisse les 70 %).
+  const prefillWeight = target.deload
+    ? null
+    : progression?.kind === 'increase' && progression.weightKg !== null
+      ? progression.weightKg
+      : notebook.lastWeight
   const effectiveWeight = weightTouched || inputWeight !== ''
     ? inputWeight
-    : (notebook.lastWeight !== null ? String(notebook.lastWeight) : '')
+    : (prefillWeight !== null ? String(prefillWeight) : '')
 
   const handleSave = useCallback(async () => {
     const result = await notebook.saveAndNext()
@@ -278,19 +319,33 @@ export default function ExerciseNotebook({
           <h1 className="text-xl font-black text-white">{exercise.exerciseName}</h1>
           <div className="flex items-center gap-2 mt-1.5">
             <span className="text-zinc-400 text-sm">
-              {target.sets} x {target.isTimeBased ? `${target.reps}s` : `${target.reps} reps`} — repos {formatRestLabel(target.restSeconds)}
+              {target.sets} x {formatReps({ targetReps: target.reps, targetRepsMax: target.repsMax, isTimeBased: target.isTimeBased, perSide: target.perSide })}{target.isTimeBased || target.repsMax !== undefined || target.perSide ? '' : ' reps'} — repos {formatRestLabel(target.restSeconds)}
             </span>
             {exercise.isRehab ? (
               <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400">
                 Rehab
               </span>
-            ) : intensityInfo && (
+            ) : intensityInfo && !hideIntensityBadge && (
               <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${intensityInfo.bg} ${intensityInfo.text}`}>
                 {intensityInfo.label}
               </span>
             )}
           </div>
-          {!exercise.isRehab && (
+          {target.cue && (
+            <p className="text-amber-400/90 text-xs mt-1.5">{target.cue}</p>
+          )}
+          {target.deload && !target.isTimeBased && (
+            <p className="text-amber-400 text-xs mt-1.5">
+              Semaine allégée : {deloadWeight(notebook.lastWeight) !== null
+                ? `~${deloadWeight(notebook.lastWeight)} kg (70 % de ${notebook.lastWeight})`
+                : '70 % de ta charge habituelle'}
+            </p>
+          )}
+          {progression ? (
+            <p className={`text-xs mt-1.5 ${progression.kind === 'increase' ? 'text-emerald-400 font-semibold' : 'text-zinc-500'}`}>
+              {progression.kind === 'increase' ? '↑ ' : ''}{progression.message}
+            </p>
+          ) : !exercise.isRehab && (
             <p className="text-zinc-600 text-xs mt-1.5">
               Incrément : {isCompound ? '+2.5kg' : '+1.25kg'} quand réussi
             </p>
@@ -526,6 +581,11 @@ export default function ExerciseNotebook({
               </button>
             </div>
           </div>
+          {restHint && (
+            <p className="text-zinc-400 text-xs mt-2">
+              Pendant le repos : <span className="text-white font-medium">{restHint.name}</span> · {restHint.detail}
+            </p>
+          )}
         </div>
 
         {/* Exercise note */}
@@ -601,7 +661,7 @@ export default function ExerciseNotebook({
 
 // --- Sub-components ---
 
-function SkipModal({ onSelect, onCancel }: { onSelect: (zone: BodyZone, result?: QuestionnaireResult) => void; onCancel: () => void }) {
+export function SkipModal({ onSelect, onCancel }: { onSelect: (zone: BodyZone, result?: QuestionnaireResult) => void; onCancel: () => void }) {
   const [selectedZone, setSelectedZone] = useState<BodyZone | null>(null)
 
   return (
@@ -644,7 +704,7 @@ function SkipModal({ onSelect, onCancel }: { onSelect: (zone: BodyZone, result?:
   )
 }
 
-function OccupiedOverlay({
+export function OccupiedOverlay({
   suggestions,
   onClose,
 }: {
@@ -687,13 +747,4 @@ function OccupiedOverlay({
       </div>
     </div>
   )
-}
-
-function formatRestLabel(seconds: number): string {
-  if (seconds >= 60) {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return secs > 0 ? `${mins}m${secs}s` : `${mins}min`
-  }
-  return `${seconds}s`
 }
