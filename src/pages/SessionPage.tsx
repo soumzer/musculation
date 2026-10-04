@@ -17,7 +17,6 @@ import { getCoachWeek, DELOAD_SETS } from '../utils/coach-week'
 import { getCoachProgramDef } from '../data/coach-program'
 import { incrementFor } from '../utils/double-progression'
 import ComplexNotebook from '../components/session/ComplexNotebook'
-import { useCoachLadder } from '../hooks/useCoachLadder'
 import { applyLightWeek, isLightWeekActive } from '../data/coach-program'
 
 // ---------------------------------------------------------------------------
@@ -175,9 +174,6 @@ function SessionRunner({
   coachIncrements?: { machine: number; free: number }
 }) {
   const navigate = useNavigate()
-  const { recordCriteria } = useCoachLadder(userId)
-  /** Critères de fin de séance cochés (programme à progression autorégulée). */
-  const [criteriaChecked, setCriteriaChecked] = useState<Set<number>>(new Set())
   const [phase, setPhase] = useState<SessionPhase>('warmup')
   const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0)
   const [exerciseStatuses, setExerciseStatuses] = useState<ExerciseStatus[]>(() =>
@@ -215,10 +211,9 @@ function SessionRunner({
     exerciseStatuses,
     sessionStartTime,
     warmupChecked: [...warmupChecked],
-    criteriaChecked: [...criteriaChecked],
     draftSets: [...draftSetsRef.current.entries()].map(([exerciseId, sets]) => ({ exerciseId, sets })),
     restTimerEndTime: restTimerEndTimeRef.current,
-  }), [programId, sessionIndex, phase, currentExerciseIdx, exerciseStatuses, sessionStartTime, warmupChecked, criteriaChecked])
+  }), [programId, sessionIndex, phase, currentExerciseIdx, exerciseStatuses, sessionStartTime, warmupChecked])
 
   // Try to restore from activeSession table first
   useEffect(() => {
@@ -232,7 +227,6 @@ function SessionRunner({
         setExerciseStatuses(saved.exerciseStatuses)
         setSessionStartTime(saved.sessionStartTime instanceof Date ? saved.sessionStartTime : new Date(saved.sessionStartTime))
         setWarmupChecked(new Set(saved.warmupChecked))
-        setCriteriaChecked(new Set(saved.criteriaChecked ?? []))
         const map = new Map<number, NotebookSet[]>()
         for (const d of saved.draftSets) map.set(d.exerciseId, d.sets)
         draftSetsRef.current = map
@@ -512,11 +506,6 @@ function SessionRunner({
         await db.workoutSessions.put({ ...sessionRecord, id: existingRecent.id, startedAt: existingRecent.startedAt })
       } else {
         await db.workoutSessions.add(sessionRecord)
-        // Une seule fois par séance : re-terminer dans la fenêtre d'édition de
-        // 10h ne doit pas compter une deuxième fois dans la série de 2.
-        if (programSession.criteria?.length) {
-          await recordCriteria(criteriaChecked.size === programSession.criteria.length)
-        }
       }
       await clearSessionState()
       setPhase('done')
@@ -524,7 +513,7 @@ function SessionRunner({
       console.error('Failed to save session:', error)
       setPhase('done')
     }
-  }, [userId, programId, programSession, sessionStartTime, exerciseStatuses, exerciseMap, clearSessionState, recordCriteria, criteriaChecked])
+  }, [userId, programId, programSession, sessionStartTime, exerciseStatuses, exerciseMap, clearSessionState])
 
   // Swap: alternatives curées puis auto-match — logique partagée avec l'écran
   // superset (utils/swap-options.ts).
@@ -818,8 +807,6 @@ function SessionRunner({
           restSeconds: currentProgramExercise.restSeconds,
           intensity: (programSession.intensity ?? 'volume') as 'heavy' | 'volume' | 'moderate',
           cue: currentProgramExercise.cue,
-          ladderLabel: currentProgramExercise.ladderLabel,
-          ladderWeightKg: currentProgramExercise.ladderWeightKg,
         }}
         exerciseIndex={currentExerciseIdx}
         totalExercises={programSession.exercises.length}
@@ -860,8 +847,6 @@ function SessionRunner({
           cue: currentProgramExercise.cue,
           deload: isDeload,
           increment: coachIncrements ? incrementFor(currentCatalogExercise.equipmentNeeded, coachIncrements) : undefined,
-          ladderLabel: currentProgramExercise.ladderLabel,
-          ladderWeightKg: currentProgramExercise.ladderWeightKg,
         }}
         restHint={programSession.coreDuringRest}
         hideIntensityBadge={programSession.intensity === undefined}
@@ -904,40 +889,6 @@ function SessionRunner({
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3">
-            {programSession.criteria && programSession.criteria.length > 0 && (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-4">
-                <p className="text-zinc-600 text-xs uppercase tracking-widest mb-1">Comment c'était ?</p>
-                <p className="text-zinc-500 text-xs mb-3">
-                  Les 3 cochées sur deux séances de suite = tu peux monter d'un palier.
-                </p>
-                <div className="space-y-1.5">
-                  {programSession.criteria.map((label, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCriteriaChecked(prev => {
-                        const next = new Set(prev)
-                        if (next.has(i)) next.delete(i)
-                        else next.add(i)
-                        return next
-                      })}
-                      className="w-full flex items-center gap-3 bg-zinc-800/60 rounded-xl px-3 py-2.5 text-left active:scale-[0.98] transition-all duration-150"
-                      style={{ touchAction: 'manipulation' }}
-                    >
-                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                        criteriaChecked.has(i) ? 'bg-emerald-500 border-emerald-500' : 'border-zinc-600'
-                      }`}>
-                        {criteriaChecked.has(i) && (
-                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                      <span className={`text-sm ${criteriaChecked.has(i) ? 'text-white' : 'text-zinc-400'}`}>{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
             {cooldownRoutine?.map((item, i) => (
               <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-4 flex items-center justify-between gap-3">
                 <p className="text-white font-semibold text-sm">{item.name}</p>

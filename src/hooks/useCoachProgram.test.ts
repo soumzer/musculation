@@ -5,7 +5,7 @@ import { useRegenerateProgram } from './useRegenerateProgram'
 import { useEngineVersionCheck } from './useEngineVersionCheck'
 import { db } from '../db'
 import { seedExercises } from '../data/seed'
-import { yassineProgram, jannaProgram, kettlebellProgram } from '../data/coach-program'
+import { yassineProgram, jannaProgram } from '../data/coach-program'
 import type { UserProfile, WorkoutProgram } from '../db/types'
 
 const userId = 1
@@ -151,62 +151,5 @@ describe('useCoachProgram', () => {
     await new Promise((r) => setTimeout(r, 50))
     expect(result.current.upgraded).toBe(false)
     expect((await activeProgram())?.id).toBe(id)
-  })
-})
-
-describe('useCoachProgram — la progression par paliers survit', () => {
-  const IRON_CARDIO = 'Iron Cardio (clean + press + squat kettlebell)'
-
-  beforeEach(async () => {
-    await db.delete()
-    await db.open()
-    localStorage.clear()
-    await db.userProfiles.add({ id: userId, name: 'Test', daysPerWeek: 3, minutesPerSession: 40 } as UserProfile)
-    await seedExercises()
-  })
-
-  const ironCardioExercises = (program: WorkoutProgram) =>
-    program.sessions.flatMap((s) => s.exercises).filter((e) => e.continuousComplex)
-
-  it('quitter le programme kettlebell puis y revenir garde les paliers', async () => {
-    const { result } = renderHook(() => useCoachProgram())
-
-    await result.current.activate(userId, 'kettlebell')
-    const premier = (await activeProgram())!
-    expect(premier.coachLadder).toBeUndefined()
-    expect(premier.coachVersion).toBe(kettlebellProgram.version)
-
-    // On simule trois paliers franchis.
-    await db.workoutPrograms.update(premier.id!, {
-      coachLadder: { [IRON_CARDIO]: 3 },
-      coachLastAdvanceAt: '2026-10-01T10:00:00.000Z',
-    })
-
-    // Il passe sur le programme de sa femme, puis revient.
-    await result.current.activate(userId, 'janna')
-    await result.current.activate(userId, 'kettlebell')
-
-    const revenu = (await activeProgram())!
-    expect(revenu.coachId).toBe('kettlebell')
-    expect(revenu.coachLadder).toEqual({ [IRON_CARDIO]: 3 })
-    expect(revenu.coachLastAdvanceAt).toBe('2026-10-01T10:00:00.000Z')
-    // La prescription repart du palier 4, pas du premier.
-    const exos = ironCardioExercises(revenu)
-    expect(exos).toHaveLength(2)
-    expect(exos.every((e) => e.targetReps === 1200)).toBe(true)
-    expect(exos.every((e) => e.ladderLabel === '14 kg — 20 min')).toBe(true)
-  })
-
-  it('mettre à jour le programme en place garde aussi les paliers', async () => {
-    const { result } = renderHook(() => useCoachProgram())
-    await result.current.activate(userId, 'kettlebell')
-    await db.workoutPrograms.update((await activeProgram())!.id!, { coachLadder: { [IRON_CARDIO]: 1 } })
-
-    // Réactiver le MÊME programme = le bouton « Mettre à jour » du profil.
-    await result.current.activate(userId, 'kettlebell')
-
-    const maj = (await activeProgram())!
-    expect(maj.coachLadder).toEqual({ [IRON_CARDIO]: 1 })
-    expect(ironCardioExercises(maj).every((e) => e.targetReps === 900)).toBe(true)
   })
 })

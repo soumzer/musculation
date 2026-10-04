@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { db } from '../db'
 import { useNextSession, type CoachWeekStatus } from '../hooks/useNextSession'
 import { useActiveSession } from '../hooks/useActiveSession'
-import { useCoachLadder } from '../hooks/useCoachLadder'
+import { useLightWeek } from '../hooks/useLightWeek'
 import { daysSinceLastBackup } from '../utils/backup'
 import { formatPrescription } from '../utils/format-prescription'
 import type { NotebookEntry, ProgramSession } from '../db/types'
@@ -60,93 +60,36 @@ function CoachWeekCard({ week }: { week: CoachWeekStatus }) {
 }
 
 /**
- * Progression autorégulée : où en est chaque exo à paliers, et le bouton pour
- * monter quand les critères ont été validés sur deux séances de suite.
+ * Semaine allégée à la demande (programme coach). Pas de calendrier : c'est
+ * l'utilisateur qui décide quand la fatigue s'accumule.
  */
-function LadderCard({ userId }: { userId: number }) {
-  const { state, advance, setLightWeek } = useCoachLadder(userId)
-  const [working, setWorking] = useState(false)
+function LightWeekCard({ userId }: { userId: number }) {
+  const { state, setLightWeek } = useLightWeek(userId)
   if (!state) return null
 
-  const handleAdvance = async (name: string) => {
-    if (working) return
-    setWorking(true)
-    try { await advance(name) } finally { setWorking(false) }
+  if (!state.until) {
+    return (
+      <button
+        onClick={() => setLightWeek(true)}
+        className="w-full text-left bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 mb-4 active:scale-[0.99] transition-all duration-150"
+      >
+        <p className="text-zinc-500 text-xs">Fatigue qui s'accumule ? Passer en semaine allégée ›</p>
+      </button>
+    )
   }
 
   return (
-    <div className={`rounded-2xl p-4 mb-4 border ${
-      state.canAdvance ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-zinc-900 border-zinc-800'
-    }`}>
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-zinc-600 text-xs uppercase tracking-wider">Progression</p>
-        {state.canAdvance && (
-          <span className="text-emerald-400 text-xs font-bold">Tu peux monter</span>
-        )}
-      </div>
-      <p className="text-zinc-500 text-xs mb-3">
-        {state.canAdvance
-          ? 'Une marche à la fois : choisis l\'exo que tu fais monter.'
-          : state.streak === 1
-            ? '1 séance validée sur 2. Encore une et tu montes.'
-            : 'Valide les 3 critères sur deux séances de suite pour monter.'}
+    <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3 mb-4 flex items-center justify-between gap-3">
+      <p className="text-amber-400 text-xs">
+        Semaine allégée jusqu'au {new Date(state.until).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+        <span className="text-zinc-500"> · moitié du volume, même charge</span>
       </p>
-      <div className="space-y-2.5">
-        {state.items.map(item => (
-          <div key={item.exerciseName} className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-white text-sm font-semibold truncate">
-                {item.exerciseName.replace(/\s*\(.*\)$/, '')}
-              </p>
-              <p className="text-zinc-500 text-xs">
-                Palier {item.stepIndex + 1}/{item.stepCount} · {item.current.label}
-              </p>
-            </div>
-            {item.next ? (
-              <button
-                onClick={() => handleAdvance(item.exerciseName)}
-                disabled={!state.canAdvance || working}
-                className="flex-shrink-0 bg-emerald-500 text-white text-sm font-bold rounded-xl px-3 py-2 active:scale-95 transition-all duration-200 disabled:bg-zinc-800 disabled:text-zinc-600"
-              >
-                Monter ›
-              </button>
-            ) : (
-              <span className="flex-shrink-0 text-zinc-600 text-xs">dernier palier</span>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {state.staleStimulus && (
-        <p className="text-amber-400 text-xs mt-3 pt-3 border-t border-zinc-800">
-          Aucun palier franchi depuis 3 semaines. Change de stimulus : complexe plus dur,
-          nouvel exercice, ou kettlebell plus lourde.
-        </p>
-      )}
-
-      <div className="mt-3 pt-3 border-t border-zinc-800">
-        {state.lightWeekUntil ? (
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-amber-400 text-xs">
-              Semaine allégée jusqu'au {new Date(state.lightWeekUntil).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-              <span className="text-zinc-500"> · moitié du volume, même charge</span>
-            </p>
-            <button
-              onClick={() => setLightWeek(false)}
-              className="flex-shrink-0 text-zinc-500 text-xs underline active:text-white transition-colors"
-            >
-              Annuler
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setLightWeek(true)}
-            className="text-zinc-500 text-xs active:text-amber-400 transition-colors"
-          >
-            Fatigue qui s'accumule ? Passer en semaine allégée ›
-          </button>
-        )}
-      </div>
+      <button
+        onClick={() => setLightWeek(false)}
+        className="flex-shrink-0 text-zinc-500 text-xs underline active:text-white transition-colors"
+      >
+        Annuler
+      </button>
     </div>
   )
 }
@@ -298,9 +241,7 @@ export default function HomePage() {
               : 'Repos conseillé'}
           </p>
 
-          {/* Le palier débloqué doit se voir ici : c'est juste après la séance
-              que les critères viennent d'être validés. */}
-          <LadderCard userId={user.id!} />
+          <LightWeekCard userId={user.id!} />
 
           {/* Séances de la semaine — accès même pendant la fenêtre de repos */}
           <WeekCard
@@ -414,7 +355,7 @@ export default function HomePage() {
 
         {info.coachWeek && <CoachWeekCard week={info.coachWeek} />}
 
-        <LadderCard userId={user.id!} />
+        <LightWeekCard userId={user.id!} />
 
         <BackupReminder userId={user.id!} />
 
@@ -444,15 +385,22 @@ export default function HomePage() {
               {info.preview.exercises.map((ex, idx) => {
                 const perf = lastPerfs?.get(ex.exerciseId)
                 const bestSet = perf?.sets.reduce((best, s) => s.weightKg > best.weightKg ? s : best, perf.sets[0])
+                // Complexe au chrono : la durée est libre, donc l'aperçu annonce
+                // celle de la dernière séance, pas celle écrite dans le programme.
+                const lastSeconds = perf?.sets[0]?.seconds
                 return (
                   <div key={idx} className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-medium truncate">{ex.name}</p>
                       <p className="text-zinc-600 text-xs">
-                        {formatPrescription(ex)}
+                        {lastSeconds !== undefined ? `1 x ${Math.round(lastSeconds / 60)} min` : formatPrescription(ex)}
                       </p>
                     </div>
-                    {bestSet && bestSet.weightKg > 0 ? (
+                    {lastSeconds !== undefined && bestSet ? (
+                      <span className="text-zinc-400 text-sm flex-shrink-0 ml-3">
+                        {bestSet.weightKg > 0 ? `${bestSet.weightKg}kg · ` : ''}{bestSet.reps} tours
+                      </span>
+                    ) : bestSet && bestSet.weightKg > 0 ? (
                       <span className="text-zinc-400 text-sm flex-shrink-0 ml-3">
                         {bestSet.weightKg}kg x {bestSet.reps}
                       </span>

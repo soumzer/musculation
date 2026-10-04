@@ -24,16 +24,12 @@ export interface ComplexNotebookProps {
     instructions: string
   }
   target: {
-    /** Durée du palier, en secondes. */
+    /** Durée proposée par défaut, en secondes — l'utilisateur la règle ensuite. */
     durationSeconds: number
     restSeconds: number
     intensity: 'heavy' | 'volume' | 'moderate' | 'rehab'
     /** Consigne courte du coach. */
     cue?: string
-    /** Palier courant : « 14 kg — 18 min ». */
-    ladderLabel?: string
-    /** Charge imposée par le palier — pré-remplie dans le champ. */
-    ladderWeightKg?: number
   }
   exerciseIndex: number
   totalExercises: number
@@ -54,6 +50,10 @@ const SECTION_LABEL = 'text-zinc-600 text-xs uppercase tracking-wider'
 function tapFeedback() {
   try { navigator.vibrate?.(10) } catch { /* ignore */ }
 }
+
+const DUREE_MIN = 4 * 60
+const DUREE_MAX = 45 * 60
+const PAS = 60
 
 /** Le tour 1 se fait à gauche, le 2 à droite, etc. */
 function sideOfRound(round: number): 'Gauche' | 'Droite' {
@@ -83,13 +83,6 @@ export default function ComplexNotebook({
     onDraftSetsChange,
   )
 
-  // Le chrono tourne sur l'horloge réelle : il reprend où il en était après un
-  // passage en arrière-plan ou un rechargement en pleine séance.
-  const chrono = useRestTimer(target.durationSeconds, initialChronoEndTime)
-
-  useEffect(() => {
-    onChronoChange?.(chrono.endTime)
-  }, [chrono.endTime]) // eslint-disable-line react-hooks/exhaustive-deps
   const [showSkipModal, setShowSkipModal] = useState(false)
   const [showDescription, setShowDescription] = useState(false)
 
@@ -99,38 +92,57 @@ export default function ComplexNotebook({
   const entry = notebook.currentSets[0]
   const rounds = entry?.reps ?? 0
 
+  // Durée réglée à la main. Par défaut celle de la dernière séance : on repart
+  // de ce qu'on a vraiment fait, pas d'une consigne figée.
+  const [durationTyped, setDurationTyped] = useState<number | null>(null)
+  const lastDone = notebook.history.find(e => !e.skipped && e.sets[0]?.seconds !== undefined)?.sets[0]
+  const durationSeconds = durationTyped ?? entry?.seconds ?? lastDone?.seconds ?? target.durationSeconds
+
+  // Le chrono tourne sur l'horloge réelle : il reprend où il en était après un
+  // passage en arrière-plan ou un rechargement en pleine séance.
+  const chrono = useRestTimer(durationSeconds, initialChronoEndTime)
+
+  useEffect(() => {
+    onChronoChange?.(chrono.endTime)
+  }, [chrono.endTime]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // L'historique arrive de façon asynchrone : la charge affichée est dérivée,
   // pas figée au premier rendu, sinon le pré-remplissage ne se voit jamais.
   // `typed` (non nul) = l'utilisateur a touché le champ, il garde la main.
   const [typed, setTyped] = useState<string | null>(null)
   const weightInput = typed ?? (entry?.weightKg
     ? String(entry.weightKg)
-    // Le palier fait foi : juste après être monté, c'est SA charge qu'on veut,
-    // pas celle de la séance précédente.
-    : target.ladderWeightKg !== undefined ? String(target.ladderWeightKg)
     : notebook.lastWeight ? String(notebook.lastWeight) : '')
   const weightKg = Math.max(0, parseFloat(weightInput) || 0)
 
-  const write = useCallback((w: number, r: number) => {
-    if (notebook.currentSets.length === 0) notebook.addSet(w, r)
-    else notebook.updateSet(0, w, r)
+  const write = useCallback((w: number, r: number, sec: number) => {
+    if (notebook.currentSets.length === 0) notebook.addSet(w, r, sec)
+    else notebook.updateSet(0, w, r, sec)
   }, [notebook])
 
   const handleWeightChange = useCallback((value: string) => {
     setTyped(value)
     const w = parseFloat(value)
-    write(isNaN(w) || w < 0 ? 0 : w, rounds)
-  }, [write, rounds])
+    write(isNaN(w) || w < 0 ? 0 : w, rounds, durationSeconds)
+  }, [write, rounds, durationSeconds])
 
   const addRound = useCallback(() => {
-    write(weightKg, rounds + 1)
+    write(weightKg, rounds + 1, durationSeconds)
     tapFeedback()
-  }, [write, weightKg, rounds])
+  }, [write, weightKg, rounds, durationSeconds])
 
   const removeRound = useCallback(() => {
     if (rounds <= 0) return
-    write(weightKg, rounds - 1)
-  }, [write, weightKg, rounds])
+    write(weightKg, rounds - 1, durationSeconds)
+  }, [write, weightKg, rounds, durationSeconds])
+
+  /** Régler la durée — chrono à l'arrêt uniquement, sinon on fausse la séance. */
+  const changeDuration = useCallback((delta: number) => {
+    if (chrono.isRunning) return
+    const next = Math.min(DUREE_MAX, Math.max(DUREE_MIN, durationSeconds + delta))
+    setDurationTyped(next)
+    if (entry !== undefined) write(weightKg, rounds, next)
+  }, [chrono.isRunning, durationSeconds, entry, write, weightKg, rounds])
 
   const handleSave = useCallback(async () => {
     await notebook.saveAndNext()
@@ -148,7 +160,7 @@ export default function ComplexNotebook({
     await notebook.skipExercise(zone, result)
   }, [notebook])
 
-  const minutes = Math.round(target.durationSeconds / 60)
+  const minutes = Math.round(durationSeconds / 60)
   const history = notebook.history.filter(e => !e.skipped && e.sets.length > 0).slice(0, 3)
 
   return (
@@ -171,9 +183,6 @@ export default function ComplexNotebook({
           <p className="text-zinc-400 text-sm mt-1.5">
             {minutes} min au chrono — repos {formatRestLabel(target.restSeconds)}
           </p>
-          {target.ladderLabel && (
-            <p className="text-emerald-400 text-xs mt-1.5 font-semibold">Palier : {target.ladderLabel}</p>
-          )}
           {target.cue && <p className="text-amber-400/90 text-xs mt-1.5">{target.cue}</p>}
           <button
             onClick={() => setShowDescription(v => !v)}
@@ -204,7 +213,27 @@ export default function ComplexNotebook({
 
         {/* Chrono */}
         <div className={`${CARD} mb-3`}>
-          <p className={`${SECTION_LABEL} mb-2`}>Chrono</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className={SECTION_LABEL}>Chrono</p>
+            {/* Réglage de la durée : seulement à l'arrêt, sinon on fausse la séance. */}
+            <div className={`flex items-center gap-2 ${chrono.isRunning ? 'opacity-30' : ''}`}>
+              <button
+                onClick={() => changeDuration(-PAS)}
+                disabled={chrono.isRunning || durationSeconds <= DUREE_MIN}
+                className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-300 text-lg leading-none active:scale-90 transition-all duration-150 disabled:opacity-30"
+              >
+                −
+              </button>
+              <span className="text-zinc-400 text-sm tabular-nums w-14 text-center">{minutes} min</span>
+              <button
+                onClick={() => changeDuration(PAS)}
+                disabled={chrono.isRunning || durationSeconds >= DUREE_MAX}
+                className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-300 text-lg leading-none active:scale-90 transition-all duration-150 disabled:opacity-30"
+              >
+                +
+              </button>
+            </div>
+          </div>
           <div className="flex items-center gap-3">
             <span className={`text-4xl font-black tabular-nums ${
               chrono.remaining === 0 ? 'text-emerald-400' : 'text-white'
@@ -272,6 +301,7 @@ export default function ComplexNotebook({
                   </span>
                   <span className="text-zinc-300">
                     {e.sets[0].weightKg > 0 ? `${e.sets[0].weightKg} kg · ` : ''}
+                    {e.sets[0].seconds !== undefined ? `${Math.round(e.sets[0].seconds / 60)} min · ` : ''}
                     <span className="text-white font-semibold">{e.sets[0].reps} tours</span>
                   </span>
                 </div>

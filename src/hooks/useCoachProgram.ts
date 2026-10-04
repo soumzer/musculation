@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { db } from '../db'
-import { applyLadder, buildCoachSessions, getCoachProgramDef, type CoachProgramId } from '../data/coach-program'
+import { buildCoachSessions, getCoachProgramDef, type CoachProgramId } from '../data/coach-program'
 import { ENGINE_VERSION } from '../engine/program-generator'
 
 export interface CoachActionResult {
@@ -46,8 +46,7 @@ export function useCoachProgram() {
         if (sameCoach?.id !== undefined) {
           await db.workoutPrograms.update(sameCoach.id, {
             name: def.name,
-            // Le palier atteint survit à une mise à jour du programme.
-            sessions: applyLadder(def, sessions, sameCoach.coachLadder, catalog),
+            sessions,
             prepRoutine: def.prepRoutine,
             cooldownRoutine: def.cooldownRoutine,
             engineVersion: ENGINE_VERSION,
@@ -61,18 +60,11 @@ export function useCoachProgram() {
           if (prog.id !== undefined) await db.workoutPrograms.update(prog.id, { isActive: false })
         }
 
-        // Ce programme coach a-t-il déjà tourné ? On récupère sa progression
-        // plutôt que de repartir du premier palier — passer sur un autre
-        // programme et revenir ne doit rien effacer.
-        const ancien = (await db.workoutPrograms.where('userId').equals(userId).toArray())
-          .filter((p) => p.isCoach && p.coachId === def.id)
-          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0]
-
         await db.workoutPrograms.add({
           userId,
           name: def.name,
           type: 'custom',
-          sessions: applyLadder(def, sessions, ancien?.coachLadder, catalog),
+          sessions,
           isActive: true,
           createdAt: new Date(),
           engineVersion: ENGINE_VERSION,
@@ -82,9 +74,6 @@ export function useCoachProgram() {
           startedAt: new Date(),
           prepRoutine: def.prepRoutine,
           cooldownRoutine: def.cooldownRoutine,
-          coachLadder: ancien?.coachLadder,
-          coachCriteria: ancien?.coachCriteria,
-          coachLastAdvanceAt: ancien?.coachLastAdvanceAt,
         })
       })
 

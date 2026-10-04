@@ -17,8 +17,6 @@ export interface ActiveSessionState {
   exerciseStatuses: ExerciseStatus[]
   sessionStartTime: Date
   warmupChecked: number[]        // Set<number> serialized as array
-  /** Critères de fin de séance déjà cochés (index), programme à paliers. */
-  criteriaChecked?: number[]
   draftSets: { exerciseId: number; sets: NotebookSet[] }[]
   restTimerEndTime: number | null  // Date.now() timestamp when timer expires, null if not running
   updatedAt: Date
@@ -148,20 +146,8 @@ export interface WorkoutProgram {
   prepRoutine?: PrepItem[]
   /** Mobilité fixe affichée à la place du cooldown automatique. */
   cooldownRoutine?: PrepItem[]
-  /**
-   * Progression autorégulée : index du palier courant, par nom d'exercice.
-   * Absent = tout le monde au premier palier.
-   */
-  coachLadder?: Record<string, number>
-  /**
-   * Critères de fin de séance, les plus récents en dernier. Deux `ok: true`
-   * de suite débloquent le palier suivant.
-   */
-  coachCriteria?: { date: string; ok: boolean }[]
   /** Semaine allégée déclenchée à la main : active tant que cette date n'est pas passée. */
   coachLightWeekUntil?: string
-  /** Date du dernier palier franchi — sert à proposer un changement de stimulus. */
-  coachLastAdvanceAt?: string
 }
 
 /** Unité « par côté » d'une prescription unilatérale. */
@@ -205,8 +191,6 @@ export interface ProgramSession {
   coreDuringRest?: { name: string; detail: string }
   /** Finisher cardio/conditioning en fin de séance (remplace le cooldown). */
   finisher?: Finisher
-  /** Critères à cocher en fin de séance (progression autorégulée). */
-  criteria?: string[]
   /**
    * Engine slot labels the user manually deleted from this session. Preserved
    * across engine regen so the same slot doesn't reappear after a version bump.
@@ -245,10 +229,6 @@ export interface ProgramExercise {
    * Ce qui est enregistré : la charge et le nombre de tours.
    */
   continuousComplex?: boolean
-  /** Palier courant d'un exo à progression autorégulée : « 14 kg — 18 min ». */
-  ladderLabel?: string
-  /** Charge du palier courant — sert au pré-remplissage. */
-  ladderWeightKg?: number
   /**
    * Slot identifier from the generator (e.g. 'Quad compound', 'Core'). Stable
    * across slot reordering — used to re-apply user swaps when the program is
@@ -343,6 +323,12 @@ export interface NotebookEntry {
 export interface NotebookSet {
   weightKg: number
   reps: number
+  /**
+   * Durée réellement faite, en secondes — complexe au chrono (Iron Cardio),
+   * où `reps` compte les tours. Absent sur les séries classiques, et sur les
+   * séances enregistrées avant que la durée soit réglable.
+   */
+  seconds?: number
 }
 
 export interface RehabHistoryEntry {

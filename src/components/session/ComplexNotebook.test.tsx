@@ -32,7 +32,7 @@ describe('ComplexNotebook', () => {
     await db.notebookEntries.clear()
   })
 
-  it('annonce la durée du palier et le repos en clair', () => {
+  it('annonce la durée et le repos en clair', () => {
     renderComplex()
     expect(screen.getByText('12 min au chrono — repos 2min')).toBeInTheDocument()
     expect(screen.getByText('12:00')).toBeInTheDocument()
@@ -69,7 +69,8 @@ describe('ComplexNotebook', () => {
     await waitFor(() => expect(onNext).toHaveBeenCalled())
     const entries = await db.notebookEntries.where('exerciseId').equals(EXERCISE_ID).toArray()
     expect(entries).toHaveLength(1)
-    expect(entries[0].sets).toEqual([{ weightKg: 16, reps: 3 }])
+    // La durée part avec : « 3 tours » ne veut rien dire sans elle.
+    expect(entries[0].sets).toEqual([{ weightKg: 16, reps: 3, seconds: 720 }])
     expect(entries[0].skipped).toBe(false)
   })
 
@@ -120,5 +121,63 @@ describe('ComplexNotebook', () => {
     onChronoChange.mockClear()
     await user.click(screen.getByRole('button', { name: 'Démarrer' }))
     expect(onChronoChange).toHaveBeenCalledWith(expect.any(Number))
+  })
+
+  it('la durée se règle par minute, chrono à l\'arrêt', async () => {
+    const user = userEvent.setup()
+    renderComplex()
+    expect(screen.getByText('12 min')).toBeInTheDocument()
+    expect(screen.getByText('12:00')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '+' }))
+    await user.click(screen.getByRole('button', { name: '+' }))
+    expect(screen.getByText('14 min')).toBeInTheDocument()
+    expect(screen.getByText('14:00')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '−' }))
+    expect(screen.getByText('13 min')).toBeInTheDocument()
+  })
+
+  it('on ne peut pas changer la durée pendant que le chrono tourne', async () => {
+    const user = userEvent.setup()
+    renderComplex()
+    await user.click(screen.getByRole('button', { name: 'Démarrer' }))
+    expect(screen.getByRole('button', { name: '+' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '−' })).toBeDisabled()
+  })
+
+  it('la durée enregistrée est celle qu\'on a réglée', async () => {
+    const user = userEvent.setup()
+    const onNext = renderComplex()
+
+    await user.click(screen.getByRole('button', { name: '+' })) // 13 min
+    await user.type(screen.getByPlaceholderText('kg'), '16')
+    await user.click(screen.getByRole('button', { name: '+1 tour' }))
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+
+    await waitFor(() => expect(onNext).toHaveBeenCalled())
+    const entries = await db.notebookEntries.where('exerciseId').equals(EXERCISE_ID).toArray()
+    expect(entries[0].sets).toEqual([{ weightKg: 16, reps: 1, seconds: 13 * 60 }])
+  })
+
+  it('repart sur la durée de la dernière séance, pas sur celle du programme', async () => {
+    await db.notebookEntries.add({
+      userId: USER_ID,
+      exerciseId: EXERCISE_ID,
+      exerciseName: 'Iron Cardio (clean + press + squat kettlebell)',
+      date: new Date(Date.now() - 3 * 24 * 3600 * 1000),
+      sessionIntensity: 'volume',
+      sets: [{ weightKg: 16, reps: 24, seconds: 20 * 60 }],
+      skipped: false,
+    })
+    renderComplex()
+    expect(await screen.findByText('20 min')).toBeInTheDocument()
+    // Le chrono se recale un microtask plus tard (useRestTimer).
+    expect(await screen.findByText('20:00')).toBeInTheDocument()
+    // Le texte de l'historique est découpé en plusieurs éléments.
+    expect(screen.getByText((_, el) =>
+      el?.className?.includes('text-zinc-300') === true
+      && el.textContent?.replace(/\s+/g, ' ').includes('16 kg · 20 min · 24 tours') === true,
+    )).toBeInTheDocument()
   })
 })

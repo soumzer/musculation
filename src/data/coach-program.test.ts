@@ -1,15 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { exerciseCatalog } from './exercises'
 import {
-  applyLadder,
-  buildCoachSessions,
   applyLightWeek,
-  canAdvanceLadder,
+  buildCoachSessions,
   isLightWeekActive,
-  ladderExercises,
   lightWeekEnd,
-  shouldChangeStimulus,
-  ladderStepIndex,
   coachExerciseNames,
   coachPrograms,
   getCoachProgramDef,
@@ -214,7 +209,7 @@ describe('coach-program — Kettlebell maison', () => {
     expect(ironCardio.isTimeBased).toBe(true)
     // Chrono + compteur de tours à la place des séries (ComplexNotebook).
     expect(ironCardio.continuousComplex).toBe(true)
-    expect(ironCardio.targetReps).toBe(720) // palier 1 : 12 min
+    expect(ironCardio.targetReps).toBe(720) // durée de départ : 12 min, réglable ensuite
     expect(ironCardio.sets).toBe(1)
     // Seul l'Iron Cardio est un complexe : le reste passe par le carnet normal.
     for (const s of buildCoachSessions(kettlebellProgram, catalogWithIds)) {
@@ -250,102 +245,6 @@ describe('coach-program — Kettlebell maison', () => {
   })
 })
 
-describe('coach-program — paliers (progression autorégulée)', () => {
-  const sessions = buildCoachSessions(kettlebellProgram, catalogWithIds)
-  const ironCardioId = idByName.get('Iron Cardio (clean + press + squat kettlebell)')!
-  const swingId = idByName.get('Kettlebell swing à un bras')!
-  const bulgareId = idByName.get('Squat bulgare kettlebell (goblet)')!
-  const find = (ss: typeof sessions, id: number) =>
-    ss.flatMap((s) => s.exercises).find((e) => e.exerciseId === id)!
-
-  it('trois exos progressent : Iron Cardio, swing à un bras, squat bulgare', () => {
-    expect(ladderExercises(kettlebellProgram).map((l) => l.name)).toEqual([
-      'Iron Cardio (clean + press + squat kettlebell)',
-      'Kettlebell swing à un bras',
-      'Squat bulgare kettlebell (goblet)',
-    ])
-  })
-
-  it('le palier 1 décrit exactement la prescription de départ', () => {
-    for (const { name, ladder } of ladderExercises(kettlebellProgram)) {
-      const exo = find(sessions, idByName.get(name)!)
-      const first = ladder[0]
-      if (first.durationSeconds !== undefined) expect(exo.targetReps, name).toBe(first.durationSeconds)
-      if (first.reps !== undefined) expect(exo.targetReps, name).toBe(first.reps)
-      if (first.sets !== undefined) expect(exo.sets, name).toBe(first.sets)
-      expect(exo.ladderLabel, name).toBe(first.label)
-      expect(exo.ladderWeightKg, name).toBe(first.weightKg)
-    }
-  })
-
-  it('monter d\'un palier réécrit la durée, les séries et la charge affichée', () => {
-    const next = applyLadder(
-      kettlebellProgram,
-      sessions,
-      { 'Iron Cardio (clean + press + squat kettlebell)': 2, 'Kettlebell swing à un bras': 2 },
-      catalogWithIds,
-    )
-
-    const ic = find(next, ironCardioId)
-    expect(ic.targetReps).toBe(1080) // 18 min
-    expect(ic.ladderLabel).toBe('14 kg — 18 min')
-    expect(ic.ladderWeightKg).toBe(14)
-
-    const swing = find(next, swingId)
-    expect(swing.sets).toBe(5)
-    expect(swing.targetReps).toBe(10)
-    expect(swing.ladderWeightKg).toBe(16)
-    expect(swing.perSide).toBe('bras') // le reste de la prescription ne bouge pas
-
-    // Exo non mentionné : inchangé.
-    expect(find(next, bulgareId)).toEqual(find(sessions, bulgareId))
-  })
-
-  it('les deux séances Iron Cardio montent ensemble', () => {
-    const next = applyLadder(kettlebellProgram, sessions, { 'Iron Cardio (clean + press + squat kettlebell)': 4 }, catalogWithIds)
-    const lundi = next[0].exercises[0]
-    const vendredi = next[2].exercises[0]
-    expect(lundi.exerciseId).toBe(ironCardioId)
-    expect(vendredi.exerciseId).toBe(ironCardioId)
-    expect(vendredi.targetReps).toBe(lundi.targetReps)
-    expect(lundi.ladderLabel).toBe('16 kg — 12 min')
-  })
-
-  it('un index hors bornes est ramené dans la plage', () => {
-    const steps = ladderExercises(kettlebellProgram)[0].ladder
-    expect(ladderStepIndex(steps, undefined)).toBe(0)
-    expect(ladderStepIndex(steps, -3)).toBe(0)
-    expect(ladderStepIndex(steps, 99)).toBe(steps.length - 1)
-    const next = applyLadder(kettlebellProgram, sessions, { 'Kettlebell swing à un bras': 99 }, catalogWithIds)
-    expect(find(next, swingId).ladderLabel).toBe('16 kg · 5 × 10 par bras')
-  })
-
-  it('sans paliers enregistrés, les séances ne sont pas recopiées', () => {
-    expect(applyLadder(kettlebellProgram, sessions, undefined, catalogWithIds)).toBe(sessions)
-    expect(applyLadder(kettlebellProgram, sessions, {}, catalogWithIds)).toBe(sessions)
-  })
-
-  it('il faut DEUX séances de suite avec les 3 critères', () => {
-    expect(canAdvanceLadder(undefined)).toBe(false)
-    expect(canAdvanceLadder([])).toBe(false)
-    expect(canAdvanceLadder([{ date: 'a', ok: true }])).toBe(false)
-    expect(canAdvanceLadder([{ date: 'a', ok: true }, { date: 'b', ok: true }])).toBe(true)
-    // Une séance ratée casse la série, même après deux bonnes.
-    expect(canAdvanceLadder([
-      { date: 'a', ok: true }, { date: 'b', ok: true }, { date: 'c', ok: false },
-    ])).toBe(false)
-    expect(canAdvanceLadder([
-      { date: 'a', ok: false }, { date: 'b', ok: true }, { date: 'c', ok: true },
-    ])).toBe(true)
-  })
-
-  it('les deux séances Iron Cardio demandent les 3 critères, les autres non', () => {
-    expect(kettlebellProgram.sessions.map((s) => s.criteria?.length ?? 0)).toEqual([3, 0, 3, 0])
-    expect(sessions[0].criteria).toHaveLength(3)
-    expect(sessions[1].criteria).toBeUndefined()
-  })
-})
-
 describe('coach-program — semaine allégée à la demande', () => {
   const sessions = buildCoachSessions(kettlebellProgram, catalogWithIds)
 
@@ -378,12 +277,8 @@ describe('coach-program — semaine allégée à la demande', () => {
     expect(light[0].exercises[1].targetReps).toBe(30)
   })
 
-  it('la durée annoncée et le libellé du palier suivent', () => {
-    const light = applyLightWeek(sessions, true)
-    expect(light[0].durationMin).toBe(20) // 40 min → 20
-    expect(light[0].exercises[0].ladderLabel).toBe('12 kg — 12 min (technique seulement) · allégé de moitié')
-    // Un exo sans palier n'invente pas de libellé.
-    expect(light[0].exercises[1].ladderLabel).toBeUndefined()
+  it('la durée annoncée de la séance suit', () => {
+    expect(applyLightWeek(sessions, true)[0].durationMin).toBe(20) // 40 min → 20
   })
 
   it('inactive, elle ne touche à rien', () => {
@@ -396,22 +291,6 @@ describe('coach-program — semaine allégée à la demande', () => {
     expect(isLightWeekActive(until, new Date('2026-10-10T10:00:00Z'))).toBe(true)
     expect(isLightWeekActive(until, new Date('2026-10-11T10:01:00Z'))).toBe(false)
     expect(isLightWeekActive(undefined, now)).toBe(false)
-  })
-})
-
-describe('coach-program — changement de stimulus', () => {
-  const now = new Date('2026-11-01T12:00:00Z')
-  const daysBefore = (n: number) => new Date(now.getTime() - n * 24 * 3600 * 1000)
-
-  it('proposé après 3 semaines sans palier franchi', () => {
-    expect(shouldChangeStimulus(daysBefore(20).toISOString(), undefined, now)).toBe(false)
-    expect(shouldChangeStimulus(daysBefore(21).toISOString(), undefined, now)).toBe(true)
-  })
-
-  it('sans palier jamais franchi, on compte depuis le début du programme', () => {
-    expect(shouldChangeStimulus(undefined, daysBefore(10), now)).toBe(false)
-    expect(shouldChangeStimulus(undefined, daysBefore(30), now)).toBe(true)
-    expect(shouldChangeStimulus(undefined, undefined, now)).toBe(false)
   })
 })
 

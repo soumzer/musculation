@@ -4,11 +4,10 @@ import { db } from '../../db'
 /**
  * Tours du complexe au chrono, séance par séance (Iron Cardio).
  *
- * C'est l'indicateur de progression du programme kettlebell : à charge et
- * durée égales, plus de tours = tu avances. Les charges utilisées sont
- * rappelées sous la courbe et l'écart avec la séance précédente n'est affiché
- * qu'à charge identique — sinon une baisse de tours après une montée de palier
- * ressemblerait à une régression.
+ * C'est l'indicateur de progression du programme kettlebell : à charge ET
+ * durée égales, plus de tours = tu avances. L'écart avec la séance précédente
+ * n'est donc affiché que si la charge et la durée n'ont pas bougé — sinon une
+ * séance plus courte ou plus lourde ressemblerait à une régression.
  */
 const W = 300
 const H = 84
@@ -20,6 +19,8 @@ interface Point {
   date: Date
   rounds: number
   weightKg: number
+  /** Durée faite, en secondes. Absente sur les séances d'avant le réglage libre. */
+  seconds?: number
 }
 
 export default function RoundsChart({ userId }: { userId: number }) {
@@ -44,6 +45,7 @@ export default function RoundsChart({ userId }: { userId: number }) {
         date: e.date instanceof Date ? e.date : new Date(e.date),
         rounds: e.sets[0].reps,
         weightKg: e.sets[0].weightKg,
+        seconds: e.sets[0].seconds,
       }))
       .sort((a, b) => a.date.getTime() - b.date.getTime())
       .slice(-MAX_POINTS)
@@ -60,11 +62,13 @@ export default function RoundsChart({ userId }: { userId: number }) {
   const last = points[points.length - 1]
   const previous = points[points.length - 2]
   const delta = last.rounds - previous.rounds
-  const sameWeight = last.weightKg === previous.weightKg
+  // Comparable seulement à charge ET durée identiques.
+  const comparable = last.weightKg === previous.weightKg && last.seconds === previous.seconds
 
   const x = (i: number) => PAD_X + (i / (points.length - 1)) * (W - PAD_X * 2)
   const y = (rounds: number) => PAD_Y + (1 - rounds / max) * (H - PAD_Y * 2)
-  const weights = [...new Set(points.map((p) => p.weightKg).filter((w) => w > 0))]
+  const weights = [...new Set(points.map((p) => p.weightKg).filter((w) => w > 0))].sort((a, b) => a - b)
+  const minutes = last.seconds !== undefined ? Math.round(last.seconds / 60) : null
 
   const formatDate = (d: Date) => d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
 
@@ -74,7 +78,7 @@ export default function RoundsChart({ userId }: { userId: number }) {
         <p className="text-zinc-600 text-xs uppercase tracking-wider">{name} — tours</p>
         <p className="text-white text-sm font-bold tabular-nums">
           {last.rounds} tours
-          {sameWeight && delta !== 0 && (
+          {comparable && delta !== 0 && (
             <span className={`ml-2 text-xs font-semibold ${delta > 0 ? 'text-emerald-400' : 'text-zinc-500'}`}>
               {delta > 0 ? '+' : '−'}{Math.abs(delta)}
             </span>
@@ -104,11 +108,10 @@ export default function RoundsChart({ userId }: { userId: number }) {
       </svg>
 
       <p className="text-zinc-500 text-xs mt-1">
-        {weights.length > 1
-          ? `Charges utilisées : ${weights.sort((a, b) => a - b).join(', ')} kg — les tours redescendent quand la kettlebell monte.`
-          : weights.length === 1
-            ? `À ${weights[0]} kg. Plus de tours à charge et durée égales = tu progresses.`
-            : 'Plus de tours à charge et durée égales = tu progresses.'}
+        Dernière séance : {last.weightKg > 0 ? `${last.weightKg} kg` : 'poids de corps'}
+        {minutes !== null ? ` · ${minutes} min` : ''}.
+        {weights.length > 1 && ` Charges utilisées : ${weights.join(', ')} kg.`}
+        {' '}Plus de tours à charge et durée égales = tu progresses.
       </p>
     </div>
   )

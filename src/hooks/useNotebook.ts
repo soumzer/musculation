@@ -33,8 +33,9 @@ export interface UseNotebookReturn {
   /** Dernière entrée valide (hors skip, hors allégée) — base de la double progression. */
   lastEntry: NotebookEntry | null
   isSaving: boolean
-  addSet: (weightKg: number, reps: number) => void
-  updateSet: (index: number, weightKg: number, reps: number) => void
+  /** `seconds` : durée faite, pour un complexe au chrono (reps = tours). */
+  addSet: (weightKg: number, reps: number, seconds?: number) => void
+  updateSet: (index: number, weightKg: number, reps: number, seconds?: number) => void
   removeLastSet: () => void
   saveAndNext: () => Promise<SaveResult>
   skipExercise: (zone: BodyZone, questionnaireResult?: QuestionnaireResult) => Promise<SkipResult>
@@ -118,12 +119,13 @@ export function useNotebook(
     onDraftSetsChange?.(exerciseId, currentSets)
   }, [currentSets]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const addSet = useCallback((weightKg: number, reps: number) => {
-    setCurrentSets(prev => [...prev, { weightKg, reps }])
+  const addSet = useCallback((weightKg: number, reps: number, seconds?: number) => {
+    setCurrentSets(prev => [...prev, { weightKg, reps, ...(seconds !== undefined ? { seconds } : {}) }])
   }, [])
 
-  const updateSet = useCallback((index: number, weightKg: number, reps: number) => {
-    setCurrentSets(prev => prev.map((s, i) => i === index ? { weightKg, reps } : s))
+  const updateSet = useCallback((index: number, weightKg: number, reps: number, seconds?: number) => {
+    setCurrentSets(prev => prev.map((s, i) =>
+      i === index ? { weightKg, reps, ...(seconds !== undefined ? { seconds } : {}) } : s))
   }, [])
 
   const removeLastSet = useCallback(() => {
