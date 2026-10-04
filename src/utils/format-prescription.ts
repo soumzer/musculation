@@ -16,8 +16,13 @@ export function formatReps(p: Omit<PrescriptionLike, 'sets'>): string {
   const range = p.targetRepsMax !== undefined && p.targetRepsMax !== p.targetReps
     ? `${p.targetReps}-${p.targetRepsMax}`
     : `${p.targetReps}`
-  const unit = p.isTimeBased ? 's' : ''
   const side = p.perSide ? `/${p.perSide}` : ''
+  // Au-delà de 2 min, une durée se lit en minutes (chrono d'un complexe),
+  // alors qu'un gainage de 30-45s se lit en secondes.
+  if (p.isTimeBased && p.targetRepsMax === undefined && p.targetReps >= 120 && p.targetReps % 60 === 0) {
+    return `${p.targetReps / 60} min${side}`
+  }
+  const unit = p.isTimeBased ? 's' : ''
   return `${range}${unit}${side}`
 }
 

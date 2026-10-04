@@ -47,6 +47,14 @@ export interface ExerciseNotebookProps {
      * de l'ancien « Incrément : … quand réussi ».
      */
     increment?: number
+    /**
+     * Exo à progression autorégulée : palier courant (« 16 kg · 5 × 8 par
+     * bras »). Sa présence DÉSACTIVE la double progression — c'est le palier
+     * qui décide de la charge, pas le nombre de reps de la dernière séance.
+     */
+    ladderLabel?: string
+    /** Charge imposée par le palier courant — pré-remplie dans le champ. */
+    ladderWeightKg?: number
   }
   /**
    * Rappel affiché sous le timer de repos (programme coach : gainage à faire
@@ -134,7 +142,7 @@ export default function ExerciseNotebook({
   )
 
   // Double progression (programme coach) — null hors coach.
-  const progression = target.increment !== undefined && !target.isTimeBased
+  const progression = target.increment !== undefined && target.ladderLabel === undefined && !target.isTimeBased
     ? doubleProgression(notebook.lastEntry, { sets: target.sets, reps: target.reps, repsMax: target.repsMax }, target.increment)
     : null
 
@@ -202,6 +210,12 @@ export default function ExerciseNotebook({
   // pour que l'utilisateur saisisse les 70 %).
   const prefillWeight = target.deload
     ? null
+    : target.ladderWeightKg !== undefined
+      // Palier : sa charge prime sur l'historique (juste après être monté,
+      // c'est la nouvelle kettlebell qu'on veut dans le champ).
+      ? (notebook.lastWeight !== null && notebook.lastWeight > target.ladderWeightKg
+          ? notebook.lastWeight
+          : target.ladderWeightKg)
     : progression?.kind === 'increase' && progression.weightKg !== null
       ? progression.weightKg
       : notebook.lastWeight
@@ -341,11 +355,16 @@ export default function ExerciseNotebook({
                 : '70 % de ta charge habituelle'}
             </p>
           )}
-          {progression ? (
+          {target.ladderLabel ? (
+            <p className="text-emerald-400 text-xs mt-1.5 font-semibold">Palier : {target.ladderLabel}</p>
+          ) : progression ? (
             <p className={`text-xs mt-1.5 ${progression.kind === 'increase' ? 'text-emerald-400 font-semibold' : 'text-zinc-500'}`}>
               {progression.kind === 'increase' ? '↑ ' : ''}{progression.message}
             </p>
-          ) : !exercise.isRehab && (
+          ) : !exercise.isRehab && target.increment === undefined && (
+            // Programme coach (increment fourni) : la progression suit les
+            // règles du coach. Un exo au chrono n'a pas d'incrément de charge,
+            // la ligne générique n'a donc rien à dire.
             <p className="text-zinc-600 text-xs mt-1.5">
               Incrément : {isCompound ? '+2.5kg' : '+1.25kg'} quand réussi
             </p>

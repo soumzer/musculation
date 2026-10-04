@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
 import type { Finisher, PerSide, ProgramSession, SessionIntensity, WorkoutProgram } from '../db/types'
 import { getCoachWeek } from '../utils/coach-week'
-import { getCoachProgramDef } from '../data/coach-program'
+import { getCoachProgramDef, applyLightWeek, isLightWeekActive } from '../data/coach-program'
 
 export interface NextSessionExercisePreview {
   /**
@@ -185,7 +185,11 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
       }
     }
 
-    const nextProgramSession = activeProgram.sessions[nextSessionIndex]
+    // Semaine allégée à la demande : l'aperçu annonce ce que la séance fera
+    // vraiment (moitié du volume), pas la prescription de base.
+    const nextProgramSession = isLightWeekActive(activeProgram.coachLightWeekUntil)
+      ? applyLightWeek([activeProgram.sessions[nextSessionIndex]], true)[0]
+      : activeProgram.sessions[nextSessionIndex]
     const exerciseCount = nextProgramSession.exercises.length
 
     // Programme coach : semaine calendaire courante et séances déjà faites dedans.

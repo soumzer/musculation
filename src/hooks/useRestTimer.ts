@@ -221,7 +221,15 @@ export function useRestTimer(restSeconds: number, initialEndTime?: number | null
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        // Remettre la ref à null : sans ça, un remontage du MÊME composant
+        // (React StrictMode en dev, qui rejoue monte → démonte → remonte en
+        // gardant les refs) croit qu'un intervalle tourne encore et ne relance
+        // pas le décompte — le chrono reste figé. Invisible en build de prod,
+        // mais ça fausse toute vérification faite sur le serveur de dev.
+        intervalRef.current = null
+      }
     }
   }, [])
 

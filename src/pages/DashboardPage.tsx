@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
+import RoundsChart from '../components/dashboard/RoundsChart'
 import { useDashboardData, type ExerciseHistory, type SessionVolume } from '../hooks/useDashboardData'
 import { useNextSession } from '../hooks/useNextSession'
 import { INTENSITY_STYLES as intensityStyle } from '../constants/intensity'
@@ -381,6 +382,9 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
+            {/* Indicateur n° 1 du programme kettlebell — avant le tonnage. */}
+            {userId !== undefined && <RoundsChart userId={userId} />}
+
             {data.sessionVolumes.length > 0 && (
               <TonnageChart sessionVolumes={data.sessionVolumes} />
             )}

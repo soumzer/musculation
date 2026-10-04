@@ -16,6 +16,9 @@ import { formatPrescription } from '../utils/format-prescription'
 import { getCoachWeek, DELOAD_SETS } from '../utils/coach-week'
 import { getCoachProgramDef } from '../data/coach-program'
 import { incrementFor } from '../utils/double-progression'
+import ComplexNotebook from '../components/session/ComplexNotebook'
+import { useCoachLadder } from '../hooks/useCoachLadder'
+import { applyLightWeek, isLightWeekActive } from '../data/coach-program'
 
 // ---------------------------------------------------------------------------
 // Design tokens
@@ -88,9 +91,17 @@ function SessionContent({ programId, sessionIndex }: { programId: number; sessio
   const coachDef = program.isCoach ? getCoachProgramDef(program.coachId) : null
   const isDeload = coachDef !== null && program.startedAt !== undefined
     && getCoachWeek(program.startedAt, new Date(), coachDef.weekPlan).isDeload
-  const programSession = rawSession && isDeload
+  const deloaded = rawSession && isDeload
     ? { ...rawSession, exercises: rawSession.exercises.map((e) => ({ ...e, sets: Math.min(e.sets, DELOAD_SETS) })) }
     : rawSession
+
+  // Semaine allégée déclenchée à la main (programme à progression autorégulée) :
+  // moitié du volume, même charge. Elle s'applique à l'affichage, la
+  // prescription stockée n'est pas réécrite.
+  const isLightWeek = isLightWeekActive(program.coachLightWeekUntil)
+  const programSession = deloaded && isLightWeek
+    ? applyLightWeek([deloaded], true)[0]
+    : deloaded
 
   if (!programSession || !programSession.exercises?.length) {
     return (
@@ -117,6 +128,8 @@ function SessionContent({ programId, sessionIndex }: { programId: number; sessio
       allExercises={allExercises}
       activeZones={conditions.map(c => c.bodyZone)}
       prepRoutine={program.prepRoutine}
+      prepLabel={coachDef?.prepLabel}
+      cooldownRoutine={program.cooldownRoutine}
       isDeload={isDeload}
       coachIncrements={coachDef?.increments}
     />
@@ -137,6 +150,8 @@ function SessionRunner({
   allExercises,
   activeZones,
   prepRoutine,
+  prepLabel,
+  cooldownRoutine,
   isDeload = false,
   coachIncrements,
 }: {
@@ -150,12 +165,19 @@ function SessionRunner({
   activeZones: string[]
   /** Programme coach : prépa posture affichée à la place de l'échauffement fixe. */
   prepRoutine?: PrepItem[]
+  /** Programme coach : sous-titre de l'écran de prépa. */
+  prepLabel?: string
+  /** Programme coach : mobilité fixe affichée à la place du cooldown automatique. */
+  cooldownRoutine?: PrepItem[]
   /** Programme coach : semaine allégée (2 séries, 70 % des charges). */
   isDeload?: boolean
   /** Programme coach : incréments de la double progression (présents = séance coach). */
   coachIncrements?: { machine: number; free: number }
 }) {
   const navigate = useNavigate()
+  const { recordCriteria } = useCoachLadder(userId)
+  /** Critères de fin de séance cochés (programme à progression autorégulée). */
+  const [criteriaChecked, setCriteriaChecked] = useState<Set<number>>(new Set())
   const [phase, setPhase] = useState<SessionPhase>('warmup')
   const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0)
   const [exerciseStatuses, setExerciseStatuses] = useState<ExerciseStatus[]>(() =>
@@ -193,9 +215,10 @@ function SessionRunner({
     exerciseStatuses,
     sessionStartTime,
     warmupChecked: [...warmupChecked],
+    criteriaChecked: [...criteriaChecked],
     draftSets: [...draftSetsRef.current.entries()].map(([exerciseId, sets]) => ({ exerciseId, sets })),
     restTimerEndTime: restTimerEndTimeRef.current,
-  }), [programId, sessionIndex, phase, currentExerciseIdx, exerciseStatuses, sessionStartTime, warmupChecked])
+  }), [programId, sessionIndex, phase, currentExerciseIdx, exerciseStatuses, sessionStartTime, warmupChecked, criteriaChecked])
 
   // Try to restore from activeSession table first
   useEffect(() => {
@@ -209,6 +232,7 @@ function SessionRunner({
         setExerciseStatuses(saved.exerciseStatuses)
         setSessionStartTime(saved.sessionStartTime instanceof Date ? saved.sessionStartTime : new Date(saved.sessionStartTime))
         setWarmupChecked(new Set(saved.warmupChecked))
+        setCriteriaChecked(new Set(saved.criteriaChecked ?? []))
         const map = new Map<number, NotebookSet[]>()
         for (const d of saved.draftSets) map.set(d.exerciseId, d.sets)
         draftSetsRef.current = map
@@ -348,6 +372,9 @@ function SessionRunner({
     [sessionMuscles, allExercises]
   )
 
+  /** Mobilité fixe du programme coach si elle existe, sinon la sélection auto. */
+  const hasCooldown = (cooldownRoutine?.length ?? 0) > 0 || cooldownExercises.length > 0
+
   // Current exercise info
   const currentProgramExercise = programSession.exercises[currentExerciseIdx]
   const currentCatalogExercise = currentProgramExercise
@@ -485,6 +512,11 @@ function SessionRunner({
         await db.workoutSessions.put({ ...sessionRecord, id: existingRecent.id, startedAt: existingRecent.startedAt })
       } else {
         await db.workoutSessions.add(sessionRecord)
+        // Une seule fois par séance : re-terminer dans la fenêtre d'édition de
+        // 10h ne doit pas compter une deuxième fois dans la série de 2.
+        if (programSession.criteria?.length) {
+          await recordCriteria(criteriaChecked.size === programSession.criteria.length)
+        }
       }
       await clearSessionState()
       setPhase('done')
@@ -492,7 +524,7 @@ function SessionRunner({
       console.error('Failed to save session:', error)
       setPhase('done')
     }
-  }, [userId, programId, programSession, sessionStartTime, exerciseStatuses, exerciseMap, clearSessionState])
+  }, [userId, programId, programSession, sessionStartTime, exerciseStatuses, exerciseMap, clearSessionState, recordCriteria, criteriaChecked])
 
   // Swap: alternatives curées puis auto-match — logique partagée avec l'écran
   // superset (utils/swap-options.ts).
@@ -558,7 +590,7 @@ function SessionRunner({
             <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">{prepRoutine ? 'Prépa posture' : 'Échauffement'}</p>
             <h2 className="text-2xl font-black text-white mb-1">{programSession.name}</h2>
             <div className="flex items-center justify-center gap-2">
-              <p className="text-zinc-400 text-sm">{prepRoutine ? '4 min · tous les jours' : 'Haltères légères ou barre à vide'}</p>
+              <p className="text-zinc-400 text-sm">{prepRoutine ? (prepLabel ?? '4 min · tous les jours') : 'Haltères légères ou barre à vide'}</p>
               {programSession.intensity && (
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${style.text} ${style.bar}/20`}>{style.letter}</span>
               )}
@@ -691,10 +723,10 @@ function SessionRunner({
           <div className="pt-4 pb-6 flex-shrink-0 space-y-2">
             {allDone ? (
               <button
-                onClick={() => programSession.finisher ? setPhase('finisher') : cooldownExercises.length > 0 ? setPhase('cooldown') : handleFinishSession()}
+                onClick={() => programSession.finisher ? setPhase('finisher') : hasCooldown ? setPhase('cooldown') : handleFinishSession()}
                 className={CTA}
               >
-                {programSession.finisher ? `Finisher · ${programSession.finisher.title}` : cooldownExercises.length > 0 ? 'Cooldown' : 'Terminer la séance'}
+                {programSession.finisher ? `Finisher · ${programSession.finisher.title}` : hasCooldown ? 'Cooldown' : 'Terminer la séance'}
               </button>
             ) : (
               <button
@@ -772,6 +804,36 @@ function SessionRunner({
     )
   }
 
+  // --- COMPLEXE AU CHRONO (Iron Cardio) : chrono + compteur de tours ---
+  if (phase === 'notebook' && currentProgramExercise?.continuousComplex && currentCatalogExercise) {
+    return (
+      <ComplexNotebook
+        exercise={{
+          exerciseId: currentProgramExercise.exerciseId,
+          exerciseName: currentCatalogExercise.name,
+          instructions: currentCatalogExercise.instructions,
+        }}
+        target={{
+          durationSeconds: currentProgramExercise.targetReps,
+          restSeconds: currentProgramExercise.restSeconds,
+          intensity: (programSession.intensity ?? 'volume') as 'heavy' | 'volume' | 'moderate',
+          cue: currentProgramExercise.cue,
+          ladderLabel: currentProgramExercise.ladderLabel,
+          ladderWeightKg: currentProgramExercise.ladderWeightKg,
+        }}
+        exerciseIndex={currentExerciseIdx}
+        totalExercises={programSession.exercises.length}
+        userId={userId}
+        initialDraftSets={notebookInit.drafts}
+        initialChronoEndTime={notebookInit.restTimerEndTime}
+        onDraftSetsChange={handleDraftSetsChange}
+        onChronoChange={handleRestTimerChange}
+        onNext={handleNextExercise}
+        onSkip={handleSkipExercise}
+      />
+    )
+  }
+
   // --- NOTEBOOK (exercise detail) ---
   if (phase === 'notebook' && currentProgramExercise && currentCatalogExercise) {
     const intensity = (programSession.intensity ?? 'volume') as 'heavy' | 'volume' | 'moderate'
@@ -798,6 +860,8 @@ function SessionRunner({
           cue: currentProgramExercise.cue,
           deload: isDeload,
           increment: coachIncrements ? incrementFor(currentCatalogExercise.equipmentNeeded, coachIncrements) : undefined,
+          ladderLabel: currentProgramExercise.ladderLabel,
+          ladderWeightKg: currentProgramExercise.ladderWeightKg,
         }}
         restHint={programSession.coreDuringRest}
         hideIntensityBadge={programSession.intensity === undefined}
@@ -835,18 +899,58 @@ function SessionRunner({
         <div className={`h-1 ${style.bar}`} />
         <div className="px-5 pt-6 flex-1 flex flex-col overflow-hidden">
           <div className="text-center mb-5">
-            <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">Cooldown</p>
-            <h2 className="text-2xl font-black text-white">Étirements</h2>
+            <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">{cooldownRoutine ? 'Mobilité' : 'Cooldown'}</p>
+            <h2 className="text-2xl font-black text-white">{cooldownRoutine ? '5 min pour finir' : 'Étirements'}</h2>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3">
-            {cooldownExercises.map((ex, i) => (
+            {programSession.criteria && programSession.criteria.length > 0 && (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-4">
+                <p className="text-zinc-600 text-xs uppercase tracking-widest mb-1">Comment c'était ?</p>
+                <p className="text-zinc-500 text-xs mb-3">
+                  Les 3 cochées sur deux séances de suite = tu peux monter d'un palier.
+                </p>
+                <div className="space-y-1.5">
+                  {programSession.criteria.map((label, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCriteriaChecked(prev => {
+                        const next = new Set(prev)
+                        if (next.has(i)) next.delete(i)
+                        else next.add(i)
+                        return next
+                      })}
+                      className="w-full flex items-center gap-3 bg-zinc-800/60 rounded-xl px-3 py-2.5 text-left active:scale-[0.98] transition-all duration-150"
+                      style={{ touchAction: 'manipulation' }}
+                    >
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                        criteriaChecked.has(i) ? 'bg-emerald-500 border-emerald-500' : 'border-zinc-600'
+                      }`}>
+                        {criteriaChecked.has(i) && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className={`text-sm ${criteriaChecked.has(i) ? 'text-white' : 'text-zinc-400'}`}>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {cooldownRoutine?.map((item, i) => (
+              <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-4 flex items-center justify-between gap-3">
+                <p className="text-white font-semibold text-sm">{item.name}</p>
+                <p className="text-zinc-400 text-sm flex-shrink-0">{item.reps}</p>
+              </div>
+            ))}
+            {!cooldownRoutine && cooldownExercises.map((ex, i) => (
               <div key={ex.id ?? i} className="bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-4">
                 <p className="text-white font-semibold text-sm">{ex.name}</p>
                 <p className="text-zinc-400 text-sm mt-1.5 leading-relaxed">{ex.instructions}</p>
               </div>
             ))}
-            {cooldownExercises.length === 0 && (
+            {!hasCooldown && (
               <p className="text-zinc-600 text-center py-8">Pas d'étirements spécifiques aujourd'hui.</p>
             )}
           </div>

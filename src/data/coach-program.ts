@@ -17,7 +17,7 @@ import type { Exercise, Finisher, PrepItem, ProgramExercise, ProgramSession } fr
 // Types
 // ---------------------------------------------------------------------------
 
-export type CoachProgramId = 'yassine' | 'janna'
+export type CoachProgramId = 'yassine' | 'janna' | 'kettlebell'
 
 export interface CoachExerciseDef {
   /** Nom exact dans data/exercises.ts. */
@@ -31,6 +31,10 @@ export interface CoachExerciseDef {
   cue?: string
   perSide?: 'bras' | 'côté' | 'jambe'
   timeBased?: boolean
+  /** Complexe enchaîné au chrono avec compteur de tours (Iron Cardio). */
+  continuousComplex?: boolean
+  /** Paliers successifs. Le palier 1 doit décrire la prescription ci-dessus. */
+  ladder?: CoachLadderStep[]
 }
 
 export interface CoachSessionDef {
@@ -39,6 +43,27 @@ export interface CoachSessionDef {
   exercises: CoachExerciseDef[]
   coreDuringRest?: { name: string; detail: string }
   finisher?: Finisher
+  /**
+   * Critères à cocher en fin de séance (progression autorégulée). Validés sur
+   * DEUX séances de suite, ils débloquent le palier suivant.
+   */
+  criteria?: string[]
+}
+
+/**
+ * Un palier d'un exercice à progression autorégulée. Monter d'un palier
+ * réécrit la prescription de l'exo dans le programme stocké.
+ */
+export interface CoachLadderStep {
+  /** Libellé affiché : « 14 kg — 18 min », « 16 kg · 5×10/bras ». */
+  label: string
+  /** Charge du palier (0 = poids de corps). */
+  weightKg?: number
+  /** Complexe au chrono : durée du palier, en secondes. */
+  durationSeconds?: number
+  /** Séries / reps si le palier les change. */
+  sets?: number
+  reps?: number
 }
 
 export interface CoachRuleSection {
@@ -73,6 +98,10 @@ export interface CoachProgramDef {
   version: number
   /** Prépa affichée à la place de l'échauffement standard (optionnel). */
   prepRoutine?: PrepItem[]
+  /** Sous-titre de l'écran de prépa. Défaut : « 4 min · tous les jours ». */
+  prepLabel?: string
+  /** Mobilité fixe affichée à la place du cooldown automatique (optionnel). */
+  cooldownRoutine?: PrepItem[]
   sessions: CoachSessionDef[]
   weekPlan: CoachWeekPlan
   /** Double progression : +X kg machines/poulies, +Y kg haltères/kettlebell. */
@@ -481,10 +510,255 @@ export const jannaProgram: CoachProgramDef = {
 }
 
 // ---------------------------------------------------------------------------
+// Kettlebell maison — progression autorégulée par paliers (octobre 2026)
+// ---------------------------------------------------------------------------
+
+/** Échauffement — 5 min, avant chaque séance. Remplace l'échauffement standard. */
+const kettlebellPrep: PrepItem[] = [
+  { name: 'Cat-cow (dos chat / dos creux)', reps: '10 reps lentes' },
+  { name: "World's greatest stretch", reps: '3 par côté' },
+  { name: 'Halo kettlebell 8 kg', reps: '5 tours par sens' },
+]
+
+/** Mobilité — 5 min, après chaque séance. Remplace le cooldown automatique. */
+const kettlebellCooldown: PrepItem[] = [
+  { name: 'Suspension à la barre', reps: '2 × 30s' },
+  { name: 'Squat profond tenu', reps: '2 × 45s' },
+  { name: 'Posture du pigeon', reps: '45s par côté' },
+]
+
+/** Paliers de l'Iron Cardio. Quand la charge monte, la durée redescend. */
+const ironCardioLadder: CoachLadderStep[] = [
+  { label: '12 kg — 12 min (technique seulement)', weightKg: 12, durationSeconds: 720 },
+  { label: '14 kg — 15 min', weightKg: 14, durationSeconds: 900 },
+  { label: '14 kg — 18 min', weightKg: 14, durationSeconds: 1080 },
+  { label: '14 kg — 20 min', weightKg: 14, durationSeconds: 1200 },
+  { label: '16 kg — 12 min', weightKg: 16, durationSeconds: 720 },
+  { label: '16 kg — 15 min', weightKg: 16, durationSeconds: 900 },
+  { label: '16 kg — 18 min', weightKg: 16, durationSeconds: 1080 },
+  { label: '16 kg — 20 min', weightKg: 16, durationSeconds: 1200 },
+  { label: '16 kg — 20 min, complexe plus dur : 1 clean + 2 press + 1 squat', weightKg: 16, durationSeconds: 1200 },
+]
+
+const swingLadder: CoachLadderStep[] = [
+  { label: '14 kg · 5 × 8 par bras', weightKg: 14, sets: 5, reps: 8 },
+  { label: '16 kg · 5 × 8 par bras', weightKg: 16, sets: 5, reps: 8 },
+  { label: '16 kg · 5 × 10 par bras', weightKg: 16, sets: 5, reps: 10 },
+]
+
+const bulgareLadder: CoachLadderStep[] = [
+  { label: 'poids de corps · 3 × 8 par jambe', weightKg: 0, sets: 3, reps: 8 },
+  { label: '12 kg · 3 × 8 par jambe', weightKg: 12, sets: 3, reps: 8 },
+  { label: '16 kg · 3 × 8 par jambe', weightKg: 16, sets: 3, reps: 8 },
+]
+
+/** Les 3 critères à cocher en fin de séance Iron Cardio. */
+const ironCardioCriteria = [
+  'Press strict du début à la fin',
+  'Respiration par le nez la majeure partie du temps',
+  'Aucune douleur articulaire le lendemain',
+]
+
+/**
+ * Séance A — jouée le lundi ET le vendredi. Elle apparaît donc deux fois dans
+ * la liste : l'app enchaîne les séances dans l'ordre, et repère où elle en est
+ * par le NOM de la dernière séance faite. Deux entrées de même nom casseraient
+ * ce repère, d'où le suffixe « — lundi » / « — vendredi » (les pastilles de
+ * l'accueil le retirent à l'affichage).
+ */
+const ironCardioExercises: CoachExerciseDef[] = [
+  {
+    name: 'Iron Cardio (clean + press + squat kettlebell)',
+    sets: 1,
+    reps: 720,
+    rest: 120,
+    timeBased: true,
+    continuousComplex: true,
+    ladder: ironCardioLadder,
+    cue: '1 clean + 1 press + 1 squat — change de bras à chaque tour',
+  },
+  {
+    name: 'Pompes classiques',
+    sets: 3,
+    reps: [10, 25],
+    rest: 90,
+    cue: 'arrête-toi quand il reste 2 reps — jamais à l\'échec',
+  },
+  {
+    name: 'Traction (pull-up)',
+    sets: 3,
+    reps: [6, 8],
+    rest: 120,
+    cue: 'trop dur ? « Changer » → Rowing inversé ou Traction excentrique',
+  },
+]
+
+const kettlebellSessions: CoachSessionDef[] = [
+  {
+    name: 'Iron Cardio — lundi',
+    durationMin: 40,
+    exercises: ironCardioExercises,
+    criteria: ironCardioCriteria,
+  },
+  {
+    name: 'Puissance + cuisses',
+    durationMin: 35,
+    exercises: [
+      {
+        name: 'Saut vertical sur place',
+        sets: 5,
+        reps: 3,
+        rest: 60,
+        cue: 'réception silencieuse, tiens 2s — arrête si ça devient lourd',
+      },
+      {
+        name: 'Kettlebell swing à un bras',
+        sets: 5,
+        reps: 8,
+        rest: 75,
+        perSide: 'bras',
+        ladder: swingLadder,
+        cue: 'charnière de hanche — le bras ne tire pas',
+      },
+      {
+        name: 'Squat bulgare kettlebell (goblet)',
+        sets: 3,
+        reps: 8,
+        rest: 90,
+        perSide: 'jambe',
+        ladder: bulgareLadder,
+        cue: 'pied arrière sur le banc — 0 kg = poids de corps',
+      },
+    ],
+  },
+  {
+    name: 'Iron Cardio — vendredi',
+    durationMin: 40,
+    exercises: ironCardioExercises,
+    criteria: ironCardioCriteria,
+  },
+  {
+    name: 'Récupération active',
+    durationMin: 20,
+    exercises: [
+      {
+        name: 'Kettlebell swing',
+        sets: 5,
+        reps: 10,
+        rest: 60,
+        cue: 'sans chercher la fatigue — 10 à 14 kg',
+      },
+      {
+        name: 'Turkish get-up kettlebell',
+        sets: 3,
+        reps: 1,
+        rest: 60,
+        perSide: 'côté',
+        cue: 'lentement, regarde la kettlebell tout le long',
+      },
+    ],
+  },
+]
+
+const kettlebellRules: CoachRuleSection[] = [
+  {
+    title: 'Matériel',
+    items: [
+      'Kettlebells simples de 6, 8, 10, 12, 14 et 16 kg — aucune paire',
+      'Barre de traction + un banc',
+      'Rien d\'autre : pas de pompes les mains sur les kettlebells (le poignet bascule)',
+    ],
+  },
+  {
+    title: 'La semaine',
+    table: {
+      head: ['Jour', 'Séance'],
+      rows: [
+        ['Lundi', 'Iron Cardio + haut du corps'],
+        ['Mercredi', 'Puissance + cuisses'],
+        ['Vendredi', 'Iron Cardio + haut du corps'],
+        ['Samedi', 'Récupération active — si tu le sens'],
+      ],
+    },
+    highlight: 'Mardi, jeudi, dimanche : repos.',
+  },
+  {
+    title: 'Monter d\'un palier — les 3 critères',
+    items: [
+      'Press strict du début à la fin : pas de push press, pas de cambrure',
+      'Respiration par le nez possible la majeure partie de la séance',
+      'Aucune douleur articulaire le lendemain — les courbatures ne comptent pas',
+    ],
+    highlight: 'Les 3 validés sur 2 séances de suite = tu peux monter. Sinon tu restes où tu es.',
+  },
+  {
+    title: 'Paliers — Iron Cardio',
+    table: {
+      head: ['Palier', 'Charge et durée'],
+      rows: [
+        ['1', '12 kg — 12 min (technique seulement)'],
+        ['2', '14 kg — 15 min'],
+        ['3', '14 kg — 18 min'],
+        ['4', '14 kg — 20 min'],
+        ['5', '16 kg — 12 min'],
+        ['6', '16 kg — 15 min'],
+        ['7', '16 kg — 18 min'],
+        ['8', '16 kg — 20 min'],
+        ['9', '16 kg — complexe plus dur : 1 clean + 2 press + 1 squat'],
+      ],
+    },
+    highlight: 'Quand la charge monte, la durée redescend.',
+  },
+  {
+    title: 'Paliers — mercredi',
+    table: {
+      head: ['Exercice', 'Paliers'],
+      rows: [
+        ['Swing à un bras', '14 kg 5×8 → 16 kg 5×8 → 16 kg 5×10'],
+        ['Squat bulgare', 'poids de corps → 12 kg → 16 kg (3×8 par jambe)'],
+      ],
+    },
+  },
+  {
+    title: 'Fatigue',
+    items: [
+      'Mauvaise nuit, grosse journée : même charge, durée réduite d\'un tiers',
+      'Vraiment cuit : fais la séance de récupération active à la place',
+      'Douleur articulaire sur un exo : tu le passes, tu fais le reste',
+    ],
+    highlight: 'Toutes les 6 à 8 semaines si la fatigue s\'accumule : une semaine allégée, moitié du volume, même charge.',
+  },
+  {
+    title: 'Ce qu\'on regarde',
+    items: [
+      'Le nombre de tours d\'Iron Cardio par séance — c\'est LE chiffre qui compte',
+      'Les charges utilisées et la date du dernier palier franchi',
+      'Aucun palier franchi depuis 3 semaines : il est temps de changer de stimulus',
+    ],
+  },
+]
+
+export const kettlebellProgram: CoachProgramDef = {
+  id: 'kettlebell',
+  name: 'Programme kettlebell — maison',
+  owner: 'Kettlebell maison',
+  summary: '3 séances · KB 6-16 kg + barre de traction · progression par paliers',
+  version: 1,
+  prepRoutine: kettlebellPrep,
+  prepLabel: '5 min · avant chaque séance',
+  cooldownRoutine: kettlebellCooldown,
+  sessions: kettlebellSessions,
+  weekPlan: { rampUp: [3], deloadEvery: 0 },
+  increments: { machine: 5, free: 2 },
+  homeHint: 'Lundi et vendredi Iron Cardio, mercredi puissance. Samedi récup active si tu le sens.',
+  rules: kettlebellRules,
+}
+
+// ---------------------------------------------------------------------------
 // Registre + construction
 // ---------------------------------------------------------------------------
 
-export const coachPrograms: CoachProgramDef[] = [yassineProgram, jannaProgram]
+export const coachPrograms: CoachProgramDef[] = [yassineProgram, jannaProgram, kettlebellProgram]
 
 /**
  * Définition d'un programme par id. Les programmes stockés avant l'arrivée
@@ -492,6 +766,128 @@ export const coachPrograms: CoachProgramDef[] = [yassineProgram, jannaProgram]
  */
 export function getCoachProgramDef(id: string | undefined): CoachProgramDef {
   return coachPrograms.find((p) => p.id === id) ?? yassineProgram
+}
+
+// ---------------------------------------------------------------------------
+// Progression autorégulée par paliers
+// ---------------------------------------------------------------------------
+
+/** Les exos du programme qui progressent par paliers, dans l'ordre des séances. */
+export function ladderExercises(def: CoachProgramDef): { name: string; ladder: CoachLadderStep[] }[] {
+  const out: { name: string; ladder: CoachLadderStep[] }[] = []
+  const seen = new Set<string>()
+  for (const sdef of def.sessions) {
+    for (const e of sdef.exercises) {
+      if (!e.ladder || seen.has(e.name)) continue
+      seen.add(e.name)
+      out.push({ name: e.name, ladder: e.ladder })
+    }
+  }
+  return out
+}
+
+/** Index de palier valide (borné), 0 par défaut. */
+export function ladderStepIndex(ladder: CoachLadderStep[], stored: number | undefined): number {
+  return Math.min(Math.max(stored ?? 0, 0), ladder.length - 1)
+}
+
+/**
+ * Réécrit la prescription des exos à paliers selon `ladder` (index par nom
+ * d'exo). Appelée quand on monte d'un palier, et à chaque mise à jour du
+ * programme pour ne pas renvoyer l'utilisateur au premier palier.
+ */
+export function applyLadder(
+  def: CoachProgramDef,
+  sessions: ProgramSession[],
+  ladder: Record<string, number> | undefined,
+  catalog: Exercise[],
+): ProgramSession[] {
+  if (!ladder || Object.keys(ladder).length === 0) return sessions
+  const idByName = new Map(catalog.filter((e) => e.id !== undefined).map((e) => [e.name, e.id!]))
+  const stepById = new Map<number, CoachLadderStep>()
+  for (const { name, ladder: steps } of ladderExercises(def)) {
+    const id = idByName.get(name)
+    if (id === undefined) continue
+    stepById.set(id, steps[ladderStepIndex(steps, ladder[name])])
+  }
+  if (stepById.size === 0) return sessions
+
+  return sessions.map((s) => ({
+    ...s,
+    exercises: s.exercises.map((e) => {
+      const step = stepById.get(e.exerciseId)
+      if (!step) return e
+      return {
+        ...e,
+        sets: step.sets ?? e.sets,
+        targetReps: step.durationSeconds ?? step.reps ?? e.targetReps,
+        ladderLabel: step.label,
+        ladderWeightKg: step.weightKg,
+      }
+    }),
+  }))
+}
+
+/**
+ * Le palier suivant est débloqué quand les critères ont été validés sur les
+ * DEUX dernières séances concernées. Une séance ratée remet le compteur à zéro.
+ */
+export function canAdvanceLadder(criteria: { date: string; ok: boolean }[] | undefined): boolean {
+  if (!criteria || criteria.length < 2) return false
+  return criteria.slice(-2).every((c) => c.ok)
+}
+
+// ---------------------------------------------------------------------------
+// Semaine allégée à la demande + changement de stimulus
+// ---------------------------------------------------------------------------
+
+/** Durée d'une semaine allégée déclenchée à la main. */
+export const LIGHT_WEEK_DAYS = 7
+
+/** Sans palier franchi depuis ce délai, le programme propose de changer de stimulus. */
+export const STIMULUS_STALE_DAYS = 21
+
+export function lightWeekEnd(from: Date = new Date()): string {
+  const end = new Date(from)
+  end.setDate(end.getDate() + LIGHT_WEEK_DAYS)
+  return end.toISOString()
+}
+
+export function isLightWeekActive(until: string | undefined, now: Date = new Date()): boolean {
+  return until !== undefined && new Date(until).getTime() > now.getTime()
+}
+
+/**
+ * Semaine allégée : moitié du volume, MÊME charge. Les séries sont divisées
+ * par deux (jamais moins d'une) et les chronos aussi ; les répétitions et les
+ * charges ne bougent pas — c'est le volume qu'on baisse, pas l'intensité.
+ */
+export function applyLightWeek(sessions: ProgramSession[], active: boolean): ProgramSession[] {
+  if (!active) return sessions
+  return sessions.map((s) => ({
+    ...s,
+    durationMin: s.durationMin !== undefined ? Math.round(s.durationMin / 2) : undefined,
+    exercises: s.exercises.map((e) => ({
+      ...e,
+      sets: Math.max(1, Math.round(e.sets / 2)),
+      targetReps: e.isTimeBased ? Math.max(30, Math.round(e.targetReps / 2)) : e.targetReps,
+      // Le palier reste celui qu'on a atteint, mais son libellé annoncerait
+      // une durée et un volume qu'on ne fait pas cette semaine.
+      ladderLabel: e.ladderLabel !== undefined ? `${e.ladderLabel} · allégé de moitié` : undefined,
+    })),
+  }))
+}
+
+/** Aucun palier franchi depuis 3 semaines → il est temps de changer de stimulus. */
+export function shouldChangeStimulus(
+  lastAdvanceAt: string | undefined,
+  startedAt: Date | undefined,
+  now: Date = new Date(),
+): boolean {
+  const since = lastAdvanceAt ? new Date(lastAdvanceAt) : startedAt
+  if (!since) return false
+  const days = (now.getTime() - since.getTime()) / (24 * 3600 * 1000)
+  return days >= STIMULUS_STALE_DAYS
 }
 
 /** Tous les noms d'exos d'un programme (pour les tests et la résolution des ids). */
@@ -519,6 +915,7 @@ export function buildCoachSessions(def: CoachProgramDef, catalog: Exercise[]): P
     durationMin: sdef.durationMin,
     coreDuringRest: sdef.coreDuringRest,
     finisher: sdef.finisher,
+    criteria: sdef.criteria,
     exercises: sdef.exercises.map((e, i): ProgramExercise => {
       const [min, max] = Array.isArray(e.reps) ? e.reps : [e.reps, undefined]
       return {
@@ -530,6 +927,9 @@ export function buildCoachSessions(def: CoachProgramDef, catalog: Exercise[]): P
         restSeconds: e.rest,
         isRehab: false,
         isTimeBased: e.timeBased,
+        continuousComplex: e.continuousComplex,
+        ladderLabel: e.ladder?.[0].label,
+        ladderWeightKg: e.ladder?.[0].weightKg,
         supersetGroup: e.group,
         cue: e.cue,
         perSide: e.perSide,

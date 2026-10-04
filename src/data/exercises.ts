@@ -3572,4 +3572,59 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     isRehab: false,
     tags: ['lower_body', 'glutes', 'band'],
   },
+  // =========================================================================
+  // KETTLEBELL & PLYO — programme kettlebell maison
+  // =========================================================================
+  {
+    name: 'Iron Cardio (clean + press + squat kettlebell)',
+    category: 'compound',
+    primaryMuscles: ['épaules', 'quadriceps', 'fessiers'],
+    secondaryMuscles: ['core', 'trapèzes', 'triceps', 'ischio-jambiers', 'avant-bras'],
+    equipmentNeeded: ['kettlebell'],
+    contraindications: ['shoulder_left', 'shoulder_right', 'lower_back'],
+    alternatives: ['Kettlebell swing', 'Goblet squat kettlebell', 'Turkish get-up kettlebell'],
+    instructions:
+      'Complexe enchaîné en continu, un tour par bras en alternance. 1 clean : la kettlebell monte à l\'épaule en restant près du corps, sans claquer l\'avant-bras. 1 press strict : gainage fort, pas de cambrure (si bloqué, push press toléré avec impulsion des jambes). 1 squat : kettlebell à l\'épaule en position rack, descente contrôlée, cuisses au moins parallèles. Rythme régulier, respiration par le nez la majeure partie du temps. Pose la kettlebell si besoin, le chrono continue. Référence vidéo : « Brett Jones Iron Cardio ».',
+    isRehab: false,
+    tags: ['kettlebell', 'conditioning', 'full_body', 'complex', 'unilateral'],
+  },
+  {
+    name: 'Kettlebell swing à un bras',
+    category: 'compound',
+    primaryMuscles: ['fessiers', 'ischio-jambiers'],
+    secondaryMuscles: ['core', 'obliques', 'deltoïdes', 'érecteurs du rachis', 'avant-bras'],
+    equipmentNeeded: ['kettlebell'],
+    contraindications: ['lower_back', 'shoulder_left', 'shoulder_right'],
+    alternatives: ['Kettlebell swing', 'Soulevé de terre roumain haltères'],
+    instructions:
+      'Charnière de hanche, pas un squat : les hanches basculent vers l\'arrière, la kettlebell passe entre les jambes, puis l\'extension explosive des hanches la projette à hauteur de poitrine. Le bras n\'est qu\'un câble, il ne tire pas. Fessiers et abdos contractés en haut, épaule basse, pas de rotation du buste. Changez de bras à chaque série.',
+    isRehab: false,
+    tags: ['kettlebell', 'posterior_chain', 'conditioning', 'glutes', 'unilateral', 'power'],
+  },
+  {
+    name: 'Saut vertical sur place',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'fessiers'],
+    secondaryMuscles: ['mollets', 'core', 'ischio-jambiers'],
+    equipmentNeeded: [],
+    contraindications: ['knee_left', 'knee_right', 'ankle_left', 'ankle_right', 'foot_left', 'foot_right', 'lower_back'],
+    alternatives: ['Squat sauté', 'Fentes poids de corps'],
+    instructions:
+      'Sautez le plus haut possible, bras libres. Réception silencieuse en fléchissant les genoux, et tenez la position de réception 2 secondes avant de vous relever. Qualité avant quantité : arrêtez la série dès que la réception devient lourde ou bruyante. Jamais à l\'échec.',
+    isRehab: false,
+    tags: ['lower_body', 'plyometric', 'power', 'bodyweight', 'athletic'],
+  },
+  {
+    name: 'Squat bulgare kettlebell (goblet)',
+    category: 'compound',
+    primaryMuscles: ['quadriceps', 'fessiers'],
+    secondaryMuscles: ['ischio-jambiers', 'core', 'moyen fessier'],
+    equipmentNeeded: ['kettlebell', 'bench'],
+    contraindications: ['knee_left', 'knee_right'],
+    alternatives: ['Squat bulgare poids de corps', 'Squat bulgare haltères', 'Goblet squat kettlebell'],
+    instructions:
+      'Pied arrière posé sur un banc, kettlebell tenue par les cornes contre la poitrine. Buste légèrement penché vers l\'avant, genou avant dans l\'axe du pied. Descendez jusqu\'à ce que la cuisse avant soit parallèle, poussez dans le talon avant pour remonter. Le pied arrière ne sert qu\'à l\'équilibre.',
+    isRehab: false,
+    tags: ['lower_body', 'quads', 'kettlebell', 'unilateral', 'bench'],
+  },
 ]
