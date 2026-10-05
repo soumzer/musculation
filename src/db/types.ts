@@ -209,6 +209,11 @@ export interface ProgramExercise {
   isRehab: boolean
   isTimeBased?: boolean // true for isometric exercises (plank, etc.) - targetReps = seconds
   /**
+   * Exercice de portage : `targetReps` est une DISTANCE en mètres, pas un
+   * nombre de répétitions. Pas de chrono — seulement l'affichage change.
+   */
+  isDistance?: boolean
+  /**
    * Haut de la fourchette de reps (ex. 6-10 → targetReps=6, targetRepsMax=10).
    * Absent = cible fixe. Sert à la double progression : on monte la charge
    * quand le haut de la fourchette est atteint sur toutes les séries.

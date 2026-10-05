@@ -3627,4 +3627,30 @@ export const exerciseCatalog: Omit<Exercise, 'id'>[] = [
     isRehab: false,
     tags: ['lower_body', 'quads', 'kettlebell', 'unilateral', 'bench'],
   },
+  {
+    name: 'Rowing kettlebell à un bras',
+    category: 'compound',
+    primaryMuscles: ['dorsaux', 'rhomboïdes'],
+    secondaryMuscles: ['biceps', 'trapèzes', 'obliques', 'avant-bras'],
+    equipmentNeeded: ['kettlebell', 'bench'],
+    contraindications: ['lower_back', 'shoulder_left', 'shoulder_right', 'elbow_left', 'elbow_right'],
+    alternatives: ['Rowing haltère unilatéral', 'Rowing inversé', 'Rowing penché haltères'],
+    instructions:
+      'Buste penché, main libre en appui sur un banc, dos plat (jamais arrondi). Tirez la kettlebell vers la hanche, coude près du corps, en serrant l\'omoplate en fin de course. Contrôlez la descente jusqu\'à bras tendu. Le bassin reste carré : pas de rotation du buste pour aider. Progression : monter vers 3 × 15, puis ralentir la descente à 3 secondes.',
+    isRehab: false,
+    tags: ['pull', 'upper_body', 'back', 'kettlebell', 'unilateral'],
+  },
+  {
+    name: 'Marche valise kettlebell (suitcase carry)',
+    category: 'core',
+    primaryMuscles: ['core', 'obliques'],
+    secondaryMuscles: ['trapèzes', 'avant-bras', 'fessiers', 'érecteurs du rachis'],
+    equipmentNeeded: ['kettlebell'],
+    contraindications: ['lower_back', 'shoulder_left', 'shoulder_right'],
+    alternatives: ['Farmer walk haltères', 'Planche RKC'],
+    instructions:
+      'Une seule kettlebell, tenue à bout de bras le long du corps comme une valise. Marchez en restant parfaitement droit : épaules de niveau, pas de penchement du côté chargé ni de compensation de l\'autre côté. C\'est le côté SANS charge qui travaille, pour empêcher le buste de basculer. Reposez, changez de main, refaites la même distance.',
+    isRehab: false,
+    tags: ['core', 'carry', 'kettlebell', 'unilateral', 'anti_lateral_flexion'],
+  },
 ]

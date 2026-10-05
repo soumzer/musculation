@@ -17,6 +17,7 @@ export interface NextSessionExercisePreview {
   targetRepsMax?: number
   isRehab: boolean
   isTimeBased?: boolean
+  isDistance?: boolean
   /** Reps comptées par bras ou par côté. */
   perSide?: PerSide
   /** Lettre du superset (programme coach). */
@@ -267,6 +268,7 @@ export function useNextSession(userId: number | undefined): NextSessionInfo | un
         targetRepsMax: pe.targetRepsMax,
         isRehab: pe.isRehab,
         isTimeBased: pe.isTimeBased,
+        isDistance: pe.isDistance,
         perSide: pe.perSide,
         supersetGroup: pe.supersetGroup,
       })),

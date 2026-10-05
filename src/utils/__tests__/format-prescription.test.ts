@@ -21,9 +21,15 @@ describe('formatReps', () => {
     expect(formatReps({ targetReps: 150, isTimeBased: true })).toBe('150s')
   })
 
+  it('portage : une distance en mètres', () => {
+    expect(formatReps({ targetReps: 30, isDistance: true })).toBe('30 m')
+    expect(formatReps({ targetReps: 30, isDistance: true, perSide: 'côté' })).toBe('30 m/côté')
+  })
+
   it('formatPrescription colle séries et reps', () => {
     expect(formatPrescription({ sets: 1, targetReps: 720, isTimeBased: true })).toBe('1 x 12 min')
     expect(formatPrescription({ sets: 3, targetReps: 8, perSide: 'bras' })).toBe('3 x 8/bras')
+    expect(formatPrescription({ sets: 3, targetReps: 30, isDistance: true, perSide: 'côté' })).toBe('3 x 30 m/côté')
   })
 })
 

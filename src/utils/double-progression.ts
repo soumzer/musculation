@@ -30,10 +30,12 @@ function fmtKg(kg: number): string {
 
 export function doubleProgression(
   lastEntry: NotebookEntry | null,
-  target: { sets: number; reps: number; repsMax?: number },
+  /** `isDistance` : la cible est une distance en mètres, pas des répétitions. */
+  target: { sets: number; reps: number; repsMax?: number; isDistance?: boolean },
   increment: number,
 ): ProgressionAdvice {
   const top = target.repsMax ?? target.reps
+  const unit = target.isDistance ? 'm' : 'reps'
   const rangeLabel = target.repsMax !== undefined ? `${target.reps}-${target.repsMax}` : `${target.reps}`
 
   if (!lastEntry || lastEntry.sets.length === 0) {
@@ -41,7 +43,7 @@ export function doubleProgression(
       kind: 'first',
       weightKg: null,
       increment,
-      message: `Première fois : une charge où tu tiens ${rangeLabel} reps avec 0-1 en réserve.`,
+      message: `Première fois : une charge où tu tiens ${rangeLabel} ${unit} avec 0-1 en réserve.`,
     }
   }
 
@@ -64,7 +66,7 @@ export function doubleProgression(
       kind: 'increase',
       weightKg: next,
       increment,
-      message: `Monte à ${fmtKg(next)} kg — ${top} reps atteintes sur toutes les séries la dernière fois.`,
+      message: `Monte à ${fmtKg(next)} kg — ${top} ${unit} atteintes sur toutes les séries la dernière fois.`,
     }
   }
 
@@ -73,7 +75,7 @@ export function doubleProgression(
     weightKg: weight > 0 ? weight : null,
     increment,
     message: weight > 0
-      ? `Garde ${fmtKg(weight)} kg, vise ${top} reps sur les ${target.sets} séries.`
-      : `Vise ${top} reps sur les ${target.sets} séries.`,
+      ? `Garde ${fmtKg(weight)} kg, vise ${top} ${unit} sur les ${target.sets} séries.`
+      : `Vise ${top} ${unit} sur les ${target.sets} séries.`,
   }
 }

@@ -842,6 +842,7 @@ function SessionRunner({
           restSeconds: currentProgramExercise.restSeconds,
           intensity,
           isTimeBased: currentProgramExercise.isTimeBased,
+          isDistance: currentProgramExercise.isDistance,
           repsMax: currentProgramExercise.targetRepsMax,
           perSide: currentProgramExercise.perSide,
           cue: currentProgramExercise.cue,

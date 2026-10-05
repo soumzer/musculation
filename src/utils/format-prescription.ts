@@ -9,6 +9,8 @@ export interface PrescriptionLike {
   targetReps: number
   targetRepsMax?: number
   isTimeBased?: boolean
+  /** Portage : `targetReps` est une distance en mètres. */
+  isDistance?: boolean
   perSide?: PerSide
 }
 
@@ -17,6 +19,7 @@ export function formatReps(p: Omit<PrescriptionLike, 'sets'>): string {
     ? `${p.targetReps}-${p.targetRepsMax}`
     : `${p.targetReps}`
   const side = p.perSide ? `/${p.perSide}` : ''
+  if (p.isDistance) return `${range} m${side}`
   // Au-delà de 2 min, une durée se lit en minutes (chrono d'un complexe),
   // alors qu'un gainage de 30-45s se lit en secondes.
   if (p.isTimeBased && p.targetRepsMax === undefined && p.targetReps >= 120 && p.targetReps % 60 === 0) {

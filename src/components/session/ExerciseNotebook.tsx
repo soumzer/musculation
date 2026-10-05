@@ -33,6 +33,8 @@ export interface ExerciseNotebookProps {
     restSeconds: number
     intensity: 'heavy' | 'volume' | 'moderate' | 'rehab'
     isTimeBased?: boolean
+    /** Portage : la saisie est une distance en mètres, pas des répétitions. */
+    isDistance?: boolean
     /** Haut de la fourchette (programme coach) — affiché « 6-10 ». */
     repsMax?: number
     /** Reps comptées par bras / par côté (programme coach). */
@@ -135,7 +137,7 @@ export default function ExerciseNotebook({
 
   // Double progression (programme coach) — null hors coach.
   const progression = target.increment !== undefined && !target.isTimeBased
-    ? doubleProgression(notebook.lastEntry, { sets: target.sets, reps: target.reps, repsMax: target.repsMax }, target.increment)
+    ? doubleProgression(notebook.lastEntry, { sets: target.sets, reps: target.reps, repsMax: target.repsMax, isDistance: target.isDistance }, target.increment)
     : null
 
   const timer = useRestTimer(target.restSeconds, initialRestTimerEndTime)
@@ -319,7 +321,7 @@ export default function ExerciseNotebook({
           <h1 className="text-xl font-black text-white">{exercise.exerciseName}</h1>
           <div className="flex items-center gap-2 mt-1.5">
             <span className="text-zinc-400 text-sm">
-              {target.sets} x {formatReps({ targetReps: target.reps, targetRepsMax: target.repsMax, isTimeBased: target.isTimeBased, perSide: target.perSide })}{target.isTimeBased || target.repsMax !== undefined || target.perSide ? '' : ' reps'} — repos {formatRestLabel(target.restSeconds)}
+              {target.sets} x {formatReps({ targetReps: target.reps, targetRepsMax: target.repsMax, isTimeBased: target.isTimeBased, isDistance: target.isDistance, perSide: target.perSide })}{target.isTimeBased || target.isDistance || target.repsMax !== undefined || target.perSide ? '' : ' reps'} — repos {formatRestLabel(target.restSeconds)}
             </span>
             {exercise.isRehab ? (
               <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400">
@@ -537,7 +539,7 @@ export default function ExerciseNotebook({
                   inputMode="numeric"
                   value={inputReps}
                   onChange={e => setInputReps(e.target.value)}
-                  placeholder="reps"
+                  placeholder={target.isDistance ? 'm' : 'reps'}
                   className="w-16 bg-zinc-800 text-white text-center rounded-xl px-2 py-2 text-sm outline-none placeholder-zinc-600"
                 />
                 <button

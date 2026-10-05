@@ -166,7 +166,7 @@ describe('coach-program — Kettlebell maison', () => {
       'Iron Cardio — vendredi',
       'Récupération active',
     ])
-    expect(kettlebellProgram.sessions.map((s) => s.durationMin)).toEqual([40, 35, 40, 20])
+    expect(kettlebellProgram.sessions.map((s) => s.durationMin)).toEqual([50, 50, 50, 20])
     for (const s of kettlebellProgram.sessions) {
       expect(s.finisher).toBeUndefined()
       expect(s.coreDuringRest).toBeUndefined()
@@ -179,6 +179,51 @@ describe('coach-program — Kettlebell maison', () => {
     expect(kettlebellProgram.increments).toEqual({ machine: 5, free: 2 })
   })
 
+  it('séance A : Iron Cardio, pompes, 4 tractions, rowing kettlebell', () => {
+    expect(kettlebellProgram.sessions[0].exercises.map((e) => e.name)).toEqual([
+      'Iron Cardio (clean + press + squat kettlebell)',
+      'Pompes classiques',
+      'Traction (pull-up)',
+      'Rowing kettlebell à un bras',
+    ])
+    const rowing = kettlebellProgram.sessions[0].exercises[3]
+    expect(rowing.sets).toBe(3)
+    expect(rowing.reps).toBe(10)
+    expect(rowing.perSide).toBe('bras')
+  })
+
+  it('séance B : cuisses puis haut du corps puis portage', () => {
+    expect(kettlebellProgram.sessions[1].exercises.map((e) => e.name)).toEqual([
+      'Saut vertical sur place',
+      'Kettlebell swing à un bras',
+      'Squat bulgare kettlebell (goblet)',
+      'Traction (pull-up)',
+      'Pompes classiques',
+      'Marche valise kettlebell (suitcase carry)',
+    ])
+  })
+
+  it('la marche valise se compte en mètres, par côté', () => {
+    const carry = kettlebellProgram.sessions[1].exercises[5]
+    expect(carry.distance).toBe(true)
+    expect(carry.reps).toBe(30)
+    expect(carry.sets).toBe(3)
+    expect(carry.perSide).toBe('côté')
+    expect(carry.timeBased).toBeUndefined() // une distance n'est pas un chrono
+
+    const built = buildCoachSessions(kettlebellProgram, catalogWithIds)[1].exercises[5]
+    expect(built.isDistance).toBe(true)
+    expect(built.targetReps).toBe(30)
+  })
+
+  it('les swings rappellent les extensions du dos après la série', () => {
+    const swingB = kettlebellProgram.sessions[1].exercises[1]
+    const swingC = kettlebellProgram.sessions[3].exercises[0]
+    for (const s of [swingB, swingC]) {
+      expect(s.cue, s.name).toContain('extensions du dos')
+    }
+  })
+
   it('n\'utilise que le matériel dispo : kettlebell, barre de traction, banc', () => {
     const byName = new Map(exerciseCatalog.map((e) => [e.name, e]))
     const allowed = new Set(['kettlebell', 'pull_up_bar', 'bench'])
@@ -189,14 +234,20 @@ describe('coach-program — Kettlebell maison', () => {
     }
   })
 
-  it('les deux Iron Cardio sont identiques mais portent un nom distinct', () => {
+  it('les deux Iron Cardio ne diffèrent que par la prise des tractions', () => {
     const [lundi, , vendredi] = kettlebellProgram.sessions
     // L'app retrouve où elle en est par le NOM de la dernière séance faite :
     // deux noms identiques la renverraient toujours au lundi.
     expect(lundi.name).not.toBe(vendredi.name)
-    expect(vendredi.exercises).toEqual(lundi.exercises)
+    expect(lundi.exercises.map((e) => e.name)).toEqual(vendredi.exercises.map((e) => e.name))
     // Les pastilles de l'accueil coupent au « — » : les deux affichent « Iron Cardio ».
     expect(lundi.name.replace(/ — .*/, '')).toBe(vendredi.name.replace(/ — .*/, ''))
+
+    // La prise alterne d'une séance à l'autre, annoncée dans la consigne.
+    const tractions = (s: typeof lundi) => s.exercises.find((e) => e.name === 'Traction (pull-up)')!
+    expect(tractions(lundi).sets).toBe(4)
+    expect(tractions(lundi).cue).toContain('pronation')
+    expect(tractions(vendredi).cue).toContain('supination')
   })
 
   it('buildCoachSessions : Iron Cardio au chrono, unilatéral annoncé du bon mot', () => {
@@ -278,7 +329,7 @@ describe('coach-program — semaine allégée à la demande', () => {
   })
 
   it('la durée annoncée de la séance suit', () => {
-    expect(applyLightWeek(sessions, true)[0].durationMin).toBe(20) // 40 min → 20
+    expect(applyLightWeek(sessions, true)[0].durationMin).toBe(25) // 50 min → 25
   })
 
   it('inactive, elle ne touche à rien', () => {

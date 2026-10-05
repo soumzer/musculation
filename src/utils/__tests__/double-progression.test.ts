@@ -59,3 +59,22 @@ describe('double progression', () => {
     expect(a.weightKg).toBe(45)
   })
 })
+
+describe('doubleProgression — portage (distance)', () => {
+  const entry = (weightKg: number, metres: number): NotebookEntry => ({
+    userId: 1, exerciseId: 1, exerciseName: 'Marche valise', date: new Date(),
+    sessionIntensity: 'volume', skipped: false,
+    sets: Array.from({ length: 3 }, () => ({ weightKg, reps: metres })),
+  })
+
+  it('parle en mètres, jamais en reps', () => {
+    const cible = { sets: 3, reps: 30, isDistance: true }
+    expect(doubleProgression(null, cible, 2).message).toContain('30 m')
+    expect(doubleProgression(null, cible, 2).message).not.toContain('reps')
+    expect(doubleProgression(entry(16, 20), cible, 2).message).toContain('30 m')
+    const monte = doubleProgression(entry(16, 30), cible, 2)
+    expect(monte.kind).toBe('increase')
+    expect(monte.message).toContain('18 kg')
+    expect(monte.message).toContain('30 m')
+  })
+})

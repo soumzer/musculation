@@ -31,6 +31,8 @@ export interface CoachExerciseDef {
   cue?: string
   perSide?: 'bras' | 'côté' | 'jambe'
   timeBased?: boolean
+  /** Portage : `reps` est une distance en mètres. */
+  distance?: boolean
   /** Complexe enchaîné au chrono avec compteur de tours (Iron Cardio). */
   continuousComplex?: boolean
 }
@@ -511,7 +513,7 @@ const kettlebellCooldown: PrepItem[] = [
  * ce repère, d'où le suffixe « — lundi » / « — vendredi » (les pastilles de
  * l'accueil le retirent à l'affichage).
  */
-const ironCardioExercises: CoachExerciseDef[] = [
+const seanceA = (prise: 'pronation' | 'supination'): CoachExerciseDef[] => [
   {
     name: 'Iron Cardio (clean + press + squat kettlebell)',
     sets: 1,
@@ -530,22 +532,32 @@ const ironCardioExercises: CoachExerciseDef[] = [
   },
   {
     name: 'Traction (pull-up)',
-    sets: 3,
+    sets: 4,
     reps: [6, 8],
     rest: 120,
-    cue: 'trop dur ? « Changer » → Rowing inversé ou Traction excentrique',
+    cue: prise === 'pronation'
+      ? 'prise pronation, paumes devant (supination vendredi) — trop dur ? « Changer »'
+      : 'prise supination, paumes vers toi (pronation lundi) — trop dur ? « Changer »',
+  },
+  {
+    name: 'Rowing kettlebell à un bras',
+    sets: 3,
+    reps: 10,
+    rest: 75,
+    perSide: 'bras',
+    cue: '16 kg — buste penché, main libre sur le banc, dos plat, tire vers la hanche, coude près du corps',
   },
 ]
 
 const kettlebellSessions: CoachSessionDef[] = [
   {
     name: 'Iron Cardio — lundi',
-    durationMin: 40,
-    exercises: ironCardioExercises,
+    durationMin: 50,
+    exercises: seanceA('pronation'),
   },
   {
     name: 'Puissance + cuisses',
-    durationMin: 35,
+    durationMin: 50,
     exercises: [
       {
         name: 'Saut vertical sur place',
@@ -560,7 +572,7 @@ const kettlebellSessions: CoachSessionDef[] = [
         reps: 8,
         rest: 75,
         perSide: 'bras',
-        cue: 'charnière de hanche — le bras ne tire pas',
+        cue: 'charnière de hanche, le bras ne tire pas — après : 3 à 5 extensions du dos debout, mains sur les lombaires',
       },
       {
         name: 'Squat bulgare kettlebell (goblet)',
@@ -570,12 +582,35 @@ const kettlebellSessions: CoachSessionDef[] = [
         perSide: 'jambe',
         cue: 'pied arrière sur le banc — 0 kg = poids de corps',
       },
+      {
+        name: 'Traction (pull-up)',
+        sets: 3,
+        reps: [6, 8],
+        rest: 120,
+        cue: 'arrête-toi 2 reps avant l\'échec — trop dur ? « Changer »',
+      },
+      {
+        name: 'Pompes classiques',
+        sets: 3,
+        reps: [10, 25],
+        rest: 90,
+        cue: 'arrête-toi quand il reste 2 reps — jamais à l\'échec',
+      },
+      {
+        name: 'Marche valise kettlebell (suitcase carry)',
+        sets: 3,
+        reps: 30,
+        rest: 75,
+        perSide: 'côté',
+        distance: true,
+        cue: '16 kg d\'un seul côté — reste droit, épaules de niveau, ne penche pas',
+      },
     ],
   },
   {
     name: 'Iron Cardio — vendredi',
-    durationMin: 40,
-    exercises: ironCardioExercises,
+    durationMin: 50,
+    exercises: seanceA('supination'),
   },
   {
     name: 'Récupération active',
@@ -586,7 +621,7 @@ const kettlebellSessions: CoachSessionDef[] = [
         sets: 5,
         reps: 10,
         rest: 60,
-        cue: 'sans chercher la fatigue — 10 à 14 kg',
+        cue: 'sans chercher la fatigue, 10 à 14 kg — après : 3 à 5 extensions du dos debout, mains sur les lombaires',
       },
       {
         name: 'Turkish get-up kettlebell',
@@ -682,8 +717,8 @@ export const kettlebellProgram: CoachProgramDef = {
   id: 'kettlebell',
   name: 'Programme kettlebell — maison',
   owner: 'Kettlebell maison',
-  summary: '3 séances · KB 6-16 kg + barre de traction · progression par paliers',
-  version: 1,
+  summary: '4 séances · KB 6-16 kg, barre de traction, banc · tu règles tes charges',
+  version: 2,
   prepRoutine: kettlebellPrep,
   prepLabel: '5 min · avant chaque séance',
   cooldownRoutine: kettlebellCooldown,
@@ -780,6 +815,7 @@ export function buildCoachSessions(def: CoachProgramDef, catalog: Exercise[]): P
         restSeconds: e.rest,
         isRehab: false,
         isTimeBased: e.timeBased,
+        isDistance: e.distance,
         continuousComplex: e.continuousComplex,
         supersetGroup: e.group,
         cue: e.cue,
