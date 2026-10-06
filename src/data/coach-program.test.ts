@@ -164,9 +164,9 @@ describe('coach-program — Kettlebell maison', () => {
       'Iron Cardio — lundi',
       'Puissance + cuisses',
       'Iron Cardio — vendredi',
-      'Récupération active',
+      'Simple & Sinister',
     ])
-    expect(kettlebellProgram.sessions.map((s) => s.durationMin)).toEqual([50, 50, 50, 20])
+    expect(kettlebellProgram.sessions.map((s) => s.durationMin)).toEqual([50, 50, 50, 30])
     for (const s of kettlebellProgram.sessions) {
       expect(s.finisher).toBeUndefined()
       expect(s.coreDuringRest).toBeUndefined()
@@ -214,6 +214,24 @@ describe('coach-program — Kettlebell maison', () => {
     const built = buildCoachSessions(kettlebellProgram, catalogWithIds)[1].exercises[5]
     expect(built.isDistance).toBe(true)
     expect(built.targetReps).toBe(30)
+  })
+
+  it('samedi : 100 swings en EMOM et 5 get-up par côté', () => {
+    const samedi = kettlebellProgram.sessions[3]
+    const [swing, tgu] = samedi.exercises
+    expect(swing.name).toBe('Kettlebell swing')
+    expect(swing.sets).toBe(10)
+    expect(swing.reps).toBe(10) // 10 × 10 = 100 swings
+    expect(swing.cue).toContain('EMOM')
+    expect(tgu.name).toBe('Turkish get-up kettlebell')
+    expect(tgu.sets).toBe(5)
+    expect(tgu.perSide).toBe('côté')
+  })
+
+  it('la version courte du samedi reste écrite dans les règles', () => {
+    const section = kettlebellProgram.rules.find((r) => r.title.includes('version courte'))!
+    expect(section.items?.join(' ')).toContain('5 × 10')
+    expect(section.items?.join(' ')).toContain('3 par côté')
   })
 
   it('les swings rappellent les extensions du dos après la série', () => {

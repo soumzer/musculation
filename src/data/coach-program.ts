@@ -323,7 +323,7 @@ export const yassineProgram: CoachProgramDef = {
   name: 'Programme coach — Recomp',
   owner: 'Yassine',
   summary: 'Recomp · 5 séances de 30-34 min · prépa posture, supersets, finishers · 3 → 4 → 5 jours',
-  version: 2,
+  version: 3,
   prepRoutine: yassinePrep,
   sessions: yassineSessions,
   weekPlan: { rampUp: [3, 4, 5], deloadEvery: 5 },
@@ -613,23 +613,23 @@ const kettlebellSessions: CoachSessionDef[] = [
     exercises: seanceA('supination'),
   },
   {
-    name: 'Récupération active',
-    durationMin: 20,
+    name: 'Simple & Sinister',
+    durationMin: 30,
     exercises: [
       {
         name: 'Kettlebell swing',
-        sets: 5,
+        sets: 10,
         reps: 10,
         rest: 60,
-        cue: 'sans chercher la fatigue, 10 à 14 kg — après : 3 à 5 extensions du dos debout, mains sur les lombaires',
+        cue: 'une série par minute (EMOM), 12-14 kg puis 16 — après : 3 à 5 extensions du dos debout, mains sur les lombaires',
       },
       {
         name: 'Turkish get-up kettlebell',
-        sets: 3,
+        sets: 5,
         reps: 1,
         rest: 60,
         perSide: 'côté',
-        cue: 'lentement, regarde la kettlebell tout le long',
+        cue: 'alterne les côtés, 8-12 kg puis 14-16 — lentement, regarde la kettlebell tout le long',
       },
     ],
   },
@@ -652,7 +652,7 @@ const kettlebellRules: CoachRuleSection[] = [
         ['Lundi', 'Iron Cardio + haut du corps'],
         ['Mercredi', 'Puissance + cuisses'],
         ['Vendredi', 'Iron Cardio + haut du corps'],
-        ['Samedi', 'Récupération active — si tu le sens'],
+        ['Samedi', 'Simple & Sinister — si tu le sens'],
       ],
     },
     highlight: 'Mardi, jeudi, dimanche : repos.',
@@ -695,6 +695,15 @@ const kettlebellRules: CoachRuleSection[] = [
     },
   },
   {
+    title: 'Samedi — version courte',
+    items: [
+      'Pas le jus pour les 100 swings ? Fais la version d\'avant, elle reste valable.',
+      'Swing à deux mains : 5 × 10, 10 à 14 kg, sans chercher la fatigue',
+      'Turkish get-up : 3 par côté, 8 à 12 kg',
+    ],
+    highlight: 'Tu enregistres simplement moins de séries que prévu — l\'app ne t\'en tiendra pas rigueur.',
+  },
+  {
     title: 'Fatigue',
     items: [
       'Mauvaise nuit, grosse journée : même charge, durée réduite d\'un tiers',
@@ -725,7 +734,7 @@ export const kettlebellProgram: CoachProgramDef = {
   sessions: kettlebellSessions,
   weekPlan: { rampUp: [3], deloadEvery: 0 },
   increments: { machine: 5, free: 2 },
-  homeHint: 'Lundi et vendredi Iron Cardio, mercredi puissance. Samedi récup active si tu le sens.',
+  homeHint: 'Lundi et vendredi Iron Cardio, mercredi puissance. Samedi Simple & Sinister si tu le sens.',
   rules: kettlebellRules,
 }
 
